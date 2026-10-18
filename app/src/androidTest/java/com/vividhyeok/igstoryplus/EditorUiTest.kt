@@ -152,6 +152,7 @@ class EditorUiTest {
             onView(withContentDescription("다시 실행")).perform(click());scenario.onActivity{assertTrue(it.project.layers.single().x>.53f)}
             pinchAndRotate(x+64,y+40)
             scenario.onActivity{assertTrue("Pinch must scale",it.project.layers.single().scale>1.05f);assertTrue("Two fingers must rotate",kotlin.math.abs(it.project.layers.single().rotation)>3f)}
+            scenario.onActivity{a->val e=editor(a.window.decorView)!!;val v=e.getChildAt(e.childCount-1);assertEquals(v.width/2f,v.pivotX,.01f);assertEquals(v.height/2f,v.pivotY,.01f)}
             // Explicit layer selection exposes the context toolbar even after history restoration.
             onView(withContentDescription("더보기")).perform(click());onView(withText("레이어 목록")).perform(scrollTo(),click());onView(withText("오늘도 차분하게")).perform(click())
             onView(withText("복제")).perform(click());scenario.onActivity{assertEquals(2,it.project.layers.size)}

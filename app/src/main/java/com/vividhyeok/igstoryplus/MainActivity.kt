@@ -120,7 +120,7 @@ class MainActivity : AppCompatActivity() {
         editor.onLayerGesture={v,start->
             if(!rebuilding && textSession==null && cropSession==null){
                 if(start){stopPreview();gestureBefore=store.copy(project);dragging=true;selected=layerViews.entries.firstOrNull{it.value===v}?.key;contextTools()}
-                else { guides.clear();snap(v);syncTransforms();dragging=false;gestureBefore?.let{if(store.gson.toJson(it)!=store.gson.toJson(project))history.push(it)};gestureBefore=null;persist() }
+                else { guides.clear();centerPivot(v);snap(v);syncTransforms();dragging=false;gestureBefore?.let{if(store.gson.toJson(it)!=store.gson.toJson(project))history.push(it)};gestureBefore=null;persist() }
             }
         }
         editor.onLayerTransform={v->guides.follow(v,editor)}
@@ -249,6 +249,11 @@ class MainActivity : AppCompatActivity() {
         if(abs(v.left+c[0]-editor.width/2)<dp(8))v.translationX+=editor.width/2-v.left-c[0]
         if(abs(v.top+c[1]-editor.height/2)<dp(8))v.translationY+=editor.height/2-v.top-c[1]
         if(abs(v.rotation%90)<3)v.rotation=(v.rotation/90).roundToInt()*90f
+    }
+    private fun centerPivot(v:View){
+        val center=floatArrayOf(v.width/2f,v.height/2f);v.matrix.mapPoints(center)
+        v.pivotX=v.width/2f;v.pivotY=v.height/2f
+        v.translationX=center[0]-v.width/2f;v.translationY=center[1]-v.height/2f
     }
     private fun contextTools(){
         contextBar.removeAllViews();val l=project.layers.firstOrNull{it.id==selected}
