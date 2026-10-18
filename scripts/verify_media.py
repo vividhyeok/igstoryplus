@@ -1,8 +1,10 @@
 """Inspect actual Android renderer outputs; fail CI before releasing a broken pipeline."""
 import json
+import os
 import pathlib
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 
 root = pathlib.Path(sys.argv[1])
 reports = {}
@@ -44,5 +46,22 @@ for name, duration, audio in [("motion-5s", 5, False), ("music-flow-15s", 15, Tr
         reports[name]["visual_checks"] = {"quarter_frame_delta": motion_delta, "loop_boundary_delta": loop_delta}
 assert (root / "still-korean.jpg").is_file()
 assert len(list(root.glob("style-*.png"))) == 7
+groups = {
+    "app_unit": pathlib.Path("app/build/test-results/testDebugUnitTest").glob("TEST-*.xml"),
+    "photoeditor_unit": pathlib.Path("photoeditor/build/test-results/testDebugUnitTest").glob("TEST-*.xml"),
+    "android_integration": pathlib.Path("app/build/outputs/androidTest-results/connected/debug").glob("TEST-*.xml"),
+}
+test_counts = {}
+for group, files in groups.items():
+    suites = [ET.parse(p).getroot() for p in files]
+    if suites:
+        assert all(int(s.get("failures", 0)) == 0 and int(s.get("errors", 0)) == 0 for s in suites)
+        test_counts[group] = sum(int(s.get("tests", 0)) for s in suites)
+reports["_verification"] = {
+    "commit": os.environ.get("GITHUB_SHA", "local"),
+    "run_url": "https://github.com/vividhyeok/igstoryplus/actions/runs/" + os.environ.get("GITHUB_RUN_ID", "local"),
+    "passed_tests": test_counts,
+    "full_frame_decode": True,
+}
 (root / "ffprobe-report.json").write_text(json.dumps(reports, indent=2), encoding="utf-8")
 print("Verified: JPEG, 7 GPU style images, H.264 1080×1920 30fps 5/15/30/60s; AAC and full frame decode.")

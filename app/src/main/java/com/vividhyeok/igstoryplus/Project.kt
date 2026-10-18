@@ -22,7 +22,7 @@ data class Project(var source: String = "", var video: Boolean = false, var sour
                    var duration: Int = 5, var crop: Crop = Crop(), var style: Style = Style(),
                    var layers: MutableList<Layer> = mutableListOf(), var music: Music? = null) {
     fun animated() = video || music != null || style.motion || layers.any { it.motion }
-    fun durationMs(): Long = if (video) sourceDurationMs.coerceIn(1000, 60000) else duration.coerceIn(5, 15) * 1000L
+    fun durationMs(): Long = if (video) sourceDurationMs.coerceIn(1, 60000) else duration.coerceIn(5, 15) * 1000L
 }
 data class Preset(var name: String, var style: Style, var text: String, var card: String,
                   var template: Layer?=null, var musicMotion: Boolean=false, var duration: Int=5)

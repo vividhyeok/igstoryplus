@@ -19,9 +19,10 @@ import kotlin.math.*
 class Exporter(private val context: Context) {
     private var transformer: Transformer?=null
     private val handler=Handler(Looper.getMainLooper())
-    private var cancelled=false
+    @Volatile private var cancelled=false
+    @Volatile private var sourceTemp:File?=null
     private var output: File?=null
-    fun cancel() { cancelled=true; transformer?.cancel(); output?.delete() }
+    fun cancel() { cancelled=true; transformer?.cancel();transformer=null;output?.delete();sourceTemp?.delete() }
     fun export(p: Project, progress: (Int)->Unit, complete: (Result<File>)->Unit) {
         cancelled=false
         val folder=File(context.filesDir,"exports").apply{mkdirs()}
@@ -37,17 +38,20 @@ class Exporter(private val context: Context) {
                     val b=filteredBitmap(base!!,p.style); val canvas=Canvas(b)
                     layers.forEach { (l,bitmap)-> drawLayer(canvas,l,bitmap,1080,1920) }
                     file.outputStream().use{check(b.compress(Bitmap.CompressFormat.JPEG,92,it))}
+                    if(cancelled){file.delete();return@Thread}
                     check(file.length()>0); handler.post{if(!cancelled)complete(Result.success(file))}
                 } else {
                     val source=if(p.video)Uri.parse(p.source) else {
                         val temp=File(context.cacheDir,"render-source-${System.nanoTime()}.jpg")
+                        sourceTemp=temp
                         temp.outputStream().use{base!!.compress(Bitmap.CompressFormat.JPEG,98,it)}; Uri.fromFile(temp)
                     }
                     handler.post {
-                        if(cancelled)return@post
+                        if(cancelled){sourceTemp?.delete();return@post}
                         runCatching {
                             val effects=baseEffects(context,p,beats).toMutableList()
-                            if(layers.isNotEmpty()) effects+=OverlayEffect(layers.map{(l,b)-> overlay(l,b,p.durationMs()) as TextureOverlay})
+                            // GLES2 guarantees eight texture units, including the background sampler.
+                            layers.chunked(6).forEach{batch->effects+=OverlayEffect(batch.map{(l,b)-> overlay(l,b,p.durationMs()) as TextureOverlay})}
                             val media=MediaItem.Builder().setUri(source).apply {
                                 if(!p.video)setImageDurationMs(p.durationMs()) else setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(p.durationMs()).build())
                             }.build()
@@ -71,10 +75,10 @@ class Exporter(private val context: Context) {
                             }).build()
                             transformer!!.start(Composition.Builder(seq).setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL).build(),file.absolutePath)
                             val poll=object:Runnable{override fun run(){ val t=transformer?:return; val holder=ProgressHolder(); t.getProgress(holder); progress(holder.progress); handler.postDelayed(this,250) }}; handler.post(poll)
-                        }.onFailure{complete(Result.failure(it))}
+                        }.onFailure{file.delete();sourceTemp?.delete();if(!cancelled)complete(Result.failure(it))}
                     }
                 }
-            }catch(e:Exception){handler.post{if(!cancelled)complete(Result.failure(e))}}
+            }catch(e:Exception){file.delete();sourceTemp?.delete();handler.post{if(!cancelled)complete(Result.failure(e))}}
         }.start()
     }
     companion object {

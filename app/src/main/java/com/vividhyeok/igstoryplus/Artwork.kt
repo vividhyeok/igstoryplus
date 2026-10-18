@@ -39,7 +39,10 @@ object Artwork {
         if (p.source.isBlank()) return out
         val raw = if (p.video) videoFrame(c, p.source) else decode(c, p.source,if(width>=1080)(2048*p.crop.zoom).toInt().coerceAtMost(4096) else 1536)
         val b = cropped(raw, p.crop)
-        val small = Bitmap.createScaledBitmap(b, 54, 96, true)
+        val small = Bitmap.createBitmap(54,96,Bitmap.Config.ARGB_8888)
+        val bgScale=max(54f/b.width,96f/b.height)
+        val bgWidth=b.width*bgScale;val bgHeight=b.height*bgScale
+        Canvas(small).drawBitmap(b,null,RectF((54-bgWidth)/2,(96-bgHeight)/2,(54+bgWidth)/2,(96+bgHeight)/2),Paint(Paint.FILTER_BITMAP_FLAG))
         val pix = IntArray(54*96); small.getPixels(pix,0,54,0,0,54,96)
         val radius = (p.style.blur*8).toInt().coerceAtLeast(0)
         if (radius > 0) {

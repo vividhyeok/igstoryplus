@@ -10,6 +10,7 @@ class ProjectTest {
         p.music=Music();p.duration=15;assertEquals(15000L,p.durationMs())
         p.video=true;p.sourceDurationMs=43000;assertEquals(43000L,p.durationMs())
         p.sourceDurationMs=95000;assertEquals(60000L,p.durationMs())
+        p.sourceDurationMs=420;assertEquals(420L,p.durationMs())
         p.video=false;p.music=null;p.style.motion=false;p.layers.add(Layer(motion=true));assertTrue(p.animated())
     }
     @Test fun historyRestoresCropLayersAndMusicIndependently(){

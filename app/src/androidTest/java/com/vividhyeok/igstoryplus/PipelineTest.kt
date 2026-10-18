@@ -105,6 +105,14 @@ class PipelineTest {
         assertTrue(latch.await(15,TimeUnit.SECONDS))
         Handler(Looper.getMainLooper()).post{val e=Exporter(c);e.export(Project(source=p.source,style=Style(motion=true)),{}){};e.cancel()}
         Thread.sleep(1500);assertEquals("초안",store.load().layers.single().text)
+        val before=File(c.filesDir,"exports").listFiles()!!.map{it.name}.toSet()
+        val cancelled=CountDownLatch(1);var earlyFailure:Throwable?=null
+        Handler(Looper.getMainLooper()).post{
+            val e=Exporter(c)
+            e.export(Project(source=p.source,style=Style(motion=true)),{e.cancel();cancelled.countDown()}){r->earlyFailure=r.exceptionOrNull()?:IllegalStateException("Completed before cancellation");cancelled.countDown()}
+        }
+        assertTrue("Started renderer cancellation timed out",cancelled.await(30,TimeUnit.SECONDS));assertNull(earlyFailure)
+        Thread.sleep(300);assertTrue(File(c.filesDir,"exports").listFiles()!!.all{it.name in before})
         store.save(Project());store.savePresets(emptyList())
     }
     @Test fun fCommonAudioFormatsAndMetadata(){
