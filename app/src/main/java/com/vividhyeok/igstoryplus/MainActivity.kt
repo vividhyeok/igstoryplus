@@ -256,10 +256,11 @@ class MainActivity : AppCompatActivity() {
         if(project.source.isBlank() && layer==null){toast("사진을 먼저 선택해 주세요");return}
         if(project.video && layer==null){toast("영상 크롭은 회전·확대·반전을 지원합니다")}
         val current=layer?.crop?:project.crop;val draft=current.copy();val box=column()
-        val image=ImageView(this).apply{scaleType=ImageView.ScaleType.FIT_CENTER;setBackgroundColor(Color.BLACK)}
-        box.addView(image,LinearLayout.LayoutParams(-1,dp(230)))
         val raw=if(layer!=null)Artwork.decode(this,layer.uri,1080) else if(project.video)Artwork.videoFrame(this,project.source) else Artwork.decode(this,project.source,1080)
-        fun update(){image.setImageBitmap(Artwork.cropped(raw,draft))}
+        val image=CropPreview(this,raw,draft)
+        box.addView(image,LinearLayout.LayoutParams(-1,dp(230)))
+        box.addView(text("드래그로 위치 · 핀치로 확대",12f))
+        fun update(){image.invalidate()}
         val ratios=row();listOf("자유" to 0f,"1:1" to 1f,"4:5" to .8f,"9:16" to 9f/16).forEach{(n,a)->ratios.addView(button(n){draft.aspect=a;update()})};box.addView(scrollRow(ratios))
         slider(box,"확대",(draft.zoom-1)/5){draft.zoom=1+it*5;update()}
         slider(box,"가로 위치",draft.x){draft.x=it;update()};slider(box,"세로 위치",draft.y){draft.y=it;update()}
@@ -281,7 +282,7 @@ class MainActivity : AppCompatActivity() {
         if(path==null){val box=column();box.addView(text("내 PNG를 이모지처럼\n원하는 폴더를 선택하세요.\n예: Pictures/igstoryplus/emoji"));box.addView(button("폴더 선택"){folderPicker.launch(null)});sheet("내 이모지",box);return}
         val box=column();val actions=row();var dialog:AlertDialog?=null
         actions.addView(button("새로고침"){dialog?.dismiss();emojiLibrary()});actions.addView(button("폴더 변경"){dialog?.dismiss();folderPicker.launch(null)});box.addView(actions)
-        val grid=GridLayout(this).apply{columnCount=4};box.addView(grid)
+        val grid=androidx.recyclerview.widget.RecyclerView(this).apply{layoutManager=androidx.recyclerview.widget.GridLayoutManager(this@MainActivity,4)};box.addView(grid,LinearLayout.LayoutParams(-1,dp(380)))
         val loading=text("PNG 불러오는 중…");box.addView(loading)
         dialog=sheet("내 이모지 · 길게 눌러 즐겨찾기",box)
         Thread{
@@ -290,14 +291,8 @@ class MainActivity : AppCompatActivity() {
                 val fav=prefs.getStringSet("favorites",emptySet())?:emptySet();val recent=prefs.getString("recent","")!!.split("|")
                 val sorted=files.sortedWith(compareByDescending<DocumentFile>{it.uri.toString() in fav}.thenBy{recent.indexOf(it.uri.toString()).let{i->if(i<0)999 else i}}.thenBy{it.name})
                 loading.text=if(files.isEmpty())"이 폴더에 PNG를 넣으면 여기에 표시됩니다" else "${files.size}개 · ★ 즐겨찾기 우선"
-                sorted.forEach{f->val uri=f.uri.toString();val cell=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL}
-                    val image=ImageView(this).apply{scaleType=ImageView.ScaleType.FIT_CENTER;contentDescription=f.name}
-                    Glide.with(this).load(f.uri).override(160,160).into(image);cell.addView(image,LinearLayout.LayoutParams(dp(66),dp(66)))
-                    cell.addView(text((if(uri in fav)"★ " else "")+(f.name?:"PNG").take(10),10f))
-                    cell.setOnClickListener{dialog?.dismiss();safe{edit{project.layers.add(Layer(kind="png",uri=uri,width=.089f));selected=project.layers.last().id};prefs.edit().putString("recent",(listOf(uri)+recent.filter{it!=uri}).take(30).joinToString("|")).apply()}}
-                    cell.setOnLongClickListener{val favorites=(prefs.getStringSet("favorites",emptySet())?:emptySet()).toMutableSet();if(!favorites.add(uri))favorites.remove(uri);prefs.edit().putStringSet("favorites",favorites).apply();dialog?.dismiss();emojiLibrary();true}
-                    grid.addView(cell)
-                }
+                grid.adapter=EmojiAdapter(sorted,fav,{f->val uri=f.uri.toString();dialog?.dismiss();safe{edit{project.layers.add(Layer(kind="png",uri=uri,width=.089f));selected=project.layers.last().id};prefs.edit().putString("recent",(listOf(uri)+recent.filter{it!=uri}).take(30).joinToString("|")).apply()}},
+                    {f->val uri=f.uri.toString();val favorites=(prefs.getStringSet("favorites",emptySet())?:emptySet()).toMutableSet();if(!favorites.add(uri))favorites.remove(uri);prefs.edit().putStringSet("favorites",favorites).apply();dialog?.dismiss();emojiLibrary()})
             }.onFailure{loading.text="폴더가 없거나 권한이 만료되었습니다. 폴더를 다시 선택해 주세요."}}
         }.start()
     }
