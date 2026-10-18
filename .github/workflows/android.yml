@@ -62,7 +62,7 @@ jobs:
           if [[ "$GITHUB_REF_TYPE" == tag ]]; then
             VERSION_NAME="${GITHUB_REF_NAME#v}"
           else
-            VERSION_NAME="0.1.0-dev.${GITHUB_RUN_NUMBER}+${GITHUB_SHA:0:7}"
+            VERSION_NAME="0.2.0-dev.${GITHUB_RUN_NUMBER}+${GITHUB_SHA:0:7}"
           fi
           echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
           VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER)) VERSION_NAME="$VERSION_NAME" ./gradlew :app:assembleRelease --console=plain

@@ -15,7 +15,7 @@ data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String
                  var color: Int = -1, var align: Int = 1, var emphasis: Float = .3f,
                  var x: Float = .5f, var y: Float = .5f, var scale: Float = 1f,
                  var rotation: Float = 0f, var width: Float = .45f, var motion: Boolean = false,
-                 var crop: Crop = Crop())
+                 var crop: Crop = Crop(), var textLayoutVersion: Int = 0)
 data class Music(var uri: String = "", var title: String = "", var artist: String = "", var album: String = "",
                  var art: String = "", var durationMs: Long = 0, var startMs: Long = 0, var card: String = "작은 카드")
 data class Project(var source: String = "", var video: Boolean = false, var sourceDurationMs: Long = 0,
@@ -35,10 +35,15 @@ class Store(val context: Context) {
         temp.writeText(gson.toJson(p)); check(temp.renameTo(draft)) { "초안 저장 실패" }
     }
     fun load(): Project = runCatching { gson.fromJson(draft.readText(), Project::class.java) }.getOrNull() ?: Project()
+    private val pending=File(context.filesDir,"text-edit.json")
+    fun saveTextEdit(id:String?,layer:Layer){val temp=File(context.filesDir,"text-edit.tmp");temp.writeText(gson.toJson(TextEditDraft(id,layer)));check(temp.renameTo(pending))}
+    fun textEdit():TextEditDraft?=runCatching{gson.fromJson(pending.readText(),TextEditDraft::class.java)}.getOrNull()
+    fun clearTextEdit(){pending.delete()}
     private val presets = File(context.filesDir, "presets.json")
     fun presets(): MutableList<Preset> = runCatching { gson.fromJson(presets.readText(), Array<Preset>::class.java).toMutableList() }.getOrDefault(mutableListOf())
     fun savePresets(list: List<Preset>) = presets.writeText(gson.toJson(list))
 }
+data class TextEditDraft(val existingId:String?,val layer:Layer)
 class History {
     private val back = ArrayDeque<String>()
     private val forward = ArrayDeque<String>()

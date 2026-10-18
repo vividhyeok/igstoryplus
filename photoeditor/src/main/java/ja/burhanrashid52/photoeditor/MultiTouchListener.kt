@@ -36,6 +36,7 @@ internal class MultiTouchListener(
     private var mPrevY = 0f
     private var mPrevRawX = 0f
     private var mPrevRawY = 0f
+    private var touchedView: View? = null
     private val mScaleGestureDetector: ScaleGestureDetector
     private val location = IntArray(2)
     private var outRect: Rect? = null
@@ -47,6 +48,7 @@ internal class MultiTouchListener(
     private val viewState: PhotoEditorViewState
 
     override fun onTouch(view: View, event: MotionEvent): Boolean {
+        touchedView = view
         mScaleGestureDetector.onTouchEvent(view, event)
         mGestureListener.onTouchEvent(event)
         if (!isTranslateEnabled) {
@@ -175,6 +177,11 @@ internal class MultiTouchListener(
     }
 
     private inner class GestureListener : SimpleOnGestureListener() {
+        override fun onDown(e: MotionEvent) = true
+        override fun onDoubleTap(e: MotionEvent): Boolean {
+            touchedView?.let { photoEditorView.onLayerDoubleTap?.invoke(it) }
+            return true
+        }
         override fun onSingleTapUp(e: MotionEvent): Boolean {
             mOnGestureControl?.onClick()
 

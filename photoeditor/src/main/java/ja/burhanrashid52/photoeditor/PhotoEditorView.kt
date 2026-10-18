@@ -29,6 +29,7 @@ class PhotoEditorView @JvmOverloads constructor(
     /** Host callback for non-destructive document transforms. Added by igstoryplus. */
     var onLayerGesture: ((android.view.View, Boolean) -> Unit)? = null
     var onLayerTransform: ((android.view.View) -> Unit)? = null
+    var onLayerDoubleTap: ((android.view.View) -> Unit)? = null
 
     private var mImgSource: FilterImageView = FilterImageView(context)
 

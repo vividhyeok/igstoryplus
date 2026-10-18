@@ -101,6 +101,8 @@ class LivePhoto(context: Context) : GLSurfaceView(context), GLSurfaceView.Render
     @Volatile var durationMs=5000L
     @Volatile var paused=false
     @Volatile var beat=0f
+    @Volatile private var timeUs=0L
+    fun showTime(time:Long,glow:Float){timeUs=time;beat=glow;requestRender()}
     private var bitmap: Bitmap?=null
     private var texture=0
     private var program: GpuProgram?=null
@@ -108,14 +110,14 @@ class LivePhoto(context: Context) : GLSurfaceView(context), GLSurfaceView.Render
     private val ticker=android.os.Handler(android.os.Looper.getMainLooper())
     private val tick=object:Runnable{override fun run(){if(style.motion && !paused)requestRender();ticker.postDelayed(this,33)}}
     init { setEGLContextClientVersion(2); setRenderer(this);renderMode=RENDERMODE_WHEN_DIRTY }
-    override fun onResume(){super.onResume();ticker.removeCallbacks(tick);ticker.post(tick)}
+    override fun onResume(){super.onResume();requestRender()}
     override fun onPause(){ticker.removeCallbacks(tick);super.onPause()}
     fun setPhoto(b: Bitmap) { queueEvent { bitmap=b; if(texture!=0) GLES20.glDeleteTextures(1,intArrayOf(texture),0); texture=upload(b) }; requestRender() }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) { program=GpuProgram(); texture=bitmap?.let{upload(it)}?:0 }
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) { GLES20.glViewport(0,0,width,height) }
     override fun onDrawFrame(gl: GL10?) {
         GLES20.glClearColor(.06f,.06f,.07f,1f); GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-        if(texture!=0) program?.draw(texture,style,if(paused)0f else Motion.phase((System.nanoTime()-start)/1000,durationMs),true,beat)
+        if(texture!=0) program?.draw(texture,style,Motion.phase(timeUs,durationMs),true,beat)
     }
 }
 // A pbuffer runs exactly the same fragment shader for still exports without a visible surface.

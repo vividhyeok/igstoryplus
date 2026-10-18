@@ -81,21 +81,24 @@ object Artwork {
         "music" -> musicCard(c,music ?: Music(),l)
         else -> text(c,l)
     }
+    fun typeface(l:Layer):Typeface = if(l.font.startsWith("system:"))Typeface.create(l.font.removePrefix("system:"),Typeface.NORMAL) else if(l.font.isNotBlank()) runCatching { Typeface.createFromFile(l.font) }.getOrDefault(Typeface.DEFAULT) else Typeface.create(if(l.type=="Whisper") "sans-serif-light" else "sans-serif-medium",Typeface.NORMAL)
+    fun textSize(l:Layer)=if(l.textLayoutVersion>0)88f else 58f
     fun text(c: Context, l: Layer): Bitmap {
         val p=TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            color=l.color; textSize=58f
-            typeface=if(l.font.startsWith("system:"))Typeface.create(l.font.removePrefix("system:"),Typeface.NORMAL) else if(l.font.isNotBlank()) runCatching { Typeface.createFromFile(l.font) }.getOrDefault(Typeface.DEFAULT) else Typeface.create(if(l.type=="Whisper") "sans-serif-light" else "sans-serif-medium",Typeface.NORMAL)
+            color=l.color; textSize=textSize(l)
+            typeface=typeface(l)
             letterSpacing=if(l.type=="Whisper") .13f else .015f
         }
-        val layout=StaticLayout.Builder.obtain(l.text,0,l.text.length,p,880).setAlignment(when(l.align){0->Layout.Alignment.ALIGN_NORMAL;2->Layout.Alignment.ALIGN_OPPOSITE;else->Layout.Alignment.ALIGN_CENTER}).setIncludePad(true).build()
+        val layout=StaticLayout.Builder.obtain(l.text,0,l.text.length,p,880).setAlignment(when(l.align){0->Layout.Alignment.ALIGN_NORMAL;2->Layout.Alignment.ALIGN_OPPOSITE;else->Layout.Alignment.ALIGN_CENTER}).setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE).setIncludePad(true).build()
         val b=Bitmap.createBitmap(960,layout.height+64,Bitmap.Config.ARGB_8888); val canvas=Canvas(b)
         if(l.type=="Soft Label") canvas.drawRoundRect(12f,6f,948f,b.height-6f,28f,28f,Paint(Paint.ANTI_ALIAS_FLAG).apply { color=Color.argb((l.emphasis*180).toInt(),20,20,25) })
         canvas.translate(40f,32f)
-        if(l.type=="Offset Type" || l.type=="Echo Type") {
+        if(l.textLayoutVersion>0 && (l.type=="Offset Type" || l.type=="Echo Type")) p.setShadowLayer(if(l.type=="Echo Type")2f else .01f,2+l.emphasis*7,2+l.emphasis*5,Color.argb((l.emphasis*100).toInt(),Color.red(l.color),Color.green(l.color),Color.blue(l.color)))
+        if(l.textLayoutVersion==0 && (l.type=="Offset Type" || l.type=="Echo Type")) {
             canvas.save(); canvas.translate(2+l.emphasis*7,2+l.emphasis*5); p.alpha=(l.emphasis*100).toInt(); layout.draw(canvas); canvas.restore(); p.alpha=255
         }
         if(l.type=="Whisper") p.alpha=220
-        layout.draw(canvas); return trimAlpha(b)
+        layout.draw(canvas); return if(l.textLayoutVersion>0)b else trimAlpha(b)
     }
     fun musicCard(c: Context, m: Music, l: Layer): Bitmap {
         val artOnly=m.card=="앨범 아트"; val textOnly=m.card=="텍스트"; val size=if(artOnly) 420 else 800

@@ -30,12 +30,69 @@ class EditorUiTest {
         if(v is ViewGroup)for(i in 0 until v.childCount)editor(v.getChildAt(i))?.let{return it}
         return null
     }
+    @Test fun directTextIsLiveCancelableAndSurvivesRecreation(){
+        Store(context).clearTextEdit()
+        val source=File(context.filesDir,"text-source.jpg")
+        Bitmap.createBitmap(540,960,Bitmap.Config.ARGB_8888).apply{eraseColor(Color.rgb(65,90,80))}.let{b->source.outputStream().use{b.compress(Bitmap.CompressFormat.JPEG,90,it)}}
+        Store(context).save(Project(source=Uri.fromFile(source).toString(),layers=mutableListOf(Layer(kind="text",text="이전 문구"))))
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            onView(withContentDescription("텍스트")).perform(click())
+            onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("한글 조합\n두 번째 줄"))
+            scenario.onActivity{a->
+                val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input")
+                assertNotNull(input);assertTrue(input.parent is android.widget.FrameLayout)
+                assertEquals("한글 조합\n두 번째 줄",input.text.toString())
+                assertEquals(1,a.project.layers.size)
+                val e=editor(a.window.decorView)!!;assertEquals(9f/16,e.width.toFloat()/e.height,.01f)
+                assertTrue("IME must leave a visible canvas",e.height>80)
+                assertEquals("한글 조합\n두 번째 줄",Store(context).textEdit()!!.layer.text)
+            }
+            scenario.recreate()
+            onView(withContentDescription("캔버스 텍스트 입력")).check(androidx.test.espresso.assertion.ViewAssertions.matches(withText("한글 조합\n두 번째 줄")))
+            onView(withText("취소")).perform(click())
+            scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text);assertNull(Store(context).textEdit())}
+            onView(withContentDescription("더보기")).perform(click())
+            onView(withText("레이어 목록")).perform(scrollTo(),click())
+            onView(withText("이전 문구")).perform(click())
+            onView(withText("수정")).perform(click())
+            onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("수정 취소"))
+            onView(withText("취소")).perform(click())
+            scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text)}
+            onView(withText("수정")).perform(click())
+            onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("최종 문구"),closeSoftKeyboard())
+            onView(withText("정렬")).perform(click())
+            onView(withText("완료")).perform(click())
+            scenario.onActivity{assertEquals("최종 문구",it.project.layers.single().text);assertEquals(1,it.project.layers.single().textLayoutVersion)}
+            onView(withContentDescription("실행 취소")).perform(click())
+            scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text);it.project=Project();Store(context).save(it.project)}
+        }
+    }
+    @Test fun motionPreviewNeverExportsAndCropIsOnCanvas(){
+        Store(context).clearTextEdit()
+        val source=File(context.filesDir,"preview-source.jpg")
+        Bitmap.createBitmap(540,960,Bitmap.Config.ARGB_8888).apply{eraseColor(Color.rgb(80,90,100))}.let{b->source.outputStream().use{b.compress(Bitmap.CompressFormat.JPEG,90,it)}}
+        Store(context).save(Project(source=Uri.fromFile(source).toString(),style=Style(name="Flow Blur",motion=true),layers=mutableListOf(Layer(kind="text",text="잔잔하게",motion=true))))
+        fun outputs()=File(context.filesDir,"exports").listFiles()?.map{it.name}?.toSet()?:emptySet()
+        val before=outputs()
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            onView(withContentDescription("미리보기 재생")).perform(click());SystemClock.sleep(350)
+            onView(withContentDescription("미리보기 일시정지")).perform(click())
+            assertEquals(before,outputs())
+            onView(withText("사진 추가")).perform(click());onView(withText("배경 자르기")).perform(click())
+            scenario.onActivity{a->
+                fun find(v:View):CropPreview?{if(v is CropPreview)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null}
+                val crop=find(a.window.decorView)!!;assertTrue(crop.height>200);assertTrue(crop.parent is android.widget.FrameLayout)
+            }
+            onView(withText("1:1")).perform(click());onView(withText("취소")).perform(click())
+            scenario.onActivity{assertEquals(0f,it.project.crop.aspect);it.project=Project();Store(context).save(it.project)}
+        }
+    }
     @Test fun koreanTextDragUndoRedoDuplicateAndDelete(){
         val source=File(context.filesDir,"ui-source.jpg")
         val bitmap=Bitmap.createBitmap(540,960,Bitmap.Config.ARGB_8888);Canvas(bitmap).drawColor(Color.rgb(75,100,92));source.outputStream().use{bitmap.compress(Bitmap.CompressFormat.JPEG,92,it)}
         Store(context).save(Project(source=Uri.fromFile(source).toString()))
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            onView(withText("Aa 텍스트")).perform(click())
+            onView(withContentDescription("텍스트")).perform(click())
             onView(isAssignableFrom(EditText::class.java)).perform(replaceText("오늘도 차분하게"),closeSoftKeyboard())
             onView(withText("완료")).perform(click())
             instrumentation.waitForIdleSync()
@@ -49,12 +106,12 @@ class EditorUiTest {
             scenario.onActivity{assertTrue("First drag must move selected layer",it.project.layers.single().x>.53f)}
             val shot=File(context.getExternalFilesDir(null),"validation/editor-ui.png").apply{parentFile!!.mkdirs()}
             instrumentation.uiAutomation.takeScreenshot().let{b->shot.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)}}
-            onView(withText("↶")).perform(click());scenario.onActivity{assertEquals(.5f,it.project.layers.single().x,.005f)}
-            onView(withText("↷")).perform(click());scenario.onActivity{assertTrue(it.project.layers.single().x>.53f)}
+            onView(withContentDescription("실행 취소")).perform(click());scenario.onActivity{assertEquals(.5f,it.project.layers.single().x,.005f)}
+            onView(withContentDescription("다시 실행")).perform(click());scenario.onActivity{assertTrue(it.project.layers.single().x>.53f)}
             pinchAndRotate(x+64,y+40)
             scenario.onActivity{assertTrue("Pinch must scale",it.project.layers.single().scale>1.05f);assertTrue("Two fingers must rotate",kotlin.math.abs(it.project.layers.single().rotation)>3f)}
             // Explicit layer selection exposes the context toolbar even after history restoration.
-            onView(withText("더보기")).perform(click());onView(withText("레이어 목록")).perform(click());onView(withText("오늘도 차분하게")).perform(click())
+            onView(withContentDescription("더보기")).perform(click());onView(withText("레이어 목록")).perform(scrollTo(),click());onView(withText("오늘도 차분하게")).perform(click())
             onView(withText("복제")).perform(click());scenario.onActivity{assertEquals(2,it.project.layers.size)}
             onView(withText("삭제")).perform(scrollTo(),click());scenario.onActivity{assertEquals(1,it.project.layers.size)}
             scenario.recreate();scenario.onActivity{assertEquals("오늘도 차분하게",it.project.layers.single().text)}
