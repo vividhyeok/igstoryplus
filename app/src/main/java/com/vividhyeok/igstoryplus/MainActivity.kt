@@ -279,12 +279,15 @@ class MainActivity : AppCompatActivity() {
             contextBar.addView(button("카드"){choices("음악 카드",listOf("작은 카드","앨범 아트","텍스트","숨김")){i->edit{project.music?.card=listOf("작은 카드","앨범 아트","텍스트","숨김")[i];ensureMusicLayer()};saveMusic()}})
             contextBar.addView(button("볼륨"){project.music?.let{m->val box=column();slider(box,"볼륨",m.volume){m.volume=it;clock.setVolume(it);saveMusic()};sheet("음악 볼륨",box)}})
             contextBar.addView(button("카드 숨김"){edit{project.music?.card="숨김";ensureMusicLayer()}})
+            contextBar.addView(button("⋯"){layerExtra(l)}.apply{contentDescription="레이어 추가 작업"})
             return
         }
-        contextBar.addView(button("복제"){edit{val copy=store.gson.fromJson(store.gson.toJson(l),Layer::class.java);copy.id=java.util.UUID.randomUUID().toString();copy.x=(copy.x+.03f).coerceAtMost(.95f);project.layers.add(copy);selected=copy.id}})
+        contextBar.addView(button("복제"){duplicate(l)})
         contextBar.addView(button("삭제"){edit{project.layers.remove(l);selected=null}})
-        contextBar.addView(button("⋯"){choices("레이어",listOf("앞으로","뒤로","미세 모션 ${if(l.motion)"ON" else "OFF"}")){i->edit{when(i){0->{project.layers.remove(l);project.layers.add(l)};1->{project.layers.remove(l);project.layers.add(0,l)};2->l.motion=!l.motion}}}}.apply{contentDescription="레이어 추가 작업"})
+        contextBar.addView(button("⋯"){layerExtra(l)}.apply{contentDescription="레이어 추가 작업"})
     }
+    private fun duplicate(l:Layer){edit{val copy=store.gson.fromJson(store.gson.toJson(l),Layer::class.java);copy.id=java.util.UUID.randomUUID().toString();copy.x=(copy.x+.03f).coerceAtMost(.95f);project.layers.add(copy);selected=copy.id}}
+    private fun layerExtra(l:Layer){choices("레이어",listOf("앞으로","뒤로","미세 모션 ${if(l.motion)"ON" else "OFF"}","복제")){i->if(i==3)duplicate(l) else edit{when(i){0->{project.layers.remove(l);project.layers.add(l)};1->{project.layers.remove(l);project.layers.add(0,l)};2->l.motion=!l.motion}}}}
     private fun choices(title:String,items:List<String>,onSelect:(Int)->Unit){
         val box=column();var d:android.app.Dialog?=null
         items.forEachIndexed{i,n->box.addView(button(n){d?.dismiss();safe{onSelect(i)}})}
@@ -334,6 +337,7 @@ class MainActivity : AppCompatActivity() {
         contextBar.addView(button("자유"){val box=column();slider(box,"자유 비율",(if(draft.aspect>0)draft.aspect else 1f)/2,false){draft.aspect=(it*2).coerceAtLeast(.25f);update()};sheet("자유 크롭",box)})
         contextBar.addView(button("↻"){draft.rotation=(draft.rotation+90)%360;update()}.apply{contentDescription="90도 회전"})
         contextBar.addView(button("⇄"){draft.flip=!draft.flip;update()}.apply{contentDescription="좌우 반전"})
+        contextBar.addView(button("초기화"){draft.x=.5f;draft.y=.5f;draft.zoom=1f;draft.aspect=0f;draft.rotation=0f;draft.flip=false;update()})
         update()
     }
     private fun closeCrop(){cropSession?.let{canvasBox.removeView(it)};cropSession=null;chrome.play.visibility=View.VISIBLE;normalTop();contextTools()}

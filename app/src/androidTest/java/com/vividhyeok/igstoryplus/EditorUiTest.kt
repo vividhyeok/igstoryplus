@@ -31,6 +31,26 @@ class EditorUiTest {
         if(v is ViewGroup)for(i in 0 until v.childCount)editor(v.getChildAt(i))?.let{return it}
         return null
     }
+    @Test fun musicCardKeepsOrderMotionDuplicateAndHideControls(){
+        Store(context).clearTextEdit()
+        val source=File(context.filesDir,"music-ui-source.jpg")
+        Bitmap.createBitmap(540,960,Bitmap.Config.ARGB_8888).apply{eraseColor(Color.rgb(70,90,85))}.let{b->source.outputStream().use{b.compress(Bitmap.CompressFormat.JPEG,90,it)}}
+        Store(context).save(Project(source=Uri.fromFile(source).toString(),music=Music(title="나의 노래",artist="아티스트"),layers=mutableListOf(Layer(kind="music",width=.55f,y=.8f),Layer(kind="text",text="오늘",y=.3f))))
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            onView(withContentDescription("music 레이어")).perform(click())
+            onView(withContentDescription("레이어 추가 작업")).perform(scrollTo(),click())
+            onView(withText("뒤로")).perform(click())
+            scenario.onActivity{assertEquals("music",it.project.layers.first().kind)}
+            onView(withContentDescription("레이어 추가 작업")).perform(scrollTo(),click())
+            onView(withText("미세 모션 OFF")).perform(click())
+            scenario.onActivity{assertTrue(it.project.layers.first{l->l.kind=="music"}.motion)}
+            onView(withContentDescription("레이어 추가 작업")).perform(scrollTo(),click())
+            onView(withText("복제")).perform(click())
+            scenario.onActivity{assertEquals(2,it.project.layers.count{l->l.kind=="music"})}
+            onView(withText("카드 숨김")).perform(scrollTo(),click())
+            scenario.onActivity{assertNotNull(it.project.music);assertTrue(it.project.layers.none{l->l.kind=="music"});it.project=Project();Store(context).save(it.project)}
+        }
+    }
     @Test fun directTextIsLiveCancelableAndSurvivesRecreation(){
         Store(context).clearTextEdit()
         val source=File(context.filesDir,"text-source.jpg")
