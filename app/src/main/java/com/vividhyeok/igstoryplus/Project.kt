@@ -1,0 +1,48 @@
+package com.vividhyeok.igstoryplus
+
+import android.content.Context
+import com.google.gson.Gson
+import java.io.File
+import java.util.UUID
+
+data class Crop(var x: Float = .5f, var y: Float = .5f, var zoom: Float = 1f,
+                var aspect: Float = 0f, var rotation: Float = 0f, var flip: Boolean = false)
+data class Style(var name: String = "Simple", var amount: Float = .25f, var motion: Boolean = false,
+                 var blur: Float = .55f, var brightness: Float = .75f, var warmth: Float = 0f,
+                 var speed: Float = 1f, var scope: Float = .75f, var beat: Float = 0f)
+data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String = "photo", var uri: String = "",
+                 var text: String = "", var type: String = "Soft Label", var font: String = "",
+                 var color: Int = -1, var align: Int = 1, var emphasis: Float = .3f,
+                 var x: Float = .5f, var y: Float = .5f, var scale: Float = 1f,
+                 var rotation: Float = 0f, var width: Float = .45f, var motion: Boolean = false,
+                 var crop: Crop = Crop())
+data class Music(var uri: String = "", var title: String = "", var artist: String = "", var album: String = "",
+                 var art: String = "", var durationMs: Long = 0, var startMs: Long = 0, var card: String = "작은 카드")
+data class Project(var source: String = "", var video: Boolean = false, var sourceDurationMs: Long = 0,
+                   var duration: Int = 5, var crop: Crop = Crop(), var style: Style = Style(),
+                   var layers: MutableList<Layer> = mutableListOf(), var music: Music? = null) {
+    fun animated() = video || music != null || style.motion || layers.any { it.motion }
+    fun durationMs(): Long = if (video) sourceDurationMs.coerceIn(1000, 60000) else duration.coerceIn(5, 15) * 1000L
+}
+data class Preset(var name: String, var style: Style, var text: String, var card: String)
+class Store(val context: Context) {
+    val gson = Gson()
+    private val draft = File(context.filesDir, "draft.json")
+    fun copy(p: Project): Project = gson.fromJson(gson.toJson(p), Project::class.java)
+    fun save(p: Project) {
+        val temp = File(context.filesDir, "draft.tmp")
+        temp.writeText(gson.toJson(p)); check(temp.renameTo(draft)) { "초안 저장 실패" }
+    }
+    fun load(): Project = runCatching { gson.fromJson(draft.readText(), Project::class.java) }.getOrNull() ?: Project()
+    private val presets = File(context.filesDir, "presets.json")
+    fun presets(): MutableList<Preset> = runCatching { gson.fromJson(presets.readText(), Array<Preset>::class.java).toMutableList() }.getOrDefault(mutableListOf())
+    fun savePresets(list: List<Preset>) = presets.writeText(gson.toJson(list))
+}
+class History {
+    private val back = ArrayDeque<String>()
+    private val forward = ArrayDeque<String>()
+    private val gson = Gson()
+    fun push(p: Project) { back.addLast(gson.toJson(p)); while (back.size > 40) back.removeFirst(); forward.clear() }
+    fun undo(p: Project): Project? { if (back.isEmpty()) return null; forward.addLast(gson.toJson(p)); return gson.fromJson(back.removeLast(), Project::class.java) }
+    fun redo(p: Project): Project? { if (forward.isEmpty()) return null; back.addLast(gson.toJson(p)); return gson.fromJson(forward.removeLast(), Project::class.java) }
+}
