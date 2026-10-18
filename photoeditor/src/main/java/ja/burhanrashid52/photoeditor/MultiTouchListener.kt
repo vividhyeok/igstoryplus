@@ -29,7 +29,7 @@ internal class MultiTouchListener(
     private val isRotateEnabled = true
     private val isTranslateEnabled = true
     private val isScaleEnabled = true
-    private val minimumScale = 0.5f
+    private val minimumScale = 0.1f
     private val maximumScale = 10.0f
     private var mActivePointerId = INVALID_POINTER_ID
     private var mPrevX = 0f
@@ -85,9 +85,6 @@ internal class MultiTouchListener(
             MotionEvent.ACTION_CANCEL -> mActivePointerId = INVALID_POINTER_ID
             MotionEvent.ACTION_UP -> {
                 mActivePointerId = INVALID_POINTER_ID
-               if (!isViewInBounds(photoEditImageView, x, y)) {
-                    view.animate().translationY(0f).translationY(0f)
-                }
                 if (deleteView != null) {
                     deleteView.visibility = View.GONE
                 }

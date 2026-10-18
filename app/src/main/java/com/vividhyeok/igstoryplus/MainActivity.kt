@@ -220,6 +220,8 @@ class MainActivity : AppCompatActivity() {
     }
     private fun snap(v:View){
         val c=floatArrayOf(v.width/2f,v.height/2f);v.matrix.mapPoints(c)
+        v.translationX+=(v.left+c[0]).coerceIn(0f,editor.width.toFloat())-v.left-c[0]
+        v.translationY+=(v.top+c[1]).coerceIn(0f,editor.height.toFloat())-v.top-c[1]
         if(abs(v.left+c[0]-editor.width/2)<dp(8))v.translationX+=editor.width/2-v.left-c[0]
         if(abs(v.top+c[1]-editor.height/2)<dp(8))v.translationY+=editor.height/2-v.top-c[1]
         if(abs(v.rotation%90)<3)v.rotation=(v.rotation/90).roundToInt()*90f
@@ -241,10 +243,10 @@ class MainActivity : AppCompatActivity() {
         val scroll=ScrollView(this).apply{addView(body)}
         return AlertDialog.Builder(this).setTitle(title).setView(scroll).setPositiveButton("완료"){_,_->onDone?.invoke()}.create().also{it.show()}
     }
-    private fun slider(box:LinearLayout,label:String,value:Float,onChange:(Float)->Unit){
+    private fun slider(box:LinearLayout,label:String,value:Float,trackHistory:Boolean=true,onChange:(Float)->Unit){
         val title=text(label,13f);box.addView(title)
         box.addView(SeekBar(this).apply{max=100;progress=(value*100).toInt().coerceIn(0,100);setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{
-            override fun onStartTrackingTouch(s:SeekBar){history.push(project)}
+            override fun onStartTrackingTouch(s:SeekBar){if(trackHistory)history.push(project)}
             override fun onStopTrackingTouch(s:SeekBar){persist()}
             override fun onProgressChanged(s:SeekBar,p:Int,user:Boolean){if(user)onChange(p/100f)}
         })},LinearLayout.LayoutParams(-1,dp(48)))
@@ -276,9 +278,9 @@ class MainActivity : AppCompatActivity() {
         box.addView(text("드래그로 위치 · 핀치로 확대",12f))
         fun update(){image.invalidate()}
         val ratios=row();listOf("자유" to 0f,"1:1" to 1f,"4:5" to .8f,"9:16" to 9f/16).forEach{(n,a)->ratios.addView(button(n){draft.aspect=a;update()})};box.addView(scrollRow(ratios))
-        slider(box,"확대",(draft.zoom-1)/5){draft.zoom=1+it*5;update()}
-        slider(box,"가로 위치",draft.x){draft.x=it;update()};slider(box,"세로 위치",draft.y){draft.y=it;update()}
-        slider(box,"자유 비율",(if(draft.aspect>0)draft.aspect else 1f)/2){draft.aspect=(it*2).coerceAtLeast(.25f);update()}
+        slider(box,"확대",(draft.zoom-1)/5,false){draft.zoom=1+it*5;update()}
+        slider(box,"가로 위치",draft.x,false){draft.x=it;update()};slider(box,"세로 위치",draft.y,false){draft.y=it;update()}
+        slider(box,"자유 비율",(if(draft.aspect>0)draft.aspect else 1f)/2,false){draft.aspect=(it*2).coerceAtLeast(.25f);update()}
         val actions=row();actions.addView(button("90° 회전"){draft.rotation=(draft.rotation+90)%360;update()});actions.addView(button("좌우 반전"){draft.flip=!draft.flip;update()});actions.addView(button("원본"){draft.x=.5f;draft.y=.5f;draft.zoom=1f;draft.aspect=0f;draft.rotation=0f;draft.flip=false;update()});box.addView(actions)
         update();sheet("자르기 · 원본 보존",box){edit{if(layer==null)project.crop=draft else layer.crop=draft}}
     }
@@ -289,12 +291,12 @@ class MainActivity : AppCompatActivity() {
         val fonts=row();listOf("기본 글꼴" to "","세리프" to "system:serif","모노" to "system:monospace").forEach{(n,f)->fonts.addView(button(n){l.font=f;toast(n)})};box.addView(fonts)
         val colors=row();listOf(Color.WHITE,Color.BLACK,0xFFD4FF83.toInt(),0xFFFFC5D6.toInt(),0xFF9DCEFF.toInt()).forEach{color->colors.addView(button("●"){l.color=color}.apply{setTextColor(color)})};box.addView(colors)
         val align=row();listOf("왼쪽","가운데","오른쪽").forEachIndexed{i,n->align.addView(button(n){l.align=i})};box.addView(align)
-        slider(box,"크기",l.width){l.width=it.coerceIn(.1f,1f)};slider(box,"표현 강도",l.emphasis){l.emphasis=it}
+        slider(box,"크기",l.width,false){l.width=it.coerceIn(.1f,1f)};slider(box,"표현 강도",l.emphasis,false){l.emphasis=it}
         sheet("텍스트",box){if(input.text.isNotBlank())edit{l.text=input.text.toString();if(existing!=null)project.layers[project.layers.indexOf(existing)]=l else project.layers.add(l);selected=l.id}}
     }
     private fun emojiLibrary(){
         val path=prefs.getString("emojiFolder",null)
-        if(path==null){val box=column();box.addView(text("내 PNG를 이모지처럼\n원하는 폴더를 선택하세요.\n예: Pictures/igstoryplus/emoji"));box.addView(button("폴더 선택"){folderPicker.launch(null)});sheet("내 이모지",box);return}
+        if(path==null){var prompt:AlertDialog?=null;val box=column();box.addView(text("내 PNG를 이모지처럼\n원하는 폴더를 선택하세요.\n예: Pictures/igstoryplus/emoji"));box.addView(button("폴더 선택"){prompt?.dismiss();folderPicker.launch(null)});prompt=sheet("내 이모지",box);return}
         val box=column();val actions=row();var dialog:AlertDialog?=null
         actions.addView(button("새로고침"){dialog?.dismiss();emojiLibrary()});actions.addView(button("폴더 변경"){dialog?.dismiss();folderPicker.launch(null)});box.addView(actions)
         val grid=androidx.recyclerview.widget.RecyclerView(this).apply{layoutManager=androidx.recyclerview.widget.GridLayoutManager(this@MainActivity,4)};box.addView(grid,LinearLayout.LayoutParams(-1,dp(380)))
@@ -324,21 +326,24 @@ class MainActivity : AppCompatActivity() {
         val title=EditText(this).apply{setText(m.title);hint="곡명"};box.addView(title)
         val artist=EditText(this).apply{setText(m.artist);hint="아티스트"};box.addView(artist)
         val album=EditText(this).apply{setText(m.album);hint="앨범"};box.addView(album)
+        var musicDialog:AlertDialog?=null
+        fun commitFields(){edit{m.title=title.text.toString();m.artist=artist.text.toString();m.album=album.text.toString()};saveMusic()}
         box.addView(text("${m.durationMs/1000}초 · MP4에 음악이 합성됩니다",12f))
         val position=text("시작 ${m.startMs/1000}초");box.addView(position)
         slider(box,"시작 위치",m.startMs.toFloat()/max(1L,m.durationMs-1000)){m.startMs=(it*max(0L,m.durationMs-1000)).toLong();position.text="시작 ${m.startMs/1000}초";saveMusic()}
         if(!project.video){val length=text("선택 길이 ${project.duration}초");box.addView(length);slider(box,"5–15초 · 1초 단위",(project.duration-5)/10f){project.duration=5+(it*10).roundToInt();length.text="선택 길이 ${project.duration}초";prefs.edit().putInt("musicDuration",project.duration).apply();persist()}}
         else box.addView(text("영상 길이 ${project.durationMs()/1000}초 유지",12f))
         val cards=row();listOf("작은 카드","앨범 아트","텍스트","숨김").forEach{n->cards.addView(button(n){edit{m.card=n;ensureMusicLayer()};saveMusic()})};box.addView(scrollRow(cards))
-        box.addView(button("앨범 아트 선택"){pick("art",arrayOf("image/*"))})
+        box.addView(button("앨범 아트 선택"){commitFields();musicDialog?.dismiss();pick("art",arrayOf("image/*"))})
         box.addView(button("선택 구간 미리듣기 / 정지"){
             if(audioPlayer!=null)stopAudio() else {
                 audioPlayer=MediaPlayer().apply{setDataSource(this@MainActivity,Uri.parse(m.uri));setOnPreparedListener{it.seekTo(m.startMs,MediaPlayer.SEEK_CLOSEST);it.start();handler.postDelayed(audioStop,project.durationMs())};setOnCompletionListener{stopAudio()};setOnErrorListener{_,_,_->stopAudio();toast("재생할 수 없는 파일");true};prepareAsync()}
             }
         })
-        box.addView(button("다른 음악"){pick("music",arrayOf("audio/*"))})
-        box.addView(button("음악 삭제"){stopAudio();edit{project.music=null;project.layers.removeAll{it.kind=="music"}}})
-        sheet("음악",box){stopAudio();edit{m.title=title.text.toString();m.artist=artist.text.toString();m.album=album.text.toString()};saveMusic()}
+        box.addView(button("다른 음악"){musicDialog?.dismiss();pick("music",arrayOf("audio/*"))})
+        box.addView(button("음악 삭제"){musicDialog?.dismiss();stopAudio();edit{project.music=null;project.layers.removeAll{it.kind=="music"}}})
+        musicDialog=sheet("음악",box){stopAudio();commitFields()}
+        musicDialog.setOnDismissListener{stopAudio()}
     }
     private fun stopAudio(){handler.removeCallbacks(audioStop);audioPlayer?.release();audioPlayer=null}
     private fun presets(){

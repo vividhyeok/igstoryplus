@@ -1,7 +1,7 @@
 PhotoEditor 3.1.1
 https://github.com/burhanrashid52/PhotoEditor
 Vendored commit 4a6967d3067d37010f9673034db27f53cf70e449
-Modified: document-transform gesture callback and image helper margins.
+Modified: document-transform callbacks, immediate selection, scale bounds, image helper margins.
 
 MIT License
 Copyright (c) 2020 Burhanuddin Rashid

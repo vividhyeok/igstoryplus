@@ -43,9 +43,7 @@ jobs:
           profile: pixel_5
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           disable-animations: true
-          script: |
-            ./gradlew :app:connectedDebugAndroidTest --console=plain
-            adb pull /sdcard/Android/data/com.vividhyeok.igstoryplus/files/validation validation
+          script: bash scripts/android_test.sh
       - name: Inspect real rendered media
         run: python scripts/verify_media.py validation
       - name: Configure persistent release signing
@@ -85,6 +83,7 @@ jobs:
           name: verification-${{ github.sha }}
           path: |
             app/build/reports/
+            app/build/outputs/androidTest-results/
             photoeditor/build/reports/
             validation/
             dist/
