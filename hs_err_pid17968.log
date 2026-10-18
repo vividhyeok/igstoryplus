@@ -1,0 +1,265 @@
+#
+# There is insufficient memory for the Java Runtime Environment to continue.
+# Native memory allocation (mmap) failed to map 268435456 bytes. Error detail: G1 virtual space
+# Possible reasons:
+#   The system is out of physical RAM or swap space
+#   This process is running with CompressedOops enabled, and the Java Heap may be blocking the growth of the native heap
+# Possible solutions:
+#   Reduce memory load on the system
+#   Increase physical memory or swap space
+#   Check if swap backing store is full
+#   Decrease Java heap size (-Xmx/-Xms)
+#   Decrease number of Java threads
+#   Decrease Java thread stack sizes (-Xss)
+#   Set larger code cache with -XX:ReservedCodeCacheSize=
+#   JVM is running with Zero Based Compressed Oops mode in which the Java heap is
+#     placed in the first 32GB address space. The Java Heap base address is the
+#     maximum limit for the native heap growth. Please use -XX:HeapBaseMinAddress
+#     to set the Java Heap base and to place the Java Heap above 32GB virtual address.
+# This output file may be truncated or incomplete.
+#
+#  Out of Memory Error (os_windows.cpp:3925), pid=17968, tid=18984
+#
+# JRE version:  (21.0.8) (build )
+# Java VM: OpenJDK 64-Bit Server VM (21.0.8+-14196175-b1038.72, mixed mode, sharing, tiered, compressed oops, compressed class ptrs, g1 gc, windows-amd64)
+# No core dump will be written. Minidumps are not enabled by default on client versions of Windows
+#
+
+---------------  S U M M A R Y ------------
+
+Command Line: -Djava.awt.headless=true -Djava.util.logging.config.file=C:\Users\user\.android\utp\logging8759277559786751829properties -Dfile.encoding=UTF-8 com.google.testing.platform.launcher.Launcher C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.testing.platform\core\0.0.9-alpha03\ff2ca47a40b19adf61f703c497e8e84daca5d9fb\core-0.0.9-alpha03.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-services\1.57.2\d631f4b716bba6f6f5014959ed424dee41543e7d\grpc-services-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.opencensus\opencensus-proto\0.2.0\c05b6b32b69d5d9144087ea0ebc6fab183fb9151\opencensus-proto-0.2.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-protobuf\1.57.2\a8354b878571970c518994b95627dc527270bfc4\grpc-protobuf-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.api.grpc\proto-google-common-protos\2.17.0\7edf1e3aa96dc3861f7a8f24556c714e9c5b292\proto-google-common-protos-2.17.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.dagger\dagger\2.48\c4a5ecf0eb4df3a726179657f1b586290dc08d1b\dagger-2.48.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-stub\1.57.2\df47b4eb69fb36940689649400c8e9cbf7c3dc2c\grpc-stub-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-netty\1.57.2\7b0b62141991e8f81917b8536a1aed8091be5627\grpc-netty-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-core\1.57.2\2e04aac0fe659243f4ed5dbe4c2839e88408dffc\grpc-core-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.opencensus\opencensus-api\0.31.0\6634f10ecd5eb3ac248f3ed5ee727c9a28c841bd\opencensus-api-0.31.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-context\1.57.2\d2aa34eebfec2ce045873f410a7dd76437465509\grpc-context-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-protobuf-lite\1.57.2\14d8e0cab40bf2f661e07b8d0dcc4192d4e9e85a\grpc-protobuf-lite-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-api\1.57.2\c71a006b81ddae7bc4b7cb1d2da78c1b173761f4\grpc-api-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.protobuf\protobuf-java-util\3.22.3\749cd4fe8ab52f37bc186193802ba19f5b284647\protobuf-java-util-3.22.3.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.guava\guava\32.0.1-jre\6e5d51a72d142f2d40a57dfb897188b36a95b489\guava-32.0.1-jre.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.errorprone\error_prone_annotations\2.23.0\43a27853b6c7d54893e0b1997c2c778c347179eb\error_prone_annotations-2.23.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.protobuf\protobuf-kotlin\3.24.4\4641477ebf7aa4c96a0ea1fd68b9fe60990b7687\protobuf-kotlin-3.24.4.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.protobuf\protobuf-java\3.24.4\a773e5a3845e6baa5c4ede5532c426ebe6c53330\protobuf-java-3.24.4.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\javax.inject\javax.inject\1\6975da39a7040257bd51d21a231b76c915872d38\javax.inject-1.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-reflect\1.8.21\662838019bc1141f8a311180d93b9e13765c7f55\kotlin-reflect-1.8.21.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-coroutines-core-jvm\1.7.3\2b09627576f0989a436a00a4a54b55fa5026fb86\kotlinx-coroutines-core-jvm-1.7.3.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib-jdk8\1.8.20\73576ddf378c5b4f1f6b449fe6b119b8183fc078\kotlin-stdlib-jdk8-1.8.20.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib-jdk7\1.8.20\3aa51faf20aae8b31e1a4bc54f8370673d7b7df4\kotlin-stdlib-jdk7-1.8.20.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib\1.8.21\43d50ab85bc7587adfe3dda3dbe579e5f8d51265\kotlin-stdlib-1.8.21.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.guava\failureaccess\1.0.1\1dcf1de382a0bf95a3d8b0849546c88bac1292c9\failureaccess-1.0.1.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.guava\listenablefuture\9999.0-empty-to-avoid-conflict-with-guava\b421526c5f297295adef1c886e5246c39d4ac629\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.code.findbugs\jsr305\3.0.2\25ea2e8b0c338a877313bd4672d3fe056ea78f0d\jsr305-3.0.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.checkerframework\checker-qual\3.33.0\de2b60b62da487644fc11f734e73c8b0b431238f\checker-qual-3.33.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.j2objc\j2objc-annotations\2.8\c85270e307e7b822f1086b93689124b89768e273\j2objc-annotations-2.8.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-codec-http2\4.1.93.Final\f1625b43bde13ec057da0d2fe381ded2547a70e\netty-codec-http2-4.1.93.Final.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-handler-proxy\4.1.93.Final\c165c1efe1b9c0cc22546a057b530611a088768b\netty-handler-proxy-4.1.93.Final.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.perfmark\perfmark-api\0.26.0\ef65452adaf20bf7d12ef55913aba24037b82738\perfmark-api-0.26.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-codec-http\4.1.93.Final\36acf0c94d03eb6ecef78a749a32cbb7dc0c57b4\netty-codec-http-4.1.93.Final.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-handler\4.1.93.Final\10f7ed9d8e1bfcba416074c70e5388be96116bfc\netty-handler-4.1.93.Final.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-transport-native-unix-common\4.1.93.Final\f4fb8b4c8da539091f43abcbb9f0389e48807eea\netty-transport-native-unix-common-4.1.93.Final.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib-common\1.8.21\d749cd5ae25da36d06e5028785038e24f9d37976\kotlin-stdlib-common-1.8.21.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains\annotations\23.0.0\8cc20c07506ec18e0834947b84a864bfc094484e\annotations-23.0.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.code.gson\gson\2.10.1\b3add478d4382b78ea20b1671390a858002feb6c\gson-2.10.1.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.android\annotations\4.1.1.4\a1678ba907bf92691d879fef34e1a187038f9259\annotations-4.1.1.4.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.codehaus.mojo\animal-sniffer-annotations\1.23\3c0daebd5f0e1ce72cc50c818321ac957aeb5d70\animal-sniffer-annotations-1.23.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-codec-socks\4.1.93.Final\81ca78969afc60073e47c3b7b361cc3839392c73\netty-codec-socks-4.1.93.Final.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-codec\4.1.93.Final\503badb458b6586632be8d1f81aa4e5ab99a80fc\netty-codec-4.1.93.Final.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-transport\4.1.93.Final\1a0894915c8027ce83b4d6a811c4e765955efd15\netty-transport-4.1.93.Final.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-buffer\4.1.93.Final\87fac21f4ef95157866b07b48e3c707a2f13c581\netty-buffer-4.1.93.Final.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-resolver\4.1.93.Final\3860e99075f9e078364ed38f6d6fc8825b7a168a\netty-resolver-4.1.93.Final.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.netty\netty-common\4.1.93.Final\1cfc49b91b0d3ddb30c9f7d8467e5d02ae8babdf\netty-common-4.1.93.Final.jar --proto_config=C:\Users\user\.android\utp\runnerConfig13727220158524818251.pb --proto_server_config=C:\Users\user\.android\utp\serverConfig4259674396049358566.pb
+
+Host: Intel(R) Core(TM) i5-10500 CPU @ 3.10GHz, 12 cores, 15G,  Windows 11 , 64 bit Build 26100 (10.0.26100.9711)
+Time: Mon Oct 19 02:33:34 2026 elapsed time: 0.016147 seconds (0d 0h 0m 0s)
+
+---------------  T H R E A D  ---------------
+
+Current thread (0x0000018f82cd3e70):  JavaThread "Unknown thread" [_thread_in_vm, id=18984, stack(0x0000006c40d00000,0x0000006c40e00000) (1024K)]
+
+Stack: [0x0000006c40d00000,0x0000006c40e00000]
+Native frames: (J=compiled Java code, j=interpreted, Vv=VM code, C=native code)
+V  [jvm.dll+0x6d68d9]
+V  [jvm.dll+0x866693]
+V  [jvm.dll+0x868c4e]
+V  [jvm.dll+0x869333]
+V  [jvm.dll+0x280566]
+V  [jvm.dll+0x6d3195]
+V  [jvm.dll+0x6c69ea]
+V  [jvm.dll+0x3586db]
+V  [jvm.dll+0x360336]
+V  [jvm.dll+0x3b23f6]
+V  [jvm.dll+0x3b26c8]
+V  [jvm.dll+0x32ae6c]
+V  [jvm.dll+0x32bb5b]
+V  [jvm.dll+0x82e109]
+V  [jvm.dll+0x3bf5c8]
+V  [jvm.dll+0x817388]
+V  [jvm.dll+0x453b6e]
+V  [jvm.dll+0x4552d1]
+C  [jli.dll+0x52ab]
+C  [ucrtbase.dll+0x2cd30]
+C  [KERNEL32.DLL+0x2dda7]
+C  [ntdll.dll+0x7ee4c]
+
+
+---------------  P R O C E S S  ---------------
+
+Threads class SMR info:
+_java_thread_list=0x00007ffed648b988, length=0, elements={
+}
+
+Java Threads: ( => current thread )
+Total: 0
+
+Other Threads:
+  0x0000018f833495f0 WorkerThread "GC Thread#0"                     [id=11828, stack(0x0000006c40e00000,0x0000006c40f00000) (1024K)]
+  0x0000018f8335b2e0 ConcurrentGCThread "G1 Main Marker"            [id=28716, stack(0x0000006c40f00000,0x0000006c41000000) (1024K)]
+  0x0000018f8335e080 WorkerThread "G1 Conc#0"                       [id=16896, stack(0x0000006c41000000,0x0000006c41100000) (1024K)]
+
+[error occurred during error reporting (printing all threads), id 0xc0000005, EXCEPTION_ACCESS_VIOLATION (0xc0000005) at pc=0x00007ffed5c7ddd7]
+VM state: not at safepoint (not fully initialized)
+
+VM Mutex/Monitor currently owned by a thread:  ([mutex/lock_event])
+[0x00007ffed64f86b8] Heap_lock - owner thread: 0x0000018f82cd3e70
+
+Heap address: 0x0000000701200000, size: 4078 MB, Compressed Oops mode: Zero based, Oop shift amount: 3
+
+CDS archive(s) mapped at: [0x0000000000000000-0x0000000000000000-0x0000000000000000), size 0, SharedBaseAddress: 0x0000000800000000, ArchiveRelocationMode: 1.
+Narrow klass base: 0x0000000000000000, Narrow klass shift: 0, Narrow klass range: 0x0
+
+GC Precious Log:
+ CardTable entry size: 512
+ Card Set container configuration: InlinePtr #cards 4 size 8 Array Of Cards #cards 16 size 48 Howl #buckets 8 coarsen threshold 3686 Howl Bitmap #cards 512 size 80 coarsen threshold 460 Card regions per heap region 1 cards per card region 4096
+
+Heap:
+ garbage-first heap   total 0K, used 0K [0x0000000701200000, 0x0000000800000000)
+  region size 2048K, 0 young (0K), 0 survivors (0K)
+ Metaspace       used 0K, committed 0K, reserved 0K
+  class space    used 0K, committed 0K, reserved 0K
+
+Heap Regions: E=young(eden), S=young(survivor), O=old, HS=humongous(starts), HC=humongous(continues), CS=collection set, F=free, TAMS=top-at-mark-start, PB=parsable bottom
+
+Card table byte_map: [0x0000018f97ee0000,0x0000018f986e0000] _byte_map_base: 0x0000018f946d7000
+
+Marking Bits: (CMBitMap*) 0x0000018f83349cf0
+ Bits: [0x0000018f986e0000, 0x0000018f9c698000)
+
+GC Heap History (0 events):
+No events
+
+Dll operation events (1 events):
+Event: 0.011 Loaded shared library C:\Program Files\Android\Android Studio\jbr\bin\java.dll
+
+Deoptimization events (0 events):
+No events
+
+Classes loaded (0 events):
+No events
+
+Classes unloaded (0 events):
+No events
+
+Classes redefined (0 events):
+No events
+
+Internal exceptions (0 events):
+No events
+
+ZGC Phase Switch (0 events):
+No events
+
+VM Operations (0 events):
+No events
+
+Memory protections (0 events):
+No events
+
+Nmethod flushes (0 events):
+No events
+
+Events (0 events):
+No events
+
+
+Dynamic libraries:
+0x00007ff6002c0000 - 0x00007ff6002ca000 	C:\Program Files\Android\Android Studio\jbr\bin\java.exe
+0x00007fff7e840000 - 0x00007fff7eaa8000 	C:\WINDOWS\SYSTEM32\ntdll.dll
+0x00007fff7dbc0000 - 0x00007fff7dc8b000 	C:\WINDOWS\System32\KERNEL32.DLL
+0x00007fff7bac0000 - 0x00007fff7bec1000 	C:\WINDOWS\System32\KERNELBASE.dll
+0x00007fff7bf90000 - 0x00007fff7c0dc000 	C:\WINDOWS\System32\ucrtbase.dll
+0x00007fff5f170000 - 0x00007fff5f18b000 	C:\Program Files\Android\Android Studio\jbr\bin\VCRUNTIME140.dll
+0x00007fff5f190000 - 0x00007fff5f1a8000 	C:\Program Files\Android\Android Studio\jbr\bin\jli.dll
+0x00007fff7e2f0000 - 0x00007fff7e4c7000 	C:\WINDOWS\System32\USER32.dll
+0x00007fff5bb70000 - 0x00007fff5be01000 	C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9711_none_3e07b8b0e334e825\COMCTL32.dll
+0x00007fff7ba90000 - 0x00007fff7bab7000 	C:\WINDOWS\System32\win32u.dll
+0x00007fff7e560000 - 0x00007fff7e58b000 	C:\WINDOWS\System32\GDI32.dll
+0x00007fff7c320000 - 0x00007fff7c44a000 	C:\WINDOWS\System32\gdi32full.dll
+0x00007fff7c4e0000 - 0x00007fff7c583000 	C:\WINDOWS\System32\msvcp_win.dll
+0x00007fff7d750000 - 0x00007fff7d7f9000 	C:\WINDOWS\System32\msvcrt.dll
+0x00007fff7de00000 - 0x00007fff7de31000 	C:\WINDOWS\System32\IMM32.DLL
+0x00007fff768e0000 - 0x00007fff768ec000 	C:\Program Files\Android\Android Studio\jbr\bin\vcruntime140_1.dll
+0x00007fff1e120000 - 0x00007fff1e1ad000 	C:\Program Files\Android\Android Studio\jbr\bin\msvcp140.dll
+0x00007ffed5940000 - 0x00007ffed65d6000 	C:\Program Files\Android\Android Studio\jbr\bin\server\jvm.dll
+0x00007fff7c780000 - 0x00007fff7c83c000 	C:\WINDOWS\System32\ADVAPI32.dll
+0x00007fff7df00000 - 0x00007fff7dfa8000 	C:\WINDOWS\System32\sechost.dll
+0x00007fff7d1a0000 - 0x00007fff7d2b8000 	C:\WINDOWS\System32\RPCRT4.dll
+0x00007fff7e4d0000 - 0x00007fff7e551000 	C:\WINDOWS\System32\WS2_32.dll
+0x00007fff7b260000 - 0x00007fff7b2be000 	C:\WINDOWS\SYSTEM32\POWRPROF.dll
+0x00007fff6cb50000 - 0x00007fff6cb87000 	C:\WINDOWS\SYSTEM32\WINMM.dll
+0x00007fff74bc0000 - 0x00007fff74bcb000 	C:\WINDOWS\SYSTEM32\VERSION.dll
+0x00007fff7b210000 - 0x00007fff7b225000 	C:\WINDOWS\SYSTEM32\UMPDC.dll
+0x00007fff7a780000 - 0x00007fff7a79b000 	C:\WINDOWS\SYSTEM32\kernel.appcore.dll
+0x00007fff767d0000 - 0x00007fff767da000 	C:\Program Files\Android\Android Studio\jbr\bin\jimage.dll
+0x00007fff603f0000 - 0x00007fff6063c000 	C:\WINDOWS\SYSTEM32\DBGHELP.DLL
+0x00007fff7d800000 - 0x00007fff7db8b000 	C:\WINDOWS\System32\combase.dll
+0x00007fff7c6a0000 - 0x00007fff7c779000 	C:\WINDOWS\System32\OLEAUT32.dll
+0x00007fff66530000 - 0x00007fff6656b000 	C:\WINDOWS\SYSTEM32\dbgcore.DLL
+0x00007fff7c0e0000 - 0x00007fff7c18c000 	C:\WINDOWS\System32\bcryptPrimitives.dll
+0x00007fff5b6d0000 - 0x00007fff5b6f0000 	C:\Program Files\Android\Android Studio\jbr\bin\java.dll
+
+JVMTI agents: none
+
+dbghelp: loaded successfully - version: 4.0.5 - missing functions: none
+symbol engine: initialized successfully - sym options: 0x614 - pdb path: .;C:\Program Files\Android\Android Studio\jbr\bin;C:\WINDOWS\SYSTEM32;C:\WINDOWS\WinSxS\amd64_microsoft.windows.common-controls_6595b64144ccf1df_6.0.26100.9711_none_3e07b8b0e334e825;C:\Program Files\Android\Android Studio\jbr\bin\server
+
+VM Arguments:
+jvm_args: -Djava.awt.headless=true -Djava.util.logging.config.file=C:\Users\user\.android\utp\logging8759277559786751829properties -Dfile.encoding=UTF-8 
+java_command: com.google.testing.platform.launcher.Launcher C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.testing.platform\core\0.0.9-alpha03\ff2ca47a40b19adf61f703c497e8e84daca5d9fb\core-0.0.9-alpha03.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-services\1.57.2\d631f4b716bba6f6f5014959ed424dee41543e7d\grpc-services-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.opencensus\opencensus-proto\0.2.0\c05b6b32b69d5d9144087ea0ebc6fab183fb9151\opencensus-proto-0.2.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-protobuf\1.57.2\a8354b878571970c518994b95627dc527270bfc4\grpc-protobuf-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.api.grpc\proto-google-common-protos\2.17.0\7edf1e3aa96dc3861f7a8f24556c714e9c5b292\proto-google-common-protos-2.17.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.dagger\dagger\2.48\c4a5ecf0eb4df3a726179657f1b586290dc08d1b\dagger-2.48.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-stub\1.57.2\df47b4eb69fb36940689649400c8e9cbf7c3dc2c\grpc-stub-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-netty\1.57.2\7b0b62141991e8f81917b8536a1aed8091be5627\grpc-netty-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-core\1.57.2\2e04aac0fe659243f4ed5dbe4c2839e88408dffc\grpc-core-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.opencensus\opencensus-api\0.31.0\6634f10ecd5eb3ac248f3ed5ee727c9a28c841bd\opencensus-api-0.31.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-context\1.57.2\d2aa34eebfec2ce045873f410a7dd76437465509\grpc-context-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-protobuf-lite\1.57.2\14d8e0cab40bf2f661e07b8d0dcc4192d4e9e85a\grpc-protobuf-lite-1.57.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.grpc\grpc-api\1.57.2\c71a006b81ddae7bc4b7cb1d2da78c1b173761f4\grpc-api-1.57.2.jar;C:\Users\user\.gradle\cache
+java_class_path (initial): C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.testing.platform\launcher\0.0.9-alpha03\52583f1099230907897f5238f1dcb39097ba645b\launcher-0.0.9-alpha03.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.protobuf\protobuf-java-util\3.24.4\f90394c695d47b16f608be5366373eec768597f1\protobuf-java-util-3.24.4.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.guava\guava\32.0.1-jre\6e5d51a72d142f2d40a57dfb897188b36a95b489\guava-32.0.1-jre.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.errorprone\error_prone_annotations\2.23.0\43a27853b6c7d54893e0b1997c2c778c347179eb\error_prone_annotations-2.23.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.protobuf\protobuf-kotlin\3.24.4\4641477ebf7aa4c96a0ea1fd68b9fe60990b7687\protobuf-kotlin-3.24.4.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\io.opencensus\opencensus-proto\0.2.0\c05b6b32b69d5d9144087ea0ebc6fab183fb9151\opencensus-proto-0.2.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.protobuf\protobuf-java\3.24.4\a773e5a3845e6baa5c4ede5532c426ebe6c53330\protobuf-java-3.24.4.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-reflect\1.8.21\662838019bc1141f8a311180d93b9e13765c7f55\kotlin-reflect-1.8.21.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\atomicfu-jvm\0.22.0\c6a128a44ba52a18265e5ec816130cd341d80792\atomicfu-jvm-0.22.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlinx\kotlinx-coroutines-core-jvm\1.7.3\2b09627576f0989a436a00a4a54b55fa5026fb86\kotlinx-coroutines-core-jvm-1.7.3.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib-jdk8\1.8.20\73576ddf378c5b4f1f6b449fe6b119b8183fc078\kotlin-stdlib-jdk8-1.8.20.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib-jdk7\1.8.20\3aa51faf20aae8b31e1a4bc54f8370673d7b7df4\kotlin-stdlib-jdk7-1.8.20.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib\1.9.0\8ee15ef0c67dc83d874f412d84378d7f0eb50b63\kotlin-stdlib-1.9.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.guava\failureaccess\1.0.1\1dcf1de382a0bf95a3d8b0849546c88bac1292c9\failureaccess-1.0.1.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.guava\listenablefuture\9999.0-empty-to-avoid-conflict-with-guava\b421526c5f297295adef1c886e5246c39d4ac629\listenablefuture-9999.0-empty-to-avoid-conflict-with-guava.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.code.findbugs\jsr305\3.0.2\25ea2e8b0c338a877313bd4672d3fe056ea78f0d\jsr305-3.0.2.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.checkerframework\checker-qual\3.33.0\de2b60b62da487644fc11f734e73c8b0b431238f\checker-qual-3.33.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.j2objc\j2objc-annotations\2.8\c85270e307e7b822f1086b93689124b89768e273\j2objc-annotations-2.8.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\com.google.code.gson\gson\2.8.9\8a432c1d6825781e21a02db2e2c33c5fde2833b9\gson-2.8.9.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains.kotlin\kotlin-stdlib-common\1.9.0\cd65c21cfd1eec4d44ef09f9f52b6d9f8a720636\kotlin-stdlib-common-1.9.0.jar;C:\Users\user\.gradle\caches\modules-2\files-2.1\org.jetbrains\annotations\23.0.0\8cc20c07506ec18e0834947b84a864bfc094484e\annotations-23.0.0.jar
+Launcher Type: SUN_STANDARD
+
+[Global flags]
+     intx CICompilerCount                          = 4                                         {product} {ergonomic}
+     uint ConcGCThreads                            = 3                                         {product} {ergonomic}
+     uint G1ConcRefinementThreads                  = 10                                        {product} {ergonomic}
+   size_t G1HeapRegionSize                         = 2097152                                   {product} {ergonomic}
+    uintx GCDrainStackTargetSize                   = 64                                        {product} {ergonomic}
+   size_t InitialHeapSize                          = 268435456                                 {product} {ergonomic}
+   size_t MarkStackSize                            = 4194304                                   {product} {ergonomic}
+   size_t MaxHeapSize                              = 4276092928                                {product} {ergonomic}
+   size_t MinHeapDeltaBytes                        = 2097152                                   {product} {ergonomic}
+   size_t MinHeapSize                              = 8388608                                   {product} {ergonomic}
+    uintx NonNMethodCodeHeapSize                   = 5839372                                {pd product} {ergonomic}
+    uintx NonProfiledCodeHeapSize                  = 122909434                              {pd product} {ergonomic}
+    uintx ProfiledCodeHeapSize                     = 122909434                              {pd product} {ergonomic}
+    uintx ReservedCodeCacheSize                    = 251658240                              {pd product} {ergonomic}
+     bool SegmentedCodeCache                       = true                                      {product} {ergonomic}
+   size_t SoftMaxHeapSize                          = 4276092928                             {manageable} {ergonomic}
+     bool UseCompressedOops                        = true                           {product lp64_product} {ergonomic}
+     bool UseG1GC                                  = true                                      {product} {ergonomic}
+     bool UseLargePagesIndividualAllocation        = false                                  {pd product} {ergonomic}
+
+Logging:
+Log output configuration:
+ #0: stdout all=warning uptime,level,tags foldmultilines=false
+ #1: stderr all=off uptime,level,tags foldmultilines=false
+
+Environment Variables:
+JAVA_HOME=C:\Program Files\Android\Android Studio\jbr
+CLASSPATH=C:\Users\user\codex-work\igstoryplus\\gradle\wrapper\gradle-wrapper.jar
+PATH=C:\Users\user\.codex\tmp\arg0-windows\codex-arg0WubPPc;C:\Users\user\.codex\packages\app-server-daemon\releases\0.163.0-x86_64-pc-windows-msvc\codex-path;C:\Users\user\.codex\tmp\arg0\codex-arg0OQ2FZF;C:\Users\user\AppData\Roaming\npm\node_modules\@openai\codex\node_modules\@openai\codex-win32-x64\vendor\x86_64-pc-windows-msvc\codex-path;C:\Python314\Scripts\;C:\Python314\;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Bandizip\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs\;C:\Program Files\Go\bin;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\GitHub CLI\;C:\Users\user\.local\bin;C:\Python314\Scripts\;C:\Python314\;C:\Program Files\Common Files\Oracle\Java\javapath;C:\Windows\system32;C:\Windows;C:\Windows\System32\Wbem;C:\Windows\System32\WindowsPowerShell\v1.0\;C:\Windows\System32\OpenSSH\;C:\Program Files (x86)\NVIDIA Corporation\PhysX\Common;C:\Program Files\Bandizip\;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Git\cmd;C:\ProgramData\chocolatey\bin;C:\Program Files\nodejs\;C:\Program Files\PuTTY\;C:\Program Files\Go\bin;C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\;C:\Users\user\.cargo\bin;c:\Users\user\AppData\Roaming\Code\User\globalStorage\github.copilot-chat\debugCommand;c:\Users\user\AppData\Roaming\Code\User\globalStorage\github.copilot-chat\copilotCli;C:\Users\user\AppData\Local\Programs\Python\Python311\Scripts\;C:\Users\user\AppData\Local\Programs\Python\Python311\;C:\Program Files (x86)\NVIDIA Corporation\PhysX;C:\Users\user\AppData\Local\Programs\Antigravity\bin;C:\Users\user\AppData\Local\Programs\Microsoft VS Code\bin;C:\Users\user\AppData\Roaming\TinyTeX\bin\windows;C:\Users\user\AppData\Local\Microsoft\WindowsApps;C:\Users\user\AppData\Roaming\Python\Python314\site-packages\imageio_ffmpeg\binaries;C:\Users\user\go\bin;C:\Users\user\AppData\Local\Microsoft\WinGet\Packages\DenoLand.Deno_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\Users\user\AppData\Local\Microsoft\WinGet\Packages\yt-dlp.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-N-123074-g4e32fb4c2a-win64-gpl/bin;C:\Users\user\AppData\Local\Microsoft\WinGet\Packages\yt-dlp.yt-dlp_Microsoft.Winget.Source_8wekyb3d8bbwe;C:\Users\user\AppData\Roaming\npm;C:\Users\user\AppData\Local\Microsoft\WinGet\Packages\astral-sh.uv_Microsoft.Winget.Source_8wekyb3d8bbwe;;C:\Users\user\AppData\Local\Microsoft\WindowsApps
+USERNAME=user
+LANG=C.UTF-8
+LC_ALL=C.UTF-8
+LC_CTYPE=C.UTF-8
+TERM=dumb
+OS=Windows_NT
+PROCESSOR_IDENTIFIER=Intel64 Family 6 Model 165 Stepping 3, GenuineIntel
+TMP=C:\Users\user\AppData\Local\Temp
+TEMP=C:\Users\user\AppData\Local\Temp
+
+
+
+
+Periodic native trim disabled
+
+JNI global refs:
+JNI global refs: 0, weak refs: 0
+
+JNI global refs memory usage: 0, weak refs: 0
+
+Process memory usage:
+Resident Set Size: 13828K (0% of 16702800K total physical memory with 286520K free physical memory)
+
+OOME stack traces (most recent first):
+Classloader memory used:
+
+---------------  S Y S T E M  ---------------
+
+OS:
+ Windows 11 , 64 bit Build 26100 (10.0.26100.9711)
+OS uptime: 1 days 4:19 hours
+Hyper-V role detected
+
+CPU: total 12 (initial active 12) (6 cores per cpu, 2 threads per core) family 6 model 165 stepping 3 microcode 0xe0, cx8, cmov, fxsr, ht, mmx, 3dnowpref, sse, sse2, sse3, ssse3, sse4.1, sse4.2, popcnt, lzcnt, tsc, tscinvbit, avx, avx2, aes, erms, clmul, bmi1, bmi2, adx, fma, vzeroupper, clflush, clflushopt, hv, rdtscp, f16c
+Processor Information for the first 12 processors :
+  Max Mhz: 3101, Current Mhz: 3101, Mhz Limit: 3101
+
+Memory: 4k page, system-wide physical 16311M (279M free)
+TotalPageFile size 34206M (AvailPageFile size 147M)
+current process WorkingSet (physical memory assigned to process): 13M, peak: 13M
+current process commit charge ("private bytes"): 64M, peak: 320M
+
+vm_info: OpenJDK 64-Bit Server VM (21.0.8+-14196175-b1038.72) for windows-amd64 JRE (21.0.8+-14196175-b1038.72), built on 2025-10-01T10:24:33Z by "builder" with MS VC++ 16.10 / 16.11 (VS2019)
+
+END.

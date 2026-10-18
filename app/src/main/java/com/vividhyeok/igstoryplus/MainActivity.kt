@@ -25,6 +25,7 @@ import ja.burhanrashid52.photoeditor.PhotoEditorView
 import java.io.File
 import kotlin.math.*
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class MainActivity : AppCompatActivity() {
     lateinit var project: Project
     private lateinit var store: Store
@@ -147,7 +148,7 @@ class MainActivity : AppCompatActivity() {
         }
     }}
     private fun camera(){ choices("카메라",listOf("사진 촬영","영상 촬영")){i->
-        if(i==0){val f=File(filesDir,"imports/capture-${System.currentTimeMillis()}.jpg").apply{parentFile!!.mkdirs()};cameraUri=androidx.core.content.FileProvider.getUriForFile(this,"$packageName.files",f);capturePhoto.launch(cameraUri)}
+        if(i==0){val f=File(filesDir,"imports/capture-${System.currentTimeMillis()}.jpg").apply{parentFile!!.mkdirs()};cameraUri=androidx.core.content.FileProvider.getUriForFile(this,"$packageName.files",f);capturePhoto.launch(cameraUri!!)}
         else captureVideo.launch(Intent(MediaStore.ACTION_VIDEO_CAPTURE).putExtra(MediaStore.EXTRA_DURATION_LIMIT,60).putExtra(MediaStore.EXTRA_VIDEO_QUALITY,1))
     }}
     private fun photoMenu()=choices("사진",listOf("사진 레이어 추가","배경 교체","카메라","배경 자르기")){when(it){0->pick("layer",arrayOf("image/*"));1->pick("base",arrayOf("image/*","video/*"));2->camera();3->crop(null)}}
@@ -268,7 +269,7 @@ class MainActivity : AppCompatActivity() {
         val loading=text("PNG 불러오는 중…");box.addView(loading)
         dialog=sheet("내 이모지 · 길게 눌러 즐겨찾기",box)
         Thread{
-            val result=runCatching { val tree=DocumentFile.fromTreeUri(this,Uri.parse(path))?:error("폴더 접근 불가");check(tree.exists() && tree.canRead()){ "폴더가 없거나 접근 권한이 없습니다" };tree.listFiles().filter{it.isFile && (it.type=="image/png" || it.name?.endsWith(".png",true)==true)} }
+            val result=runCatching { EmojiFolder.scan(this,Uri.parse(path)) }
             runOnUiThread{result.onSuccess{files->
                 val fav=prefs.getStringSet("favorites",emptySet())?:emptySet();val recent=prefs.getString("recent","")!!.split("|")
                 val sorted=files.sortedWith(compareByDescending<DocumentFile>{it.uri.toString() in fav}.thenBy{recent.indexOf(it.uri.toString()).let{i->if(i<0)999 else i}}.thenBy{it.name})

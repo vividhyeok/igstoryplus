@@ -15,6 +15,7 @@ import com.google.common.collect.ImmutableList
 import java.io.File
 import kotlin.math.*
 
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class Exporter(private val context: Context) {
     private var transformer: Transformer?=null
     private val handler=Handler(Looper.getMainLooper())
@@ -51,7 +52,7 @@ class Exporter(private val context: Context) {
                             }
                             effects+=Presentation.createForWidthAndHeight(1080,1920,Presentation.LAYOUT_SCALE_TO_FIT)
                             effects+=StyleEffect(p.style,p.durationMs(),beats)
-                            if(layers.isNotEmpty()) effects+=OverlayEffect(ImmutableList.copyOf(layers.map{(l,b)-> overlay(l,b,p.durationMs())}))
+                            if(layers.isNotEmpty()) effects+=OverlayEffect(layers.map{(l,b)-> overlay(l,b,p.durationMs()) as TextureOverlay})
                             val media=MediaItem.Builder().setUri(source).apply {
                                 if(!p.video)setImageDurationMs(p.durationMs()) else setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(p.durationMs()).build())
                             }.build()

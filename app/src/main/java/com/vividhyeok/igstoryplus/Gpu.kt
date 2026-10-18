@@ -18,6 +18,7 @@ object Motion {
     fun scale(l: Layer, phase: Float) = if(l.motion && l.kind!="text") 1f+.01f*sin(phase) else 1f
     fun drift(l: Layer, phase: Float) = if(l.motion && l.kind=="text") .004f*sin(phase) else 0f
 }
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class StyleEffect(private val style: Style, private val durationMs: Long, private val beats: FloatArray = floatArrayOf()) : GlEffect {
     override fun toGlShaderProgram(context: Context, useHdr: Boolean): GlShaderProgram = object : BaseGlShaderProgram(false, 1) {
         val program=GpuProgram()
