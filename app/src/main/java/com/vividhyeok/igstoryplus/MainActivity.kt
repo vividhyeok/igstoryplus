@@ -42,6 +42,7 @@ class MainActivity : AppCompatActivity() {
     private var gestureBefore:Project?=null
     private var dragging=false
     private var selected: String?=null
+    private var foregroundBounds=RectF(0f,0f,1f,1f)
     private val layerViews=linkedMapOf<String,View>()
     private val layerReferenceWidth=mutableMapOf<String,Int>()
     private var rebuilding=false
@@ -117,14 +118,14 @@ class MainActivity : AppCompatActivity() {
         editor.source.setImageBitmap(Bitmap.createBitmap(540,960,Bitmap.Config.ARGB_8888))
         engine=PhotoEditor.Builder(this,editor).setPinchTextScalable(true).build()
         editor.onLayerGesture={v,start->
-            if(!rebuilding){
+            if(!rebuilding && textSession==null && cropSession==null){
                 if(start){stopPreview();gestureBefore=store.copy(project);dragging=true;selected=layerViews.entries.firstOrNull{it.value===v}?.key;contextTools()}
                 else { guides.clear();snap(v);syncTransforms();dragging=false;gestureBefore?.let{if(store.gson.toJson(it)!=store.gson.toJson(project))history.push(it)};gestureBefore=null;persist() }
             }
         }
         editor.onLayerTransform={v->guides.follow(v,editor)}
         editor.onLayerDoubleTap={v->project.layers.firstOrNull{layerViews[it.id]===v && it.kind=="text"}?.let{textEditor(it)}}
-        val blank=GestureDetector(this,object:GestureDetector.SimpleOnGestureListener(){override fun onDown(e:MotionEvent)=true;override fun onSingleTapUp(e:MotionEvent):Boolean{selected=null;engine.clearHelperBox();contextTools();return true};override fun onDoubleTap(e:MotionEvent):Boolean{crop(null);return true}})
+        val blank=GestureDetector(this,object:GestureDetector.SimpleOnGestureListener(){override fun onDown(e:MotionEvent)=true;override fun onSingleTapUp(e:MotionEvent):Boolean{selected=if(selected==null && project.source.isNotBlank() && foregroundBounds.contains(e.x/editor.width,e.y/editor.height))"background" else null;engine.clearHelperBox();contextTools();return true};override fun onDoubleTap(e:MotionEvent):Boolean{crop(null);return true}})
         editor.source.setOnTouchListener{_,event->blank.onTouchEvent(event);true}
         center.addOnLayoutChangeListener{_,_,_,_,_,_,_,_,_->
             val h=center.height;val w=min(center.width,(h*9f/16).toInt()); val ch=(w*16f/9).toInt()
@@ -132,6 +133,7 @@ class MainActivity : AppCompatActivity() {
         }
         empty=column().apply{gravity=Gravity.CENTER;addView(text("오늘의 한 장에\n작은 움직임을.",27f));addView(text("사진을 고르고 바로 시작하세요",14f));addView(button("사진 · 영상 선택"){pick("base",arrayOf("image/*","video/*"))}.apply{background=rounded(Color.rgb(53,57,47))});addView(button("카메라"){camera()})}
         canvasBox.addView(empty,FrameLayout.LayoutParams(-1,-1))
+        empty.setBackgroundColor(Color.BLACK)
         status=text("").apply{visibility=View.GONE}
         contextBar=chrome.bottom
         setContentView(root)
@@ -192,7 +194,7 @@ class MainActivity : AppCompatActivity() {
             videoView.visibility=View.VISIBLE
             val player=editingPlayer?:ExoPlayer.Builder(this).build().also{editingPlayer=it;videoView.player=it;it.volume=0f;it.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE}
             if(playingSource!=project.source){playingSource=project.source;player.setMediaItem(MediaItem.Builder().setUri(project.source).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(project.durationMs()).build()).build());player.prepare()}
-            updateLiveStyle();player.pause()
+            updateLiveStyle();if(clock.playing)player.play() else player.pause()
         }.onFailure{videoView.visibility=View.GONE;status.text="영상 미리보기를 열 수 없습니다"}
         else{videoView.visibility=View.GONE;editingPlayer?.release();editingPlayer=null;playingSource=""}
         status.text=if(project.source.isBlank())"사진을 선택해 시작" else "${project.style.name}  ·  ${if(project.animated())"${project.durationMs()/1000}초 MP4" else "정지 사진"}"
@@ -201,7 +203,8 @@ class MainActivity : AppCompatActivity() {
             val snapshot=store.copy(project)
             backgroundUpdate?.let{handler.removeCallbacks(it)}
             backgroundUpdate=Runnable{backgroundWorker.execute{
-                if(generation==backgroundGeneration)runCatching{Artwork.background(this,snapshot,540)}.also{r->runOnUiThread{if(generation==backgroundGeneration)r.onSuccess{live.setPhoto(it)}.onFailure{status.text="원본 접근 불가 · 사진에서 다시 선택";toast("원본이 삭제되었거나 접근 권한이 없습니다")}}}
+                var bounds=foregroundBounds
+                if(generation==backgroundGeneration)runCatching{Artwork.background(this,snapshot,540){bounds=it}}.also{r->runOnUiThread{if(generation==backgroundGeneration)r.onSuccess{foregroundBounds=bounds;live.setPhoto(it)}.onFailure{status.text="원본 접근 불가 · 사진에서 다시 선택";toast("원본이 삭제되었거나 접근 권한이 없습니다")}}}
             }}
             handler.postDelayed(backgroundUpdate!!,80)
         }
@@ -220,6 +223,8 @@ class MainActivity : AppCompatActivity() {
             val w=(l.width*editor.width).toInt().coerceIn(8,editor.width*2);val h=(w.toFloat()/original.width*original.height).toInt().coerceAtLeast(1)
             engine.addImage(Bitmap.createScaledBitmap(original,w,h,true))
             val v=editor.getChildAt(editor.childCount-1);layerViews[l.id]=v;layerReferenceWidth[l.id]=editor.width
+            v.contentDescription=if(l.kind=="text")"텍스트 레이어: ${l.text}" else "${l.kind} 레이어"
+            v.isFocusable=true
             v.post{
                 v.pivotX=v.width/2f;v.pivotY=v.height/2f;v.translationX=l.x*editor.width-v.left-v.width/2f;v.translationY=l.y*editor.height-v.top-v.height/2f
                 v.scaleX=l.scale;v.scaleY=l.scale;v.rotation=l.rotation
@@ -248,6 +253,13 @@ class MainActivity : AppCompatActivity() {
     private fun contextTools(){
         contextBar.removeAllViews();val l=project.layers.firstOrNull{it.id==selected}
         if(textSession!=null || cropSession!=null)return
+        if(selected=="background"){
+            contextBar.addView(button("×"){selected=null;contextTools()}.apply{contentDescription="선택 해제"})
+            contextBar.addView(button("자르기"){crop(null)})
+            contextBar.addView(button("교체"){pick("base",arrayOf("image/*","video/*"))})
+            contextBar.addView(button("스타일"){styles()})
+            return
+        }
         if(l==null){
             contextBar.addView(button("사진 추가"){if(project.source.isBlank())pick("base",arrayOf("image/*","video/*")) else photoMenu()})
             contextBar.addView(button("스타일"){styles()})
@@ -262,7 +274,13 @@ class MainActivity : AppCompatActivity() {
             listOf("글꼴","스타일","색상").forEach{label->contextBar.addView(button(label){textEditor(l);(0 until contextBar.childCount).map{contextBar.getChildAt(it)}.filterIsInstance<TextView>().firstOrNull{it.text==label}?.performClick()})}
         }
         if(l.kind=="png")contextBar.addView(button("크기·위치"){val box=column();slider(box,"크기",l.width){l.width=it.coerceIn(.02f,1f);restoreLayers()};slider(box,"가로 위치",l.x){l.x=it;restoreLayers()};slider(box,"세로 위치",l.y){l.y=it;restoreLayers()};sheet("스티커 조절",box)})
-        if(l.kind=="music"){contextBar.addView(button("음악 구간"){musicMenu()});contextBar.addView(button("카드 숨김"){edit{project.music?.card="숨김";ensureMusicLayer()}})}
+        if(l.kind=="music"){
+            contextBar.addView(button("음악 구간"){musicMenu()})
+            contextBar.addView(button("카드"){choices("음악 카드",listOf("작은 카드","앨범 아트","텍스트","숨김")){i->edit{project.music?.card=listOf("작은 카드","앨범 아트","텍스트","숨김")[i];ensureMusicLayer()};saveMusic()}})
+            contextBar.addView(button("볼륨"){project.music?.let{m->val box=column();slider(box,"볼륨",m.volume){m.volume=it;clock.setVolume(it);saveMusic()};sheet("음악 볼륨",box)}})
+            contextBar.addView(button("카드 숨김"){edit{project.music?.card="숨김";ensureMusicLayer()}})
+            return
+        }
         contextBar.addView(button("복제"){edit{val copy=store.gson.fromJson(store.gson.toJson(l),Layer::class.java);copy.id=java.util.UUID.randomUUID().toString();copy.x=(copy.x+.03f).coerceAtMost(.95f);project.layers.add(copy);selected=copy.id}})
         contextBar.addView(button("삭제"){edit{project.layers.remove(l);selected=null}})
         contextBar.addView(button("⋯"){choices("레이어",listOf("앞으로","뒤로","미세 모션 ${if(l.motion)"ON" else "OFF"}")){i->edit{when(i){0->{project.layers.remove(l);project.layers.add(l)};1->{project.layers.remove(l);project.layers.add(0,l)};2->l.motion=!l.motion}}}}.apply{contentDescription="레이어 추가 작업"})
@@ -321,6 +339,7 @@ class MainActivity : AppCompatActivity() {
     private fun closeCrop(){cropSession?.let{canvasBox.removeView(it)};cropSession=null;chrome.play.visibility=View.VISIBLE;normalTop();contextTools()}
     private fun textEditor(existing:Layer?,pending:Layer?=null){
         if(textSession!=null)return
+        if(project.source.isBlank()){pick("base",arrayOf("image/*","video/*"));return}
         stopPreview();syncTransforms();engine.clearHelperBox()
         chrome.play.visibility=View.GONE
         val l=pending?:existing?.copy(crop=existing.crop.copy())?:Layer(kind="text",text="",width=.65f)
@@ -387,22 +406,23 @@ class MainActivity : AppCompatActivity() {
         if(m==null){pick("music",arrayOf("audio/*"));return}
         stopPreview()
         val box=column()
-        val title=EditText(this).apply{setText(m.title);hint="곡명"};box.addView(title)
-        val artist=EditText(this).apply{setText(m.artist);hint="아티스트"};box.addView(artist)
-        val album=EditText(this).apply{setText(m.album);hint="앨범"};box.addView(album)
+        val title=EditText(this).apply{setText(m.title);hint="곡명"}
+        val artist=EditText(this).apply{setText(m.artist);hint="아티스트"}
+        val album=EditText(this).apply{setText(m.album);hint="앨범"}
         var musicDialog:android.app.Dialog?=null
         fun commitFields(){edit{m.title=title.text.toString();m.artist=artist.text.toString();m.album=album.text.toString()};saveMusic()}
         box.addView(text("${m.durationMs/1000}초 · MP4에 음악이 합성됩니다",12f))
         val position=text("시작 ${m.startMs/1000}초");box.addView(position)
-        slider(box,"볼륨",m.volume){m.volume=it;clock.setVolume(it);saveMusic()}
-        slider(box,"시작 위치",m.startMs.toFloat()/max(1L,m.durationMs-1000)){m.startMs=(it*max(0L,m.durationMs-1000)).toLong();position.text="시작 ${m.startMs/1000}초";saveMusic()}
-        if(!project.video){val length=text("선택 길이 ${project.duration}초");box.addView(length);slider(box,"5–15초 · 1초 단위",(project.duration-5)/10f){project.duration=5+(it*10).roundToInt();length.text="선택 길이 ${project.duration}초";prefs.edit().putInt("musicDuration",project.duration).apply();persist()}}
+        slider(box,"시작 위치",m.startMs.toFloat()/max(1L,m.durationMs-1000)){m.startMs=(it*max(0L,m.durationMs-1000)).toLong();position.text="시작 ${m.startMs/1000}초";saveMusic();clock.parametersChanged()}
+        if(!project.video){val length=text("선택 길이 ${project.duration}초");box.addView(length);slider(box,"5–15초 · 1초 단위",(project.duration-5)/10f){project.duration=5+(it*10).roundToInt();length.text="선택 길이 ${project.duration}초";prefs.edit().putInt("musicDuration",project.duration).apply();persist();clock.parametersChanged()}}
         else box.addView(text("영상 길이 ${project.durationMs()/1000}초 유지",12f))
         val cards=row();listOf("작은 카드","앨범 아트","텍스트","숨김").forEach{n->cards.addView(button(n){edit{m.card=n;ensureMusicLayer()};saveMusic()})};box.addView(scrollRow(cards))
         box.addView(button("앨범 아트 선택"){commitFields();musicDialog?.dismiss();pick("art",arrayOf("image/*"))})
         box.addView(button("선택 구간 미리듣기 / 정지"){
             if(clock.playing)stopPreview() else {commitFields();preview()}
         })
+        box.addView(button("곡 정보"){val info=column();listOf(title,artist,album).forEach{field->(field.parent as? ViewGroup)?.removeView(field);info.addView(field)};sheet("곡 정보",info){commitFields()}})
+        slider(box,"볼륨",m.volume){m.volume=it;clock.setVolume(it);saveMusic()}
         box.addView(button("다른 음악"){musicDialog?.dismiss();pick("music",arrayOf("audio/*"))})
         box.addView(button("음악 삭제"){musicDialog?.dismiss();stopAudio();edit{project.music=null;project.layers.removeAll{it.kind=="music"}}})
         musicDialog=sheet("음악",box){stopAudio();commitFields()}
@@ -414,7 +434,7 @@ class MainActivity : AppCompatActivity() {
             if(i==0)nameDialog("프리셋 이름",""){name->items.add(Preset(name,project.style.copy(),project.layers.firstOrNull{it.kind=="text"}?.type?:"Soft Label",project.music?.card?:"작은 카드",project.layers.firstOrNull{it.kind=="text"}?.copy(),project.layers.firstOrNull{it.kind=="music"}?.motion?:false,project.duration));store.savePresets(items)}
             else {val preset=items[i-1];choices(preset.name,listOf("적용","이름 변경","삭제")){a->when(a){
                 0->edit{project.style=preset.style.copy();project.layers.filter{it.kind=="text"}.forEach{l->
-                    l.type=preset.text;preset.template?.let{t->l.font=t.font;l.color=t.color;l.align=t.align;l.emphasis=t.emphasis;l.width=t.width;l.motion=t.motion}
+                    l.type=preset.text;preset.template?.let{t->l.font=t.font;l.color=t.color;l.align=t.align;l.emphasis=t.emphasis;l.width=t.width;l.motion=t.motion;l.textLayoutVersion=t.textLayoutVersion}
                 };project.music?.card=preset.card;ensureMusicLayer();project.layers.filter{it.kind=="music"}.forEach{it.motion=preset.musicMotion};if(!project.video)project.duration=preset.duration.coerceIn(5,15)}
                 1->nameDialog("이름 변경",preset.name){preset.name=it;store.savePresets(items)}
                 2->{items.remove(preset);store.savePresets(items)}

@@ -66,10 +66,7 @@ class EditorUiTest {
             onView(withContentDescription("캔버스 텍스트 입력")).check(androidx.test.espresso.assertion.ViewAssertions.matches(withText("한글 조합\n두 번째 줄")))
             onView(withText("취소")).perform(click())
             scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text);assertNull(Store(context).textEdit())}
-            onView(withContentDescription("더보기")).perform(click())
-            onView(withText("레이어 목록")).perform(scrollTo(),click())
-            onView(withText("이전 문구")).perform(click())
-            onView(withText("수정")).perform(click())
+            onView(withContentDescription("텍스트 레이어: 이전 문구")).perform(doubleClick())
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("수정 취소"))
             onView(withText("취소")).perform(click())
             scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text)}

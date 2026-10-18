@@ -24,6 +24,8 @@ class PreviewClock(private val context:Context,private val project:()->Project,
     private var beatKey=""
     private var generation=0
     private var transformed=false
+    private var restartPending=false
+    private val restart=Runnable{restartPending=false;time=0;video()?.seekTo(0);start()}
     var playing=false;private set
     private val tick=object:Runnable{override fun run(){
         if(!playing)return
@@ -57,10 +59,12 @@ class PreviewClock(private val context:Context,private val project:()->Project,
     }
     fun updateStyle(){val p=project();photo.style=p.style.copy();if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}
     fun setVolume(volume:Float){audio?.volume=volume.coerceIn(0f,1f)}
+    fun parametersChanged(){if(playing || restartPending){pause();restartPending=true;handler.removeCallbacks(restart);handler.postDelayed(restart,150)}}
     private fun pause(){
         playing=false;handler.removeCallbacks(tick);audio?.release();audio=null;video()?.pause();state(false)
     }
     fun stop(){
+        restartPending=false;handler.removeCallbacks(restart)
         pause()
         if(!transformed)return
         transformed=false

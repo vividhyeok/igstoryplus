@@ -33,7 +33,7 @@ object Artwork {
         return Bitmap.createBitmap(rotated, x.toInt(), y.toInt(), w.toInt().coerceAtLeast(1), h.toInt().coerceAtLeast(1))
     }
     // Small cached background: convolution is performed only when settings change, never per video frame.
-    fun background(c: Context, p: Project, width: Int): Bitmap {
+    fun background(c: Context, p: Project, width: Int, bounds:(RectF)->Unit = {}): Bitmap {
         val out = Bitmap.createBitmap(width, width*16/9, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out); canvas.drawColor(Color.rgb(25,25,28))
         if (p.source.isBlank()) return out
@@ -66,6 +66,7 @@ object Artwork {
         paint.colorFilter=null
         val s=min(out.width.toFloat()/b.width,out.height.toFloat()/b.height)
         val w=b.width*s; val h=b.height*s
+        bounds(RectF((out.width-w)/2/out.width,(out.height-h)/2/out.height,(out.width+w)/2/out.width,(out.height+h)/2/out.height))
         canvas.drawBitmap(b,null,RectF((out.width-w)/2,(out.height-h)/2,(out.width+w)/2,(out.height+h)/2),paint)
         return out
     }
