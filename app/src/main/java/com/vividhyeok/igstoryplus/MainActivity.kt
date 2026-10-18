@@ -51,6 +51,9 @@ class MainActivity : AppCompatActivity() {
     private var backgroundUpdate:Runnable?=null
     private lateinit var guides: AlignmentGuides
     private var previewPlayer: ExoPlayer?=null
+    private var editingPlayer:ExoPlayer?=null
+    private lateinit var videoView:PlayerView
+    private var playingSource=""
     private var latest: File?=null
     private val prefs by lazy { getSharedPreferences("settings",MODE_PRIVATE) }
     private val picker=registerForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)importUri(uri)}
@@ -98,6 +101,8 @@ class MainActivity : AppCompatActivity() {
         canvasBox=FrameLayout(this).apply{setBackgroundColor(Color.BLACK);clipChildren=true}
         center.addView(canvasBox,FrameLayout.LayoutParams(1,1,Gravity.CENTER))
         live=LivePhoto(this); canvasBox.addView(live,FrameLayout.LayoutParams(-1,-1))
+        videoView=layoutInflater.inflate(R.layout.video_preview,canvasBox,false) as PlayerView
+        videoView.visibility=View.GONE;canvasBox.addView(videoView,FrameLayout.LayoutParams(-1,-1))
         editor=PhotoEditorView(this).apply{setBackgroundColor(Color.TRANSPARENT);clipChildren=true}
         canvasBox.addView(editor,FrameLayout.LayoutParams(-1,-1))
         guides=AlignmentGuides(this);canvasBox.addView(guides,FrameLayout.LayoutParams(-1,-1))
@@ -169,6 +174,13 @@ class MainActivity : AppCompatActivity() {
         if(!::editor.isInitialized)return
         empty.visibility=if(project.source.isBlank())View.VISIBLE else View.GONE
         live.style=project.style.copy();live.durationMs=project.durationMs()
+        if(project.video && project.source.isNotBlank())runCatching{
+            videoView.visibility=View.VISIBLE
+            val player=editingPlayer?:ExoPlayer.Builder(this).build().also{editingPlayer=it;videoView.player=it;it.volume=0f;it.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE}
+            if(playingSource!=project.source){playingSource=project.source;player.setMediaItem(MediaItem.Builder().setUri(project.source).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(project.durationMs()).build()).build());player.prepare()}
+            updateLiveStyle();player.play()
+        }.onFailure{videoView.visibility=View.GONE;status.text="영상 미리보기를 열 수 없습니다"}
+        else{videoView.visibility=View.GONE;editingPlayer?.release();editingPlayer=null;playingSource=""}
         status.text=if(project.source.isBlank())"사진을 선택해 시작" else "${project.style.name}  ·  ${if(project.animated())"${project.durationMs()/1000}초 MP4" else "정지 사진"}"
         val generation=++backgroundGeneration
         if(project.source.isNotBlank()){
@@ -181,6 +193,7 @@ class MainActivity : AppCompatActivity() {
         }
         restoreLayers();contextTools()
     }
+    private fun updateLiveStyle(){live.style=project.style.copy();if(project.video)editingPlayer?.setVideoEffects(Exporter.baseEffects(this,project,preview=true))}
     private fun restoreLayers(){
         if(editor.width<=0)return
         rebuilding=true;engine.clearAllViews();layerViews.clear()
@@ -239,7 +252,7 @@ class MainActivity : AppCompatActivity() {
     private fun styles(){
         val box=column();val r=row()
         listOf("Simple","Grainy","Gritty","Lores","Handheld","Zoomblur","Flow Blur").forEach{n->r.addView(button(n){edit{project.style.name=n}})}
-        box.addView(scrollRow(r));slider(box,"강도",project.style.amount){project.style.amount=it;live.style=project.style.copy()}
+        box.addView(scrollRow(r));slider(box,"강도",project.style.amount){project.style.amount=it;updateLiveStyle()}
         box.addView(Switch(this).apply{text="움직임";isChecked=project.style.motion;setOnCheckedChangeListener{_,v->edit{project.style.motion=v}}})
         box.addView(button("세부 설정"){details()});box.addView(button("프리셋"){presets()});sheet("사진 스타일",box){persist()}
     }
@@ -247,8 +260,8 @@ class MainActivity : AppCompatActivity() {
         slider(box,"배경 블러",project.style.blur){project.style.blur=it;restore()}
         slider(box,"배경 밝기",project.style.brightness){project.style.brightness=it;restore()}
         slider(box,"배경 색감 · 차갑게 ↔ 따뜻하게",(project.style.warmth+1)/2){project.style.warmth=it*2-1;restore()}
-        slider(box,"가장자리 적용 범위",project.style.scope){project.style.scope=it;live.style=project.style.copy()}
-        slider(box,"루프 속도",(project.style.speed-1)/2){project.style.speed=(1+it*2).roundToInt().toFloat();live.style=project.style.copy()}
+        slider(box,"가장자리 적용 범위",project.style.scope){project.style.scope=it;updateLiveStyle()}
+        slider(box,"루프 속도",(project.style.speed-1)/2){project.style.speed=(1+it*2).roundToInt().toFloat();updateLiveStyle()}
         slider(box,"Beat Glow · 기본 OFF",project.style.beat){project.style.beat=it;live.style=project.style.copy()}
         if(!project.video)slider(box,"사진 영상 길이 5–15초",(project.duration-5)/10f){project.duration=5+(it*10).roundToInt();prefs.edit().putInt("musicDuration",project.duration).apply();live.durationMs=project.durationMs();status.text="${project.duration}초"}
         sheet("세부 설정",box){persist();restore()}
@@ -379,7 +392,7 @@ class MainActivity : AppCompatActivity() {
             }
         }.onFailure{toast("미리보기 실패: ${it.message}")}}
     }
-    override fun onPause(){super.onPause();syncTransforms();persist();stopAudio();live.onPause();previewPlayer?.pause()}
-    override fun onResume(){super.onResume();if(::live.isInitialized)live.onResume()}
-    override fun onDestroy(){backgroundUpdate?.let{handler.removeCallbacks(it)};backgroundWorker.shutdownNow();activeExport?.cancel();stopAudio();previewPlayer?.release();super.onDestroy()}
+    override fun onPause(){super.onPause();syncTransforms();persist();stopAudio();live.onPause();previewPlayer?.pause();editingPlayer?.pause()}
+    override fun onResume(){super.onResume();if(::live.isInitialized)live.onResume();editingPlayer?.play()}
+    override fun onDestroy(){backgroundUpdate?.let{handler.removeCallbacks(it)};backgroundWorker.shutdownNow();activeExport?.cancel();stopAudio();previewPlayer?.release();editingPlayer?.release();super.onDestroy()}
 }

@@ -46,13 +46,7 @@ class Exporter(private val context: Context) {
                     handler.post {
                         if(cancelled)return@post
                         runCatching {
-                            val effects=mutableListOf<Effect>()
-                            if(p.video) {
-                                effects+=ScaleAndRotateTransformation.Builder().setRotationDegrees(-p.crop.rotation).setScale(if(p.crop.flip)-1f else 1f,1f).build()
-                                effects+=videoCrop(context,p)
-                            }
-                            effects+=Presentation.createForWidthAndHeight(1080,1920,Presentation.LAYOUT_SCALE_TO_FIT)
-                            effects+=StyleEffect(p.style,p.durationMs(),beats)
+                            val effects=baseEffects(context,p,beats).toMutableList()
                             if(layers.isNotEmpty()) effects+=OverlayEffect(layers.map{(l,b)-> overlay(l,b,p.durationMs()) as TextureOverlay})
                             val media=MediaItem.Builder().setUri(source).apply {
                                 if(!p.video)setImageDurationMs(p.durationMs()) else setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(p.durationMs()).build())
@@ -84,6 +78,13 @@ class Exporter(private val context: Context) {
         }.start()
     }
     companion object {
+        fun baseEffects(c:Context,p:Project,beats:FloatArray=floatArrayOf(),preview:Boolean=false):List<Effect> {
+            val effects=mutableListOf<Effect>()
+            if(p.video){effects+=ScaleAndRotateTransformation.Builder().setRotationDegrees(-p.crop.rotation).setScale(if(p.crop.flip)-1f else 1f,1f).build();effects+=videoCrop(c,p)}
+            effects+=Presentation.createForWidthAndHeight(if(preview)540 else 1080,if(preview)960 else 1920,Presentation.LAYOUT_SCALE_TO_FIT)
+            effects+=StyleEffect(p.style,p.durationMs(),beats)
+            return effects
+        }
         fun videoCrop(c:Context,p:Project):androidx.media3.effect.Crop {
             val r=MediaMetadataRetriever()
             try {

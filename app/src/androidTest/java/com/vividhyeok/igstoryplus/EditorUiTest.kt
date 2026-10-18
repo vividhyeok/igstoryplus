@@ -76,4 +76,20 @@ class EditorUiTest {
         event(MotionEvent.ACTION_POINTER_UP or (1 shl MotionEvent.ACTION_POINTER_INDEX_SHIFT),54f,16f,true)
         event(MotionEvent.ACTION_UP,54f,16f,false);instrumentation.waitForIdleSync()
     }
+    @Test fun videoPreviewDecodesWithoutExport(){
+        val source=File(context.cacheDir,"ui-video.mp4")
+        instrumentation.context.assets.open("source-30s.mp4").use{i->source.outputStream().use{i.copyTo(it)}}
+        Store(context).save(Project(source=Uri.fromFile(source).toString(),video=true,sourceDurationMs=30000))
+        fun player(v:View):androidx.media3.ui.PlayerView?{
+            if(v is androidx.media3.ui.PlayerView)return v
+            if(v is ViewGroup)for(i in 0 until v.childCount)player(v.getChildAt(i))?.let{return it}
+            return null
+        }
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            var ready=false
+            for(i in 0 until 100){scenario.onActivity{ready=player(it.window.decorView)?.player?.playbackState==androidx.media3.common.Player.STATE_READY};if(ready)break;SystemClock.sleep(100)}
+            assertTrue("Source video must play through the decoder/GPU preview",ready)
+            scenario.onActivity{it.project=Project();Store(context).save(it.project)}
+        }
+    }
 }
