@@ -81,7 +81,7 @@ object Artwork {
     fun text(c: Context, l: Layer): Bitmap {
         val p=TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color=l.color; textSize=58f
-            typeface=if(l.font.isNotBlank()) runCatching { Typeface.createFromFile(l.font) }.getOrDefault(Typeface.DEFAULT) else Typeface.create(if(l.type=="Whisper") "sans-serif-light" else "sans-serif-medium",Typeface.NORMAL)
+            typeface=if(l.font.startsWith("system:"))Typeface.create(l.font.removePrefix("system:"),Typeface.NORMAL) else if(l.font.isNotBlank()) runCatching { Typeface.createFromFile(l.font) }.getOrDefault(Typeface.DEFAULT) else Typeface.create(if(l.type=="Whisper") "sans-serif-light" else "sans-serif-medium",Typeface.NORMAL)
             textScaleX=if(l.type=="Whisper") 1.06f else 1f
         }
         val layout=StaticLayout.Builder.obtain(l.text,0,l.text.length,p,880).setAlignment(when(l.align){0->Layout.Alignment.ALIGN_NORMAL;2->Layout.Alignment.ALIGN_OPPOSITE;else->Layout.Alignment.ALIGN_CENTER}).setIncludePad(true).build()

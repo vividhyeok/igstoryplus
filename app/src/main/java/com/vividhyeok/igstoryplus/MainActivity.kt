@@ -44,6 +44,7 @@ class MainActivity : AppCompatActivity() {
     private var cameraUri: Uri?=null
     private var activeExport: Exporter?=null
     private var audioPlayer: MediaPlayer?=null
+    private val audioStop=Runnable{stopAudio()}
     private val handler=Handler(Looper.getMainLooper())
     private var backgroundGeneration=0
     private val backgroundWorker=java.util.concurrent.Executors.newSingleThreadExecutor()
@@ -272,6 +273,7 @@ class MainActivity : AppCompatActivity() {
         val l=existing?.copy()?:Layer(kind="text",text="",width=.65f)
         val box=column();val input=EditText(this).apply{hint="문장을 입력하세요";setText(l.text);setTextColor(Color.WHITE);minLines=2;maxLines=6};box.addView(input)
         val styleRow=row();listOf("기본","Soft Label","Offset Type","Whisper","Drift Type","Echo Type").forEach{n->styleRow.addView(button(n){l.type=n;l.motion=n=="Drift Type";toast(n)})};box.addView(scrollRow(styleRow))
+        val fonts=row();listOf("기본 글꼴" to "","세리프" to "system:serif","모노" to "system:monospace").forEach{(n,f)->fonts.addView(button(n){l.font=f;toast(n)})};box.addView(fonts)
         val colors=row();listOf(Color.WHITE,Color.BLACK,0xFFD4FF83.toInt(),0xFFFFC5D6.toInt(),0xFF9DCEFF.toInt()).forEach{color->colors.addView(button("●"){l.color=color}.apply{setTextColor(color)})};box.addView(colors)
         val align=row();listOf("왼쪽","가운데","오른쪽").forEachIndexed{i,n->align.addView(button(n){l.align=i})};box.addView(align)
         slider(box,"크기",l.width){l.width=it.coerceIn(.1f,1f)};slider(box,"표현 강도",l.emphasis){l.emphasis=it}
@@ -318,14 +320,14 @@ class MainActivity : AppCompatActivity() {
         box.addView(button("앨범 아트 선택"){pick("art",arrayOf("image/*"))})
         box.addView(button("선택 구간 미리듣기 / 정지"){
             if(audioPlayer!=null)stopAudio() else {
-                audioPlayer=MediaPlayer().apply{setDataSource(this@MainActivity,Uri.parse(m.uri));setOnPreparedListener{it.seekTo(m.startMs,MediaPlayer.SEEK_CLOSEST);it.start();handler.postDelayed({stopAudio()},project.durationMs())};setOnCompletionListener{stopAudio()};setOnErrorListener{_,_,_->stopAudio();toast("재생할 수 없는 파일");true};prepareAsync()}
+                audioPlayer=MediaPlayer().apply{setDataSource(this@MainActivity,Uri.parse(m.uri));setOnPreparedListener{it.seekTo(m.startMs,MediaPlayer.SEEK_CLOSEST);it.start();handler.postDelayed(audioStop,project.durationMs())};setOnCompletionListener{stopAudio()};setOnErrorListener{_,_,_->stopAudio();toast("재생할 수 없는 파일");true};prepareAsync()}
             }
         })
         box.addView(button("다른 음악"){pick("music",arrayOf("audio/*"))})
         box.addView(button("음악 삭제"){stopAudio();edit{project.music=null;project.layers.removeAll{it.kind=="music"}}})
         sheet("음악",box){stopAudio();edit{m.title=title.text.toString();m.artist=artist.text.toString();m.album=album.text.toString()};saveMusic()}
     }
-    private fun stopAudio(){audioPlayer?.release();audioPlayer=null}
+    private fun stopAudio(){handler.removeCallbacks(audioStop);audioPlayer?.release();audioPlayer=null}
     private fun presets(){
         val items=store.presets();choices("프리셋",listOf("현재 설정 저장")+items.map{it.name}){i->
             if(i==0)nameDialog("프리셋 이름",""){name->items.add(Preset(name,project.style.copy(),project.layers.firstOrNull{it.kind=="text"}?.type?:"Soft Label",project.music?.card?:"작은 카드",project.layers.firstOrNull{it.kind=="text"}?.copy(),project.layers.firstOrNull{it.kind=="music"}?.motion?:false,project.duration));store.savePresets(items)}
@@ -341,7 +343,7 @@ class MainActivity : AppCompatActivity() {
     private fun nameDialog(title:String,value:String,onSave:(String)->Unit){val input=EditText(this).apply{setText(value)};AlertDialog.Builder(this).setTitle(title).setView(input).setPositiveButton("저장"){_,_->if(input.text.isNotBlank())onSave(input.text.toString())}.setNegativeButton("취소",null).show()}
     private fun more(){choices("더보기",listOf("사진·영상 선택","카메라","프리셋","세부 설정 / 영상 길이","레이어 목록","사용자 폰트 가져오기","새 스토리","오픈소스 라이선스")){when(it){
         0->pick("base",arrayOf("image/*","video/*"));1->camera();2->presets();3->details();4->choices("레이어",project.layers.map{if(it.kind=="text")it.text else it.kind}){i->selected=project.layers[i].id;contextTools()}
-        5->{if(project.layers.none{it.id==selected && it.kind=="text"})toast("텍스트 레이어를 먼저 선택하세요") else pick("font",arrayOf("font/*","application/x-font-ttf","application/octet-stream"))}
+        5->{if(project.layers.none{it.id==selected && it.kind=="text"})toast("텍스트 레이어를 먼저 선택하세요") else pick("font",arrayOf("font/*","application/x-font-ttf","application/x-font-opentype","application/vnd.ms-opentype","application/octet-stream"))}
         6->AlertDialog.Builder(this).setMessage("새 스토리를 시작할까요? 현재 초안은 교체됩니다.").setPositiveButton("새로 만들기"){_,_->edit{project=Project()}}.setNegativeButton("취소",null).show()
         7->AlertDialog.Builder(this).setTitle("오픈소스").setMessage(listOf("THIRD_PARTY_NOTICES.txt","Apache-2.0","Glide-LICENSE").joinToString("\n\n"){name->assets.open(name).bufferedReader().use{it.readText()}}).setPositiveButton("확인",null).show()
     }}}

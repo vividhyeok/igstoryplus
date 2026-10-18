@@ -21,7 +21,7 @@ class EmojiAdapter(private val files:List<DocumentFile>,private val favorites:Se
     }
     override fun getItemCount()=files.size
     override fun onBindViewHolder(holder:Holder,position:Int){val f=files[position];holder.title.text=(if(f.uri.toString() in favorites)"★ " else "")+(f.name?:"PNG").take(10);holder.image.contentDescription=f.name
-        Glide.with(holder.image).load(f.uri).override(160,160).into(holder.image);holder.box.setOnClickListener{click(f)};holder.box.setOnLongClickListener{favorite(f);true}
+        Glide.with(holder.image).load(f.uri).signature(com.bumptech.glide.signature.ObjectKey("${f.lastModified()}:${f.length()}")).override(160,160).into(holder.image);holder.box.setOnClickListener{click(f)};holder.box.setOnLongClickListener{favorite(f);true}
     }
     override fun onViewRecycled(holder:Holder){Glide.with(holder.image).clear(holder.image)}
 }

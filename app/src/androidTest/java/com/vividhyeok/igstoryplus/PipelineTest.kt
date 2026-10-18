@@ -50,6 +50,7 @@ class PipelineTest {
     @Test fun aStillCropTextAndAllShaders(){
         val source=photo();val p=Project(source=source)
         p.layers.add(Layer(kind="text",text="오늘의 작은 움직임",type="Soft Label",width=.7f,y=.7f))
+        p.layers.add(Layer(kind="photo",uri=source,width=.23f,x=.77f,y=.3f,crop=Crop(aspect=1f,zoom=1.5f,rotation=90f)))
         val f=export(p,"still-korean");val b=BitmapFactory.decodeFile(f.absolutePath);assertEquals(1080,b.width);assertEquals(1920,b.height)
         val raw=Artwork.decode(c,source);val crop=Artwork.cropped(raw,Crop(aspect=1f,zoom=2f,rotation=90f,flip=true));assertEquals(crop.width,crop.height);assertTrue(crop.width<raw.width)
         val base=Artwork.background(c,p,270)
