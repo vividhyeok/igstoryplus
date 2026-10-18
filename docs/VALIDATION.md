@@ -18,7 +18,7 @@
 | PhotoEditor20 | upstream graphic manager, 텍스트 스타일, 저장 설정 등 기존 단위 테스트 |
 | 편집 화면2 | 한글 입력, 드래그·핀치·회전, Undo/Redo, 복제·삭제, 초안 재생성 / 원본 영상의 GPU 디코딩 미리보기 |
 | 파이프라인6 | JPEG1080×1920, 추가 사진 크롭, 7개 GPU 스타일, 실제 SAF URI grant·persist·PNG 추가/이름변경/삭제/빈폴더/알파/잘못된 폴더, 15초 음악+Flow Blur+Drift 카드 합성, 5초 모션, 30초/60초 영상+음악 출력, 초안·프리셋·없는 원본·취소, MP3/M4A/FLAC 메타데이터·PCM 디코딩 |
-| 독립 파일 검사 | ffprobe H.264/AAC·표시 해상도·길이·fps, FFmpeg 전체 프레임 디코딩, 움직임과 루프 경계 픽셀 차이 |
+| 독립 파일 검사 | ffprobe H.264/AAC·표시 해상도·길이·fps, FFmpeg 전체 프레임 디코딩, 움직임과 루프 경계 픽셀 차이. 30초 입력 픽스처는60fps로 생성하여30fps 변환도 검증 |
 | 공유 | ADD_TO_STORY·content URI·ClipData·읽기 권한 구성. 실제 Instagram 수신·게시는 미검증 |
 | APK | aapt applicationId/version, apksigner, SHA256, Release 업로드 후 재다운로드 바이트 비교 |
 
