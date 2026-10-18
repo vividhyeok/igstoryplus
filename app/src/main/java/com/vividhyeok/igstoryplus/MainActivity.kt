@@ -330,7 +330,7 @@ class MainActivity : AppCompatActivity() {
         0->pick("base",arrayOf("image/*","video/*"));1->camera();2->presets();3->details();4->choices("레이어",project.layers.map{if(it.kind=="text")it.text else it.kind}){i->selected=project.layers[i].id;contextTools()}
         5->{if(project.layers.none{it.id==selected && it.kind=="text"})toast("텍스트 레이어를 먼저 선택하세요") else pick("font",arrayOf("font/*","application/x-font-ttf","application/octet-stream"))}
         6->AlertDialog.Builder(this).setMessage("새 스토리를 시작할까요? 현재 초안은 교체됩니다.").setPositiveButton("새로 만들기"){_,_->edit{project=Project()}}.setNegativeButton("취소",null).show()
-        7->AlertDialog.Builder(this).setTitle("오픈소스").setMessage(assets.open("THIRD_PARTY_NOTICES.txt").bufferedReader().use{it.readText()}).setPositiveButton("확인",null).show()
+        7->AlertDialog.Builder(this).setTitle("오픈소스").setMessage(listOf("THIRD_PARTY_NOTICES.txt","Apache-2.0","Glide-LICENSE").joinToString("\n\n"){name->assets.open(name).bufferedReader().use{it.readText()}}).setPositiveButton("확인",null).show()
     }}}
     private fun render(share:Boolean){
         if(project.source.isBlank()){toast("사진 또는 영상을 선택해 주세요");return}

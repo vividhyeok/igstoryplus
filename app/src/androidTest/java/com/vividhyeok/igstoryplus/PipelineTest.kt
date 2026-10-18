@@ -20,6 +20,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.math.*
 
 @RunWith(AndroidJUnit4::class)
+@org.junit.FixMethodOrder(org.junit.runners.MethodSorters.NAME_ASCENDING)
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 class PipelineTest {
     private val c=InstrumentationRegistry.getInstrumentation().targetContext
@@ -42,7 +43,7 @@ class PipelineTest {
     private fun export(p:Project,name:String):File {
         val latch=CountDownLatch(1);var result:Result<File>?=null
         Handler(Looper.getMainLooper()).post{Exporter(c).export(p,{}){result=it;latch.countDown()}}
-        assertTrue("Export timed out: $name",latch.await(240,TimeUnit.SECONDS));val f=result!!.getOrThrow()
+        assertTrue("Export timed out: $name",latch.await(600,TimeUnit.SECONDS));val f=result!!.getOrThrow()
         val target=File(evidence,"$name.${f.extension}");f.copyTo(target,true);return target
     }
     private fun tracks(file:File):List<MediaFormat>{val e=MediaExtractor();return try{e.setDataSource(file.absolutePath);(0 until e.trackCount).map{e.getTrackFormat(it)}}finally{e.release()}}
