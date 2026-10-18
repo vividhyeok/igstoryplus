@@ -66,6 +66,7 @@ internal class MultiTouchListener(
                     deleteView.visibility = View.VISIBLE
                 }
                 view.bringToFront()
+                viewState.currentSelectedView = view
                 firePhotoEditorSDKListener(view, true)
             }
             MotionEvent.ACTION_MOVE ->
@@ -78,6 +79,7 @@ internal class MultiTouchListener(
                         if (!mScaleGestureDetector.isInProgress) {
                             adjustTranslation(view, currX - mPrevX, currY - mPrevY)
                         }
+                        photoEditorView.onLayerTransform?.invoke(view)
                     }
                 }
             MotionEvent.ACTION_CANCEL -> mActivePointerId = INVALID_POINTER_ID

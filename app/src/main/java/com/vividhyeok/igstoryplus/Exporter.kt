@@ -48,7 +48,8 @@ class Exporter(private val context: Context) {
                         runCatching {
                             val effects=mutableListOf<Effect>()
                             if(p.video) {
-                                effects+=ScaleAndRotateTransformation.Builder().setRotationDegrees(p.crop.rotation).setScale(if(p.crop.flip)-p.crop.zoom else p.crop.zoom,p.crop.zoom).build()
+                                effects+=ScaleAndRotateTransformation.Builder().setRotationDegrees(-p.crop.rotation).setScale(if(p.crop.flip)-1f else 1f,1f).build()
+                                effects+=videoCrop(context,p)
                             }
                             effects+=Presentation.createForWidthAndHeight(1080,1920,Presentation.LAYOUT_SCALE_TO_FIT)
                             effects+=StyleEffect(p.style,p.durationMs(),beats)
@@ -66,11 +67,12 @@ class Exporter(private val context: Context) {
                             transformer=Transformer.Builder(context).setVideoMimeType(MimeTypes.VIDEO_H264).setAudioMimeType(MimeTypes.AUDIO_AAC).setEncoderFactory(enc).addListener(object: Transformer.Listener {
                                 override fun onCompleted(composition: Composition, exportResult: ExportResult) {
                                     if(source.scheme=="file" && !p.video)File(source.path!!).delete()
+                                    if(cancelled){file.delete();return}
                                     runCatching{inspect(file,p)}.also{r->complete(r.map{file})}; transformer=null
                                 }
                                 override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) {
                                     if(source.scheme=="file" && !p.video)File(source.path!!).delete()
-                                    file.delete(); transformer=null; complete(Result.failure(exportException))
+                                    file.delete(); transformer=null; if(!cancelled)complete(Result.failure(exportException))
                                 }
                             }).build()
                             transformer!!.start(Composition.Builder(seq).setHdrMode(Composition.HDR_MODE_TONE_MAP_HDR_TO_SDR_USING_OPEN_GL).build(),file.absolutePath)
@@ -82,6 +84,20 @@ class Exporter(private val context: Context) {
         }.start()
     }
     companion object {
+        fun videoCrop(c:Context,p:Project):androidx.media3.effect.Crop {
+            val r=MediaMetadataRetriever()
+            try {
+                r.setDataSource(c,Uri.parse(p.source))
+                var w=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!.toFloat()
+                var h=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)!!.toFloat()
+                val rotation=(r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull()?:0)+p.crop.rotation.toInt()
+                if(abs(rotation)%180==90){val t=w;w=h;h=t}
+                val aspect=if(p.crop.aspect>0)p.crop.aspect else w/h
+                val cw=min(w,h*aspect)/p.crop.zoom.coerceIn(1f,6f);val ch=cw/aspect
+                val x=(p.crop.x*w-cw/2).coerceIn(0f,w-cw);val y=(p.crop.y*h-ch/2).coerceIn(0f,h-ch)
+                return androidx.media3.effect.Crop(x/w*2-1,(x+cw)/w*2-1,1-(y+ch)/h*2,1-y/h*2)
+            } finally {r.release()}
+        }
         fun drawLayer(canvas: Canvas,l: Layer,b: Bitmap,w: Int,h: Int) {
             val s=l.width*w/b.width*l.scale
             canvas.save(); canvas.translate(l.x*w,l.y*h); canvas.rotate(l.rotation); canvas.scale(s,s); canvas.drawBitmap(b,-b.width/2f,-b.height/2f,Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)); canvas.restore()
@@ -99,8 +115,11 @@ class Exporter(private val context: Context) {
             val r=MediaMetadataRetriever()
             try {
                 r.setDataSource(f.absolutePath)
-                check(r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)=="1080") { "출력 너비 오류" }
-                check(r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)=="1920") { "출력 높이 오류" }
+                var width=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)!!.toInt()
+                var height=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)!!.toInt()
+                val rotation=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_ROTATION)?.toIntOrNull()?:0
+                if(abs(rotation)%180==90){val temp=width;width=height;height=temp}
+                check(width==1080 && height==1920) { "출력 해상도 오류: ${width}×${height} (rotation $rotation)" }
                 val ms=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)!!.toLong()
                 check(abs(ms-p.durationMs())<350) { "출력 길이 오류: $ms" }
                 if(p.music!=null)check(r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO)=="yes"){"오디오 누락"}

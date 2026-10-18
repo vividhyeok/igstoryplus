@@ -58,6 +58,10 @@ class PipelineTest {
     private fun Bitmap.outputStream(file:File){file.outputStream().use{compress(Bitmap.CompressFormat.PNG,100,it)}}
     @Test fun bPngFolderRefreshAndAlpha(){
         val uri=DocumentsContract.buildTreeDocumentUri("com.vividhyeok.igstoryplus.test.documents","root")
+        testContext.startActivity(Intent().setClassName(testContext.packageName,GrantFixtureActivity::class.java.name).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+        repeat(50){if(c.checkUriPermission(uri,android.os.Process.myPid(),android.os.Process.myUid(),Intent.FLAG_GRANT_READ_URI_PERMISSION)!=android.content.pm.PackageManager.PERMISSION_GRANTED)Thread.sleep(100)}
+        c.contentResolver.takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        assertTrue(c.contentResolver.persistedUriPermissions.any{it.uri==uri && it.isReadPermission})
         EmojiFolder.scan(c,uri).forEach{DocumentsContract.deleteDocument(c.contentResolver,it.uri)}
         assertTrue(EmojiFolder.scan(c,uri).isEmpty())
         val b=Bitmap.createBitmap(512,512,Bitmap.Config.ARGB_8888);Canvas(b).drawCircle(256f,256f,100f,Paint().apply{color=Color.RED})
@@ -68,6 +72,7 @@ class PipelineTest {
         val renamed=DocumentsContract.renameDocument(c.contentResolver,document,"renamed.png")!!;assertEquals("renamed.png",EmojiFolder.scan(c,uri).single().name)
         assertTrue(DocumentsContract.deleteDocument(c.contentResolver,renamed));assertTrue(EmojiFolder.scan(c,uri).isEmpty())
         assertTrue(runCatching{EmojiFolder.scan(c,DocumentsContract.buildTreeDocumentUri("com.vividhyeok.igstoryplus.test.documents","missing"))}.isFailure)
+        c.contentResolver.releasePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
     }
     @Test fun cMusicAndMotion15Seconds(){
         val p=Project(source=photo(),duration=15,style=Style(name="Flow Blur",motion=true,beat=.25f))
@@ -100,5 +105,12 @@ class PipelineTest {
         Handler(Looper.getMainLooper()).post{val e=Exporter(c);e.export(Project(source=p.source,style=Style(motion=true)),{}){};e.cancel()}
         Thread.sleep(1500);assertEquals("초안",store.load().layers.single().text)
         store.save(Project());store.savePresets(emptyList())
+    }
+    @Test fun fCommonAudioFormatsAndMetadata(){
+        for(ext in listOf("mp3","m4a","flac")){
+            val f=File(c.cacheDir,"fixture.$ext");testContext.assets.open("audio.$ext").use{i->f.outputStream().use{i.copyTo(it)}}
+            val music=Audio.metadata(c,Uri.fromFile(f).toString());assertEquals("Fixture Song",music.title);assertEquals("Fixture Artist",music.artist)
+            assertTrue(music.durationMs in 1900..2200);assertTrue(Audio.analyze(c,music,2000).size>=40)
+        }
     }
 }

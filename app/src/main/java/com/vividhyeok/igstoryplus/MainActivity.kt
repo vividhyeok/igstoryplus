@@ -46,6 +46,9 @@ class MainActivity : AppCompatActivity() {
     private var audioPlayer: MediaPlayer?=null
     private val handler=Handler(Looper.getMainLooper())
     private var backgroundGeneration=0
+    private val backgroundWorker=java.util.concurrent.Executors.newSingleThreadExecutor()
+    private var backgroundUpdate:Runnable?=null
+    private lateinit var guides: AlignmentGuides
     private var previewPlayer: ExoPlayer?=null
     private var latest: File?=null
     private val prefs by lazy { getSharedPreferences("settings",MODE_PRIVATE) }
@@ -66,8 +69,15 @@ class MainActivity : AppCompatActivity() {
     }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); store=Store(this); project=store.load(); buildUi()
+        cameraUri=savedInstanceState?.getString("cameraUri")?.let{Uri.parse(it)}
+        importMode=savedInstanceState?.getString("importMode")?:"base"
+        Thread{
+            val cutoff=System.currentTimeMillis()-2*24*60*60*1000L
+            File(cacheDir,".").listFiles()?.filter{it.name.startsWith("render-source-") && it.lastModified()<cutoff}?.forEach{it.delete()}
+        }.start()
         canvasBox.post { restore() }
     }
+    override fun onSaveInstanceState(outState:Bundle){outState.putString("cameraUri",cameraUri?.toString());outState.putString("importMode",importMode);super.onSaveInstanceState(outState)}
     private fun dp(n: Int)=(n*resources.displayMetrics.density).toInt()
     private fun rounded(color: Int,radius: Float=16f)=GradientDrawable().apply{setColor(color);cornerRadius=dp(radius.toInt()).toFloat()}
     private fun text(value: String,size: Float=14f)=TextView(this).apply{text=value;setTextColor(Color.WHITE);textSize=size;gravity=Gravity.CENTER;setPadding(dp(8),dp(6),dp(8),dp(6))}
@@ -89,14 +99,16 @@ class MainActivity : AppCompatActivity() {
         live=LivePhoto(this); canvasBox.addView(live,FrameLayout.LayoutParams(-1,-1))
         editor=PhotoEditorView(this).apply{setBackgroundColor(Color.TRANSPARENT);clipChildren=true}
         canvasBox.addView(editor,FrameLayout.LayoutParams(-1,-1))
+        guides=AlignmentGuides(this);canvasBox.addView(guides,FrameLayout.LayoutParams(-1,-1))
         editor.source.setImageBitmap(Bitmap.createBitmap(540,960,Bitmap.Config.ARGB_8888))
         engine=PhotoEditor.Builder(this,editor).setPinchTextScalable(true).build()
         editor.onLayerGesture={v,start->
             if(!rebuilding){
                 if(start){history.push(project); selected=layerViews.entries.firstOrNull{it.value===v}?.key; contextTools()}
-                else { snap(v); syncTransforms(); persist() }
+                else { guides.clear();snap(v); syncTransforms(); persist() }
             }
         }
+        editor.onLayerTransform={v->guides.follow(v,editor)}
         center.addOnLayoutChangeListener{_,_,_,_,_,_,_,_,_->
             val h=center.height;val w=min(center.width,(h*9f/16).toInt()); val ch=(w*16f/9).toInt()
             if(w>0 && (canvasBox.width!=w || canvasBox.height!=ch)){canvasBox.layoutParams=FrameLayout.LayoutParams(w,ch,Gravity.CENTER);canvasBox.post{restoreLayers()}}
@@ -160,7 +172,11 @@ class MainActivity : AppCompatActivity() {
         val generation=++backgroundGeneration
         if(project.source.isNotBlank()){
             val snapshot=store.copy(project)
-            Thread{runCatching{Artwork.background(this,snapshot,540)}.also{r->runOnUiThread{if(generation==backgroundGeneration)r.onSuccess{live.setPhoto(it)}.onFailure{status.text="원본 접근 불가 · 사진에서 다시 선택";toast("원본이 삭제되었거나 접근 권한이 없습니다")}}}}.start()
+            backgroundUpdate?.let{handler.removeCallbacks(it)}
+            backgroundUpdate=Runnable{backgroundWorker.execute{
+                if(generation==backgroundGeneration)runCatching{Artwork.background(this,snapshot,540)}.also{r->runOnUiThread{if(generation==backgroundGeneration)r.onSuccess{live.setPhoto(it)}.onFailure{status.text="원본 접근 불가 · 사진에서 다시 선택";toast("원본이 삭제되었거나 접근 권한이 없습니다")}}}
+            }}
+            handler.postDelayed(backgroundUpdate!!,80)
         }
         restoreLayers();contextTools()
     }
@@ -317,9 +333,11 @@ class MainActivity : AppCompatActivity() {
     private fun stopAudio(){audioPlayer?.release();audioPlayer=null}
     private fun presets(){
         val items=store.presets();choices("프리셋",listOf("현재 설정 저장")+items.map{it.name}){i->
-            if(i==0)nameDialog("프리셋 이름",""){name->items.add(Preset(name,project.style.copy(),project.layers.firstOrNull{it.kind=="text"}?.type?:"Soft Label",project.music?.card?:"작은 카드"));store.savePresets(items)}
+            if(i==0)nameDialog("프리셋 이름",""){name->items.add(Preset(name,project.style.copy(),project.layers.firstOrNull{it.kind=="text"}?.type?:"Soft Label",project.music?.card?:"작은 카드",project.layers.firstOrNull{it.kind=="text"}?.copy(),project.layers.firstOrNull{it.kind=="music"}?.motion?:false,project.duration));store.savePresets(items)}
             else {val preset=items[i-1];choices(preset.name,listOf("적용","이름 변경","삭제")){a->when(a){
-                0->edit{project.style=preset.style.copy();project.layers.filter{it.kind=="text"}.forEach{it.type=preset.text};project.music?.card=preset.card;ensureMusicLayer()}
+                0->edit{project.style=preset.style.copy();project.layers.filter{it.kind=="text"}.forEach{l->
+                    l.type=preset.text;preset.template?.let{t->l.font=t.font;l.color=t.color;l.align=t.align;l.emphasis=t.emphasis;l.width=t.width;l.motion=t.motion}
+                };project.music?.card=preset.card;ensureMusicLayer();project.layers.filter{it.kind=="music"}.forEach{it.motion=preset.musicMotion};if(!project.video)project.duration=preset.duration.coerceIn(5,15)}
                 1->nameDialog("이름 변경",preset.name){preset.name=it;store.savePresets(items)}
                 2->{items.remove(preset);store.savePresets(items)}
             }}}
@@ -355,16 +373,16 @@ class MainActivity : AppCompatActivity() {
         val wait=AlertDialog.Builder(this).setMessage("미리보기 준비 중…").setNegativeButton("취소"){_,_->exporter.cancel();activeExport=null}.setCancelable(false).show()
         exporter.export(store.copy(project),{}){r->wait.dismiss();activeExport=null;r.onSuccess{f->
             if(f.extension=="jpg"){
-                val image=ImageView(this).apply{setImageURI(Uri.fromFile(f));adjustViewBounds=true};AlertDialog.Builder(this).setView(image).setPositiveButton("닫기",null).show()
+                val image=ImageView(this).apply{setImageURI(Uri.fromFile(f));adjustViewBounds=true};AlertDialog.Builder(this).setView(image).setPositiveButton("닫기",null).create().apply{setOnDismissListener{f.delete()};show()}
             }else{
                 val player=ExoPlayer.Builder(this).build();previewPlayer=player
                 val view=PlayerView(this).apply{this.player=player;layoutParams=ViewGroup.LayoutParams(-1,dp(440))}
-                val d=AlertDialog.Builder(this).setView(view).setPositiveButton("닫기",null).create();d.setOnDismissListener{player.release();previewPlayer=null};d.show()
+                val d=AlertDialog.Builder(this).setView(view).setPositiveButton("닫기",null).create();d.setOnDismissListener{player.release();previewPlayer=null;f.delete()};d.show()
                 player.setMediaItem(MediaItem.fromUri(Uri.fromFile(f)));player.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE;player.prepare();player.play()
             }
         }.onFailure{toast("미리보기 실패: ${it.message}")}}
     }
     override fun onPause(){super.onPause();syncTransforms();persist();stopAudio();live.onPause();previewPlayer?.pause()}
     override fun onResume(){super.onResume();if(::live.isInitialized)live.onResume()}
-    override fun onDestroy(){activeExport?.cancel();stopAudio();previewPlayer?.release();super.onDestroy()}
+    override fun onDestroy(){backgroundUpdate?.let{handler.removeCallbacks(it)};backgroundWorker.shutdownNow();activeExport?.cancel();stopAudio();previewPlayer?.release();super.onDestroy()}
 }

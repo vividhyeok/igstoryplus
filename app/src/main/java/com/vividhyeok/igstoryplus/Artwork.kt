@@ -37,7 +37,7 @@ object Artwork {
         val out = Bitmap.createBitmap(width, width*16/9, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out); canvas.drawColor(Color.rgb(25,25,28))
         if (p.source.isBlank()) return out
-        val raw = if (p.video) videoFrame(c, p.source) else decode(c, p.source)
+        val raw = if (p.video) videoFrame(c, p.source) else decode(c, p.source,if(width>=1080)(2048*p.crop.zoom).toInt().coerceAtMost(4096) else 1536)
         val b = cropped(raw, p.crop)
         val small = Bitmap.createScaledBitmap(b, 54, 96, true)
         val pix = IntArray(54*96); small.getPixels(pix,0,54,0,0,54,96)
@@ -73,8 +73,8 @@ object Artwork {
         return if(l<=r && t<=d) Bitmap.createBitmap(b,l,t,r-l+1,d-t+1) else b
     }
     fun layer(c: Context, l: Layer, music: Music?): Bitmap = when(l.kind) {
-        "photo" -> cropped(decode(c,l.uri),l.crop)
-        "png" -> trimAlpha(decode(c,l.uri,1024))
+        "photo" -> cropped(decode(c,l.uri,(l.width*1080*l.scale*l.crop.zoom).toInt().coerceIn(512,4096)),l.crop)
+        "png" -> trimAlpha(decode(c,l.uri,(l.width*1080*l.scale).toInt().coerceIn(256,2048)))
         "music" -> musicCard(c,music ?: Music(),l)
         else -> text(c,l)
     }
