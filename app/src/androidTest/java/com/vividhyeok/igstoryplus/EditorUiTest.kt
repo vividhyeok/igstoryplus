@@ -87,7 +87,9 @@ class EditorUiTest {
         fun outputs()=File(context.filesDir,"exports").listFiles()?.map{it.name}?.toSet()?:emptySet()
         val before=outputs()
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            scenario.onActivity{it.project.duration=10}
             onView(withContentDescription("미리보기 재생")).perform(click());SystemClock.sleep(350)
+            scenario.onActivity{a->fun photo(v:View):LivePhoto?{if(v is LivePhoto)return v;if(v is ViewGroup)for(i in 0 until v.childCount)photo(v.getChildAt(i))?.let{return it};return null};assertEquals(10000L,photo(a.window.decorView)!!.durationMs)}
             onView(withContentDescription("미리보기 일시정지")).perform(click())
             assertEquals(before,outputs())
             onView(withText("사진 추가")).perform(click());onView(withText("배경 자르기")).perform(click())

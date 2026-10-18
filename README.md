@@ -6,6 +6,8 @@ APK: [GitHub Releases](https://github.com/vividhyeok/igstoryplus/releases). 검�
 
 사진/영상 선택 → 스타일·크롭 → 필요한 텍스트·개인 PNG·음악 → 인스타 스토리로 공유. 최종 게시·공식 음악·멘션·투표는 Instagram에서 진행합니다.
 
+v0.2는 큰 캔버스, 사진 위 직접 텍스트 입력, 전체 화면 크롭과 인코딩 없는 실시간 재생을 중심으로 재설계했습니다. [편집기 UX·호환성](docs/EDITOR_UX.md).
+
 ## CLI
 
 JDK17+, Android SDK35. Android Studio/VS Code GUI 불필요.

@@ -41,7 +41,10 @@ class PreviewClock(private val context:Context,private val project:()->Project,
     }}
     fun toggle(){if(playing)pause() else start()}
     private fun start(){
+        if(playing)return
+        handler.removeCallbacks(restart);restartPending=false
         val p=project();if(p.source.isBlank())return
+        photo.durationMs=p.durationMs()
         if(p.music==null)beats=floatArrayOf()
         playing=true;state(true);stamp=SystemClock.elapsedRealtime()
         video()?.apply{volume=if(p.music==null)1f else 0f;play()}
@@ -57,7 +60,7 @@ class PreviewClock(private val context:Context,private val project:()->Project,
         }}
         handler.post(tick)
     }
-    fun updateStyle(){val p=project();photo.style=p.style.copy();if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}
+    fun updateStyle(){val p=project();photo.durationMs=p.durationMs();photo.style=p.style.copy();if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}
     fun setVolume(volume:Float){audio?.volume=volume.coerceIn(0f,1f)}
     fun parametersChanged(){if(playing || restartPending){pause();restartPending=true;handler.removeCallbacks(restart);handler.postDelayed(restart,150)}}
     private fun pause(){
