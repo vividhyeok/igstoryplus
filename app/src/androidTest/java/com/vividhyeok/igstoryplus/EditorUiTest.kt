@@ -38,6 +38,9 @@ class EditorUiTest {
         Store(context).save(Project(source=Uri.fromFile(source).toString(),layers=mutableListOf(Layer(kind="text",text="이전 문구"))))
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             onView(withContentDescription("텍스트")).perform(click())
+            var imeVisible=false
+            for(i in 0 until 40){scenario.onActivity{a->imeVisible=androidx.core.view.ViewCompat.getRootWindowInsets(a.window.decorView)?.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime())==true};if(imeVisible)break;SystemClock.sleep(100)}
+            assertTrue("The soft keyboard must actually be visible, not just an editable field",imeVisible)
             scenario.onActivity{a->
                 val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input")
                 val connection=input.onCreateInputConnection(android.view.inputmethod.EditorInfo())!!
@@ -47,6 +50,7 @@ class EditorUiTest {
                 connection.commitText("한",1)
             }
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("한글 조합\n두 번째 줄"))
+            instrumentation.waitForIdleSync();SystemClock.sleep(300)
             screenshot("editor-text-ime")
             scenario.onActivity{a->
                 val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input")
@@ -55,6 +59,9 @@ class EditorUiTest {
                 assertEquals(1,a.project.layers.size)
                 val e=editor(a.window.decorView)!!;assertEquals(9f/16,e.width.toFloat()/e.height,.01f)
                 assertTrue("IME must leave a visible canvas",e.height>80)
+                val visible=android.graphics.Rect();val inputRect=android.graphics.Rect()
+                a.window.decorView.getWindowVisibleDisplayFrame(visible)
+                assertTrue(input.getGlobalVisibleRect(inputRect));assertTrue("Text must stay above the keyboard",inputRect.bottom<=visible.bottom)
                 assertEquals("한글 조합\n두 번째 줄",Store(context).textEdit()!!.layer.text)
             }
             onView(withContentDescription("캔버스 텍스트 입력")).perform(closeSoftKeyboard())

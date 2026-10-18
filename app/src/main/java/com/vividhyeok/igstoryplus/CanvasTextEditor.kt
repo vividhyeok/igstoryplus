@@ -14,6 +14,7 @@ import android.widget.*
 class CanvasTextEditor(private val activity: Activity, private val canvas: FrameLayout,
                        val draft: Layer, private val changed:(Layer)->Unit, private val finished: (Boolean,Layer)->Unit) {
     val input = object : androidx.appcompat.widget.AppCompatEditText(activity) {
+        override fun onWindowFocusChanged(hasWindowFocus:Boolean){super.onWindowFocusChanged(hasWindowFocus);if(hasWindowFocus && hasFocus())post{showKeyboard()}}
         override fun onDraw(c: Canvas) {
             // Same 960px reference layout and decoration as Artwork.text().
             if(draft.type=="Soft Label") c.drawRoundRect(12f,6f,948f,height-6f,28f,28f,
@@ -41,8 +42,9 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
         canvas.addView(input,FrameLayout.LayoutParams(960,-2,Gravity.TOP or Gravity.START))
         canvas.addOnLayoutChangeListener(layoutListener)
         refresh(); input.requestFocus()
-        input.post { (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(input,InputMethodManager.SHOW_IMPLICIT) }
+        input.post { showKeyboard() }
     }
+    private fun showKeyboard(){if(input.isAttachedToWindow && input.hasWindowFocus())(activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).showSoftInput(input,InputMethodManager.SHOW_IMPLICIT)}
     fun refresh() {
         changed(draft)
         input.typeface=Artwork.typeface(draft)

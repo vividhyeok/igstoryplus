@@ -6,7 +6,7 @@
 - 이 실행의 `editor-ui.png`를 열어 큰 캔버스와 상단 아이콘/단일 하단 도구 배치를 시각적으로 확인했다.
 - 후속 최종본에는 한글 composing InputConnection, 스타일 즉시 반영, 실제 더블탭 재편집, IME/스타일 화면 캡처, 레거시 초안 기본값, PCM 볼륨과 재생 길이 변경 검사를 추가했다. 최종 통과 수와 커밋은 각 Release의 `validation-report.json`을 기준으로 확인한다.
 - 로컬 최종 소스는 CLI 컴파일·lint·앱5/PhotoEditor20 단위 테스트 통과. 로컬 에뮬레이터의 재시작은 디스크 부족으로 차단되어 계측 테스트는 독립된 GitHub API35 에뮬레이터에서 수행한다. 사용자 파일/기존 AVD를 지워 공간을 확보하지 않았다.
-- [v0.2.0](https://github.com/vividhyeok/igstoryplus/releases/tag/v0.2.0)도 전체 CI 성공 후에만 APK를 게시한다. 기존 서명키/applicationId를 유지하며 versionCode를 증가시킨다.
+- v0.2.0 태그 빌드는 화면 QA에서 소프트 키보드 표시 검사가 부족한 것을 확인하여 배포 전에 중지했다. 에뮬레이터 하드웨어 키보드 설정과 무관하게 소프트 키보드를 표시하고, 실제 IME 가시성 및 입력 영역이 키보드 위에 있는지를 강제 검사한다. v0.2.1부터 이 검증 게이트로 APK를 게시한다. 기존 서명키/applicationId를 유지하며 versionCode를 증가시킨다.
 
 Samsung 한글 키보드의 실제 키 입력은 별도 실기기 확인이다. 자동 InputConnection 조합 검사는 실제 키보드/키보드별 커서 동작을 모두 대신하지 않는다. 자세한 상호작용과 호환 경계는 [EDITOR_UX](EDITOR_UX.md)를 참고한다.
 
