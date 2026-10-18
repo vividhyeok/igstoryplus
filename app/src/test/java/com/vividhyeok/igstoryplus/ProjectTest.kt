@@ -5,6 +5,13 @@ import org.junit.Test
 import kotlin.math.*
 
 class ProjectTest {
+    @Test fun legacyDraftDefaultsAndNewTextHistoryStayCompatible(){
+        val gson=com.google.gson.Gson()
+        val old=gson.fromJson("""{"source":"old.jpg","layers":[{"kind":"text","text":"오래된 초안","font":"system:serif"}],"music":{"title":"노래"}}""",Project::class.java)
+        assertEquals(0,old.layers.single().textLayoutVersion);assertEquals(1f,old.music!!.volume)
+        val h=History();h.push(old);old.layers.single().text="새 문구";old.layers.single().textLayoutVersion=1
+        val restored=h.undo(old)!!;assertEquals("오래된 초안",restored.layers.single().text);assertEquals("system:serif",restored.layers.single().font)
+    }
     @Test fun outputPolicyAndVideoDuration() {
         val p=Project();assertFalse(p.animated());p.style.motion=true;assertTrue(p.animated());assertEquals(5000L,p.durationMs())
         p.music=Music();p.duration=15;assertEquals(15000L,p.durationMs())

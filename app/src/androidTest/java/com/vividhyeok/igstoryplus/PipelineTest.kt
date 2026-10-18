@@ -47,6 +47,18 @@ class PipelineTest {
         val target=File(evidence,"$name.${f.extension}");f.copyTo(target,true);return target
     }
     private fun tracks(file:File):List<MediaFormat>{val e=MediaExtractor();return try{e.setDataSource(file.absolutePath);(0 until e.trackCount).map{e.getTrackFormat(it)}}finally{e.release()}}
+    @Test fun gVolumeAndNewTextReferenceLayout(){
+        val processor=Audio.volumeEffects(.5f).single()
+        processor.configure(androidx.media3.common.audio.AudioProcessor.AudioFormat(48000,2,androidx.media3.common.C.ENCODING_PCM_16BIT));processor.flush()
+        val input=ByteBuffer.allocateDirect(8).order(ByteOrder.nativeOrder()).apply{putShort(10000);putShort(-10000);putShort(20000);putShort(-20000);flip()}
+        processor.queueInput(input)
+        val output=processor.output.order(ByteOrder.nativeOrder())
+        assertEquals(5000,output.short.toInt());assertEquals(-5000,output.short.toInt());assertEquals(10000,output.short.toInt());assertEquals(-10000,output.short.toInt());processor.reset()
+        assertTrue(Audio.volumeEffects(1f).isEmpty())
+        val layer=Layer(kind="text",text="오늘도\n차분하게",textLayoutVersion=1)
+        val rendered=Artwork.text(c,layer);assertEquals(960,rendered.width);assertTrue(rendered.height>200)
+        File(evidence,"wysiwyg-korean.png").outputStream().use{rendered.compress(Bitmap.CompressFormat.PNG,100,it)}
+    }
     @Test fun aStillCropTextAndAllShaders(){
         val source=photo();val p=Project(source=source)
         p.layers.add(Layer(kind="text",text="오늘의 작은 움직임",type="Soft Label",width=.7f,y=.7f))

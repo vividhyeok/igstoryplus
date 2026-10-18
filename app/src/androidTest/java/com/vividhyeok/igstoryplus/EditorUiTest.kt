@@ -25,6 +25,7 @@ import java.io.File
 class EditorUiTest {
     private val instrumentation=InstrumentationRegistry.getInstrumentation()
     private val context=instrumentation.targetContext
+    private fun screenshot(name:String){val f=File(context.getExternalFilesDir(null),"validation/$name.png").apply{parentFile!!.mkdirs()};instrumentation.uiAutomation.takeScreenshot().let{b->f.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)}}}
     private fun editor(v:View):PhotoEditorView? {
         if(v is PhotoEditorView)return v
         if(v is ViewGroup)for(i in 0 until v.childCount)editor(v.getChildAt(i))?.let{return it}
@@ -37,7 +38,16 @@ class EditorUiTest {
         Store(context).save(Project(source=Uri.fromFile(source).toString(),layers=mutableListOf(Layer(kind="text",text="이전 문구"))))
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             onView(withContentDescription("텍스트")).perform(click())
+            scenario.onActivity{a->
+                val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input")
+                val connection=input.onCreateInputConnection(android.view.inputmethod.EditorInfo())!!
+                assertTrue(connection.setComposingText("ㅎ",1));assertTrue(connection.setComposingText("한",1))
+                assertEquals("한",input.text.toString())
+                assertTrue(android.view.inputmethod.BaseInputConnection.getComposingSpanStart(input.text)>=0)
+                connection.commitText("한",1)
+            }
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("한글 조합\n두 번째 줄"))
+            screenshot("editor-text-ime")
             scenario.onActivity{a->
                 val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input")
                 assertNotNull(input);assertTrue(input.parent is android.widget.FrameLayout)
@@ -47,6 +57,11 @@ class EditorUiTest {
                 assertTrue("IME must leave a visible canvas",e.height>80)
                 assertEquals("한글 조합\n두 번째 줄",Store(context).textEdit()!!.layer.text)
             }
+            onView(withContentDescription("캔버스 텍스트 입력")).perform(closeSoftKeyboard())
+            onView(withText("스타일")).perform(click())
+            screenshot("editor-text-styles")
+            onView(withContentDescription("Whisper")).perform(scrollTo(),click())
+            scenario.onActivity{a->assertEquals("Whisper",Store(context).textEdit()!!.layer.type);assertEquals(.13f,a.window.decorView.findViewWithTag<EditText>("canvas-text-input").letterSpacing,.001f)}
             scenario.recreate()
             onView(withContentDescription("캔버스 텍스트 입력")).check(androidx.test.espresso.assertion.ViewAssertions.matches(withText("한글 조합\n두 번째 줄")))
             onView(withText("취소")).perform(click())
@@ -88,6 +103,7 @@ class EditorUiTest {
         }
     }
     @Test fun koreanTextDragUndoRedoDuplicateAndDelete(){
+        Store(context).clearTextEdit()
         val source=File(context.filesDir,"ui-source.jpg")
         val bitmap=Bitmap.createBitmap(540,960,Bitmap.Config.ARGB_8888);Canvas(bitmap).drawColor(Color.rgb(75,100,92));source.outputStream().use{bitmap.compress(Bitmap.CompressFormat.JPEG,92,it)}
         Store(context).save(Project(source=Uri.fromFile(source).toString()))
@@ -134,6 +150,7 @@ class EditorUiTest {
         event(MotionEvent.ACTION_UP,54f,16f,false);instrumentation.waitForIdleSync()
     }
     @Test fun videoPreviewDecodesWithoutExport(){
+        Store(context).clearTextEdit()
         val source=File(context.cacheDir,"ui-video.mp4")
         instrumentation.context.assets.open("source-30s.mp4").use{i->source.outputStream().use{i.copyTo(it)}}
         Store(context).save(Project(source=Uri.fromFile(source).toString(),video=true,sourceDurationMs=30000))

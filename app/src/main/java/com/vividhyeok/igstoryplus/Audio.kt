@@ -9,6 +9,13 @@ import java.security.MessageDigest
 import kotlin.math.*
 
 object Audio {
+    @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+    fun volumeEffects(volume:Float):List<androidx.media3.common.audio.AudioProcessor> {
+        if(volume==1f)return emptyList()
+        val processor=androidx.media3.common.audio.ChannelMixingAudioProcessor()
+        for(channels in 1..6)processor.putChannelMixingMatrix(androidx.media3.common.audio.ChannelMixingMatrix(channels,channels,FloatArray(channels*channels){i->if(i/channels==i%channels)volume.coerceIn(0f,1f) else 0f}))
+        return listOf(processor)
+    }
     fun metadata(c: Context, uri: String): Music {
         val r=MediaMetadataRetriever()
         try {

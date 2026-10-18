@@ -31,6 +31,7 @@ class CropPreview(c:Context,private val original:Bitmap,private val crop:Crop):V
         val x=(crop.x*bitmap.width-cw/2).coerceIn(0f,bitmap.width-cw);val y=(crop.y*bitmap.height-ch/2).coerceIn(0f,bitmap.height-ch)
         canvas.save();canvas.clipRect(left,top,left+w,top+h);canvas.translate(left-x*factor,top-y*factor);canvas.scale(factor,factor);canvas.drawBitmap(bitmap,0f,0f,paint);canvas.restore()
         canvas.drawRect(left,top,left+w,top+h,border)
+        for(i in 1..2){canvas.drawLine(left+w*i/3,top,left+w*i/3,top+h,border);canvas.drawLine(left,top+h*i/3,left+w,top+h*i/3,border)}
     }
     override fun onTouchEvent(event:MotionEvent):Boolean{
         scale.onTouchEvent(event)

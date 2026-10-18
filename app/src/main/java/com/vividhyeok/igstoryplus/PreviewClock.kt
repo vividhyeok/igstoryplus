@@ -40,19 +40,23 @@ class PreviewClock(private val context:Context,private val project:()->Project,
     fun toggle(){if(playing)pause() else start()}
     private fun start(){
         val p=project();if(p.source.isBlank())return
+        if(p.music==null)beats=floatArrayOf()
         playing=true;state(true);stamp=SystemClock.elapsedRealtime()
         video()?.apply{volume=if(p.music==null)1f else 0f;play()}
         p.music?.let{m->runCatching{
             audio=ExoPlayer.Builder(context).build().apply{
+                volume=m.volume.coerceIn(0f,1f)
                 setMediaItem(MediaItem.Builder().setUri(m.uri).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(m.startMs).setEndPositionMs(min(m.startMs+p.durationMs(),m.durationMs)).build()).build())
                 repeatMode=Player.REPEAT_MODE_ONE;prepare();seekTo(time%min(p.durationMs(),m.durationMs-m.startMs).coerceAtLeast(1));play()
             }
             val key="${m.uri}:${m.startMs}:${p.durationMs()}"
             if(p.style.beat>0 && key!=beatKey){beatKey=key;beats=floatArrayOf();val token=++generation
-                Thread{val result=runCatching{Audio.analyze(context,m.copy(),p.durationMs())}.getOrDefault(floatArrayOf());handler.post{if(token==generation)beats=result}}.start()}
+                Thread{val result=runCatching{Audio.analyze(context,m.copy(),p.durationMs())}.getOrDefault(floatArrayOf());handler.post{if(token==generation){beats=result;if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}}}.start()}
         }}
         handler.post(tick)
     }
+    fun updateStyle(){val p=project();photo.style=p.style.copy();if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}
+    fun setVolume(volume:Float){audio?.volume=volume.coerceIn(0f,1f)}
     private fun pause(){
         playing=false;handler.removeCallbacks(tick);audio?.release();audio=null;video()?.pause();state(false)
     }

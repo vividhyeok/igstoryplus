@@ -28,6 +28,7 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
             setBackgroundColor(Color.TRANSPARENT); setPadding(40,32,40,32)
             setTextSize(TypedValue.COMPLEX_UNIT_PX,Artwork.textSize(draft)); includeFontPadding=true
             breakStrategy=android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE
+            setFallbackLineSpacing(false)
             inputType=android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
             setSingleLine(false); setSelectAllOnFocus(false); minWidth=0; minimumWidth=0
             setText(draft.text); setSelection(text?.length?:0)

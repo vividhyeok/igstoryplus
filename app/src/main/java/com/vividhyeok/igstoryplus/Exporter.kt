@@ -59,7 +59,7 @@ class Exporter(private val context: Context) {
                             val seq=mutableListOf(EditedMediaItemSequence.Builder(item).build())
                             p.music?.let { music ->
                                 val audio=MediaItem.Builder().setUri(music.uri).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(music.startMs).setEndPositionMs(min(music.startMs+p.durationMs(),music.durationMs)).build()).build()
-                                seq+=EditedMediaItemSequence.Builder(EditedMediaItem.Builder(audio).setRemoveVideo(true).build()).setIsLooping(true).build()
+                                seq+=EditedMediaItemSequence.Builder(EditedMediaItem.Builder(audio).setRemoveVideo(true).setEffects(Effects(Audio.volumeEffects(music.volume),emptyList())).build()).setIsLooping(true).build()
                             }
                             val enc=DefaultEncoderFactory.Builder(context).setRequestedVideoEncoderSettings(VideoEncoderSettings.Builder().setBitrate(6_000_000).build()).setRequestedAudioEncoderSettings(AudioEncoderSettings.Builder().setBitrate(160_000).build()).build()
                             transformer=Transformer.Builder(context).setVideoMimeType(MimeTypes.VIDEO_H264).setAudioMimeType(MimeTypes.AUDIO_AAC).setEncoderFactory(enc).addListener(object: Transformer.Listener {
