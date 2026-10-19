@@ -80,6 +80,7 @@ class EditorUiTest {
         context.getSharedPreferences("settings",0).edit().remove("emojiFolder").apply()
     }
     @Test fun waveformLibraryVisualStylesAndSharedPreview(){
+        context.getSharedPreferences("settings",0).edit().putInt("musicDuration",15).commit()
         Store(context).clearTextEdit();val source=fixtureStory();val music=fixtureMusic();MusicLibrary(context).remember(music)
         val png=File(context.filesDir,"ux-test-only.png");val sticker=Bitmap.createBitmap(512,512,Bitmap.Config.ARGB_8888);Canvas(sticker).drawCircle(256f,256f,150f,android.graphics.Paint().apply{color=Color.rgb(245,220,160)});png.outputStream().use{sticker.compress(Bitmap.CompressFormat.PNG,100,it)}
         Store(context).save(Project(source=source,style=Style(name="Flow Blur",motion=true,beat=.15f),layers=mutableListOf(Layer(kind="text",text="천천히 흐르는 오후",type="Drift Type",motion=true,y=.25f,textLayoutVersion=1),Layer(kind="png",uri=Uri.fromFile(png).toString(),width=.089f,x=.2f,y=.6f,motion=true))))
