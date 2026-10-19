@@ -30,7 +30,8 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
             setTextSize(TypedValue.COMPLEX_UNIT_PX,Artwork.textSize(draft)); includeFontPadding=true
             breakStrategy=android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE
             setFallbackLineSpacing(false)
-            inputType=android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES
+            inputType=android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            imeOptions=android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI or android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
             setSingleLine(false); setSelectAllOnFocus(false); minWidth=0; minimumWidth=0
             setText(draft.text); setSelection(text?.length?:0)
             addTextChangedListener(object:TextWatcher {

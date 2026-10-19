@@ -39,10 +39,9 @@ class StylePicker(private val activity:Activity,private val project:()->Project,
         val snapshot=Store(activity).copy(project());val app=activity.applicationContext
         val worker=java.util.concurrent.Executors.newSingleThreadExecutor();val generation=java.util.concurrent.atomic.AtomicInteger();var cached:android.graphics.Bitmap?=null
         refreshThumbnails={val token=generation.incrementAndGet();val style=project().style.copy();worker.execute{
-            runCatching{cached?:Artwork.background(app,snapshot,144).also{cached=it}}.onSuccess{base->names.forEach{name->
-                if(token!=generation.get())return@execute
-                runCatching{filteredBitmap(base,style.copy(name=name,motion=false))}.onSuccess{bitmap->activity.runOnUiThread{if(dialog.isShowing && token==generation.get())images[name]?.setImageBitmap(bitmap)}}
-            }}
+            runCatching{cached?:Artwork.background(app,snapshot,144).also{cached=it}}.onSuccess{base->
+                if(token==generation.get())runCatching{filteredBitmaps(base,names.map{style.copy(name=it,motion=false)}){index,bitmap->activity.runOnUiThread{if(dialog.isShowing && token==generation.get())images[names[index]]?.setImageBitmap(bitmap)}}}
+            }
         }}
         dialog.setOnDismissListener{generation.incrementAndGet();worker.shutdownNow();pause();save()}
         refreshThumbnails()

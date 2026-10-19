@@ -25,12 +25,16 @@ import java.io.File
 class EditorUiTest {
     private val instrumentation=InstrumentationRegistry.getInstrumentation()
     private val context=instrumentation.targetContext
-    private fun screenshot(name:String){val f=File(context.getExternalFilesDir(null),"validation/$name.png").apply{parentFile!!.mkdirs()};instrumentation.uiAutomation.takeScreenshot().let{b->f.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)}}}
+    private fun screenshot(name:String){SystemClock.sleep(250);val f=File(context.getExternalFilesDir(null),"validation/$name.png").apply{parentFile!!.mkdirs()};instrumentation.uiAutomation.takeScreenshot().let{b->f.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)}}}
     private fun tapAt(x:Float,y:Float){val now=SystemClock.uptimeMillis();instrumentation.sendPointerSync(MotionEvent.obtain(now,now,MotionEvent.ACTION_DOWN,x,y,0));instrumentation.sendPointerSync(MotionEvent.obtain(now,SystemClock.uptimeMillis(),MotionEvent.ACTION_UP,x,y,0))}
     private fun point(description:String):Pair<Float,Float>{var p=0f to 0f;onView(withContentDescription(description)).check{v,_->val xy=IntArray(2);v.getLocationOnScreen(xy);p=xy[0]+v.width/2f to xy[1]+v.height/2f};return p}
     private fun tapLive(scenario:ActivityScenario<MainActivity>,description:String){
         var p:Pair<Float,Float>?=null
-        scenario.onActivity{a->fun find(v:View):View?{if(v.contentDescription==description)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};val v=find(a.window.decorView)?:error("Missing live control: $description");val xy=IntArray(2);v.getLocationOnScreen(xy);p=xy[0]+v.width/2f to xy[1]+v.height/2f}
+        for(attempt in 0 until 60){
+            scenario.onActivity{a->fun find(v:View):View?{if(v.contentDescription==description)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};val v=find(a.window.decorView);val rect=android.graphics.Rect();if(v!=null && v.isLaidOut && a.window.decorView.hasWindowFocus() && v.getGlobalVisibleRect(rect) && rect.width()>0 && rect.height()>0){p=rect.exactCenterX() to rect.exactCenterY()}}
+            if(p!=null)break;SystemClock.sleep(50)
+        }
+        assertNotNull("Live control must be focused and laid out: $description",p)
         tapAt(p!!.first,p!!.second)
     }
     private fun editor(v:View):PhotoEditorView? {
@@ -94,7 +98,9 @@ class EditorUiTest {
         fun outputs()=File(context.filesDir,"exports").listFiles()?.map{it.name}?.toSet()?:emptySet()
         val before=outputs()
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            SystemClock.sleep(600);screenshot("ux-photo-main")
+            var photoReady=false
+            for(attempt in 0 until 100){scenario.onActivity{a->fun find(v:View):LivePhoto?{if(v is LivePhoto)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};photoReady=find(a.window.decorView)?.frameReady==true};if(photoReady)break;SystemClock.sleep(100)}
+            assertTrue("Initial photo must have actually rendered",photoReady);SystemClock.sleep(150);screenshot("ux-photo-main")
             onView(withContentDescription("음악")).perform(click());screenshot("ux-music-library")
             onView(withContentDescription("음악 선택: ${music.title}")).perform(click())
             var ready=false
@@ -115,7 +121,10 @@ class EditorUiTest {
             onView(withContentDescription("music 레이어")).perform(swipeUp());screenshot("ux-music-placed")
             scenario.onActivity{assertTrue(it.project.layers.first{l->l.kind=="music"}.y<.8f)}
             androidx.test.espresso.Espresso.pressBack()
-            onView(withText("스타일")).perform(click());SystemClock.sleep(800);screenshot("ux-photo-styles")
+            onView(withText("스타일")).perform(click())
+            var thumbnails=false
+            for(attempt in 0 until 100){onView(withContentDescription("사진 스타일: Flow Blur")).check{v,_->thumbnails=(v as android.widget.ImageView).drawable!=null};if(thumbnails)break;SystemClock.sleep(100)}
+            assertTrue("All seven real GPU thumbnails must finish",thumbnails);screenshot("ux-photo-styles")
             onView(withContentDescription("사진 스타일: Grainy")).perform(scrollTo(),click())
             onView(withContentDescription("사진 스타일: Flow Blur")).perform(scrollTo(),click())
             onView(withContentDescription("시트 완료")).perform(click())
@@ -123,7 +132,7 @@ class EditorUiTest {
             onView(withContentDescription("미리보기 재생 위치")).perform(click());SystemClock.sleep(100)
             onView(withContentDescription("처음부터")).perform(click())
             onView(withText("편집")).perform(click());assertEquals(before,outputs())
-            onView(withText("사진 추가")).perform(click());onView(withText("배경 자르기")).perform(click());screenshot("ux-photo-crop")
+            onView(withText("사진 추가")).perform(click());onView(withText("배경 자르기")).perform(click());onView(withContentDescription("드래그로 크롭 위치, 핀치로 확대")).check(androidx.test.espresso.assertion.ViewAssertions.matches(isDisplayed()));screenshot("ux-photo-crop")
             onView(withText("4:5")).perform(click());onView(withText("취소")).perform(click())
             scenario.onActivity{assertEquals(0f,it.project.crop.aspect)}
             onView(withContentDescription("인스타 스토리로 공유")).perform(click());screenshot("ux-share-progress")

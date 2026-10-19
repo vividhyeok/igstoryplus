@@ -102,22 +102,22 @@ object Artwork {
         layout.draw(canvas); return if(l.textLayoutVersion>0)b else trimAlpha(b)
     }
     fun musicCard(c: Context, m: Music, l: Layer): Bitmap {
-        val artOnly=m.card=="앨범 아트"; val textOnly=m.card=="텍스트";val compact=m.card=="작은 카드";val size=if(artOnly)420 else if(compact)680 else 800
-        val b=Bitmap.createBitmap(size,if(artOnly)420 else if(compact)150 else 180,Bitmap.Config.ARGB_8888); val cv=Canvas(b)
+        val artOnly=m.card=="앨범 아트"; val textOnly=m.card=="텍스트";val full=m.card=="기본 카드";val compact=m.card=="작은 카드";val size=if(artOnly)420 else if(full)480 else if(compact)680 else 800
+        val b=Bitmap.createBitmap(size,if(artOnly)420 else if(full)600 else if(compact)150 else 180,Bitmap.Config.ARGB_8888); val cv=Canvas(b)
         cv.clipPath(Path().apply{addRoundRect(0f,0f,b.width.toFloat(),b.height.toFloat(),24f,24f,Path.Direction.CW)})
         cv.drawRoundRect(0f,0f,b.width.toFloat(),b.height.toFloat(),24f,24f,Paint(Paint.ANTI_ALIAS_FLAG).apply { color=Color.argb(220,245,245,240) })
-        val rect=if(artOnly)Rect(0,0,420,420) else if(compact)Rect(16,16,134,134) else Rect(20,20,160,160)
+        val rect=if(artOnly)Rect(0,0,420,420) else if(full)Rect(30,30,450,450) else if(compact)Rect(16,16,134,134) else Rect(20,20,160,160)
         if(!textOnly){
             val art=if(m.art.isNotBlank())runCatching{decode(c,m.art,512)}.getOrNull() else null
             if(art!=null){val side=min(art.width,art.height);cv.drawBitmap(art,Rect((art.width-side)/2,(art.height-side)/2,(art.width+side)/2,(art.height+side)/2),rect,Paint(Paint.FILTER_BITMAP_FLAG))}
             else{cv.drawRect(rect,Paint().apply{color=0xFF45494A.toInt()});EditorIcons.drawable("음악",0xFFE8E8E2.toInt()).apply{val pad=rect.width()/4;setBounds(rect.left+pad,rect.top+pad,rect.right-pad,rect.bottom-pad);draw(cv)}}
         }
         if(!artOnly) {
-            val x=if(textOnly)26f else if(compact)155f else 185f
+            val x=if(full)30f else if(textOnly)26f else if(compact)155f else 185f
             val paint=TextPaint(Paint.ANTI_ALIAS_FLAG).apply { color=Color.rgb(25,25,25); textSize=if(compact)33f else 38f; typeface=Typeface.DEFAULT_BOLD }
             fun line(value:String)=android.text.TextUtils.ellipsize(value.replace('\n',' '),paint,b.width-x-26,android.text.TextUtils.TruncateAt.END).toString()
-            cv.drawText(line(m.title),x,if(compact)65f else 78f,paint); paint.textSize=if(compact)26f else 29f; paint.typeface=Typeface.DEFAULT; paint.color=Color.DKGRAY
-            cv.drawText(line(m.artist),x,if(compact)107f else 125f,paint)
+            cv.drawText(line(m.title),x,if(full)506f else if(compact)65f else 78f,paint); paint.textSize=if(compact)26f else 29f; paint.typeface=Typeface.DEFAULT; paint.color=Color.DKGRAY
+            cv.drawText(line(m.artist),x,if(full)555f else if(compact)107f else 125f,paint)
         }; return b
     }
 }

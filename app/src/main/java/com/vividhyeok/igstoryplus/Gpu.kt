@@ -114,6 +114,10 @@ fun upload(b: Bitmap): Int {
     GLUtils.texImage2D(GLES20.GL_TEXTURE_2D,0,b,0); return ids[0]
 }
 class LivePhoto(context: Context) : GLSurfaceView(context), GLSurfaceView.Renderer {
+    @Volatile var frameReady=false;private set
+    @Volatile private var awaitingPhoto=false
+    var onPhotoReady:(()->Unit)?=null
+    fun expectPhoto(){awaitingPhoto=true;frameReady=false}
     @Volatile var pose=PhotoPose()
         set(value){field=value;requestRender()}
     private var foreground:Bitmap?=null
@@ -132,16 +136,19 @@ class LivePhoto(context: Context) : GLSurfaceView(context), GLSurfaceView.Render
     init { setEGLContextClientVersion(2); setRenderer(this);renderMode=RENDERMODE_WHEN_DIRTY;holder.setFixedSize(540,960) }
     override fun onResume(){super.onResume();requestRender()}
     override fun onPause(){super.onPause()}
-    fun setPhoto(b: Bitmap,photo:Bitmap?=null) { queueEvent { bitmap=b;foreground=photo;if(texture!=0) GLES20.glDeleteTextures(1,intArrayOf(texture),0); texture=upload(b);if(photoTexture!=0)GLES20.glDeleteTextures(1,intArrayOf(photoTexture),0);photoTexture=photo?.let{upload(it)}?:0;photo?.let{val s=min(b.width.toFloat()/it.width,b.height.toFloat()/it.height);photoWidth=it.width*s/b.width;photoHeight=it.height*s/b.height} }; requestRender() }
+    fun setPhoto(b: Bitmap,photo:Bitmap?=null) { queueEvent { bitmap=b;foreground=photo;if(texture!=0) GLES20.glDeleteTextures(1,intArrayOf(texture),0); texture=upload(b);if(photoTexture!=0)GLES20.glDeleteTextures(1,intArrayOf(photoTexture),0);photoTexture=photo?.let{upload(it)}?:0;photo?.let{val s=min(b.width.toFloat()/it.width,b.height.toFloat()/it.height);photoWidth=it.width*s/b.width;photoHeight=it.height*s/b.height};awaitingPhoto=false;frameReady=false }; requestRender() }
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) { program=GpuProgram(); texture=bitmap?.let{upload(it)}?:0;photoTexture=foreground?.let{upload(it)}?:0 }
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) { GLES20.glViewport(0,0,width,height) }
     override fun onDrawFrame(gl: GL10?) {
         GLES20.glClearColor(.06f,.06f,.07f,1f); GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-        if(texture!=0) program?.draw(texture,style,Motion.phase(timeUs,durationMs),true,beat,photoTexture,pose,photoWidth,photoHeight)
+        if(texture!=0){program?.draw(texture,style,Motion.phase(timeUs,durationMs),true,beat,photoTexture,pose,photoWidth,photoHeight);if(!frameReady && !awaitingPhoto){frameReady=true;post{onPhotoReady?.invoke()}}}
     }
 }
 // A pbuffer runs exactly the same fragment shader for still exports without a visible surface.
 fun filteredBitmap(b: Bitmap, style: Style, foreground:Bitmap?=null,pose:PhotoPose=PhotoPose()): Bitmap {
+    return filteredBitmaps(b,listOf(style),foreground,pose).single()
+}
+fun filteredBitmaps(b:Bitmap,styles:List<Style>,foreground:Bitmap?=null,pose:PhotoPose=PhotoPose(),ready:(Int,Bitmap)->Unit={_,_->}):List<Bitmap>{
     val display=EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY); val versions=IntArray(2); check(EGL14.eglInitialize(display,versions,0,versions,1))
     val configs=arrayOfNulls<android.opengl.EGLConfig>(1); val count=IntArray(1)
     EGL14.eglChooseConfig(display,intArrayOf(EGL14.EGL_RENDERABLE_TYPE,EGL14.EGL_OPENGL_ES2_BIT,EGL14.EGL_SURFACE_TYPE,EGL14.EGL_PBUFFER_BIT,EGL14.EGL_RED_SIZE,8,EGL14.EGL_GREEN_SIZE,8,EGL14.EGL_BLUE_SIZE,8,EGL14.EGL_ALPHA_SIZE,8,EGL14.EGL_NONE),0,configs,0,1,count,0)
@@ -150,11 +157,16 @@ fun filteredBitmap(b: Bitmap, style: Style, foreground:Bitmap?=null,pose:PhotoPo
     try {
         check(EGL14.eglMakeCurrent(display,surface,surface,ctx)); GLES20.glViewport(0,0,b.width,b.height)
         val tex=upload(b); val photo=foreground?.let{upload(it)}?:0;val scale=foreground?.let{min(b.width.toFloat()/it.width,b.height.toFloat()/it.height)}?:1f
-        val program=GpuProgram(); program.draw(tex,style,0f,true,photo=photo,pose=pose,photoWidth=foreground?.let{it.width*scale/b.width}?:1f,photoHeight=foreground?.let{it.height*scale/b.height}?:1f)
+        val program=GpuProgram()
+        val results=styles.mapIndexed{index,style->
+        check(!Thread.currentThread().isInterrupted)
+        program.draw(tex,style,0f,true,photo=photo,pose=pose,photoWidth=foreground?.let{it.width*scale/b.width}?:1f,photoHeight=foreground?.let{it.height*scale/b.height}?:1f)
         val buffer=ByteBuffer.allocateDirect(b.width*b.height*4); GLES20.glReadPixels(0,0,b.width,b.height,GLES20.GL_RGBA,GLES20.GL_UNSIGNED_BYTE,buffer)
         val raw=Bitmap.createBitmap(b.width,b.height,Bitmap.Config.ARGB_8888); buffer.rewind(); raw.copyPixelsFromBuffer(buffer)
         val out=Bitmap.createBitmap(raw,0,0,b.width,b.height,android.graphics.Matrix().apply{postScale(1f,-1f)},true)
-        program.release(); GLES20.glDeleteTextures(1,intArrayOf(tex),0);if(photo!=0)GLES20.glDeleteTextures(1,intArrayOf(photo),0); return out
+        ready(index,out);out
+        }
+        program.release(); GLES20.glDeleteTextures(1,intArrayOf(tex),0);if(photo!=0)GLES20.glDeleteTextures(1,intArrayOf(photo),0); return results
     } finally {
         EGL14.eglMakeCurrent(display,EGL14.EGL_NO_SURFACE,EGL14.EGL_NO_SURFACE,EGL14.EGL_NO_CONTEXT)
         EGL14.eglDestroySurface(display,surface); EGL14.eglDestroyContext(display,ctx); EGL14.eglTerminate(display)

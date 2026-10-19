@@ -36,6 +36,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var contextBar: LinearLayout
     private lateinit var status: TextView
     private lateinit var empty: LinearLayout
+    private lateinit var photoLoading:ProgressBar
+    private var requestedPhoto=""
     private lateinit var chrome: EditorChrome
     private var textSession: CanvasTextEditor?=null
     private var cropSession: View?=null
@@ -123,6 +125,9 @@ class MainActivity : AppCompatActivity() {
         editor=PhotoEditorView(this).apply{setBackgroundColor(Color.TRANSPARENT);clipChildren=true}
         canvasBox.addView(editor,FrameLayout.LayoutParams(-1,-1))
         guides=AlignmentGuides(this);canvasBox.addView(guides,FrameLayout.LayoutParams(-1,-1))
+        photoLoading=ProgressBar(this).apply{contentDescription="사진 불러오는 중";visibility=View.GONE}
+        canvasBox.addView(photoLoading,FrameLayout.LayoutParams(dp(32),dp(32),Gravity.CENTER))
+        live.onPhotoReady={photoLoading.visibility=View.GONE}
         editor.source.setImageBitmap(Bitmap.createBitmap(540,960,Bitmap.Config.ARGB_8888))
         editor.source.contentDescription="배경 사진"
         engine=PhotoEditor.Builder(this,editor).setPinchTextScalable(true).build()
@@ -213,6 +218,8 @@ class MainActivity : AppCompatActivity() {
     private fun restore(){
         if(!::editor.isInitialized)return
         empty.visibility=if(project.source.isBlank())View.VISIBLE else View.GONE
+        if(project.source.isBlank())photoLoading.visibility=View.GONE
+        else if(project.source!=requestedPhoto){requestedPhoto=project.source;live.expectPhoto();photoLoading.visibility=if(project.video)View.GONE else View.VISIBLE}
         live.style=project.style.copy();live.durationMs=project.durationMs()
         live.pose=project.pose.copy()
         if(project.video && project.source.isNotBlank())runCatching{
@@ -233,7 +240,7 @@ class MainActivity : AppCompatActivity() {
                     val base=Artwork.background(this,snapshot,540,drawPhoto=false){bounds=it}
                     val photo=if(snapshot.video)null else Artwork.cropped(Artwork.decode(this,snapshot.source,1536),snapshot.crop)
                     base to photo
-                }.also{r->runOnUiThread{if(generation==backgroundGeneration)r.onSuccess{foregroundBounds=bounds;live.setPhoto(it.first,it.second)}.onFailure{status.text="원본 접근 불가 · 사진에서 다시 선택";toast("원본이 삭제되었거나 접근 권한이 없습니다")}}}
+                }.also{r->runOnUiThread{if(generation==backgroundGeneration)r.onSuccess{foregroundBounds=bounds;live.setPhoto(it.first,it.second)}.onFailure{photoLoading.visibility=View.GONE;status.text="원본 접근 불가 · 사진에서 다시 선택";toast("원본이 삭제되었거나 접근 권한이 없습니다")}}}
             }}
             handler.postDelayed(backgroundUpdate!!,80)
         }
@@ -392,7 +399,7 @@ class MainActivity : AppCompatActivity() {
         if(project.source.isBlank()){pick("base",arrayOf("image/*","video/*"));return}
         stopPreview();syncTransforms();engine.clearHelperBox()
         chrome.play.visibility=View.GONE
-        val l=pending?:existing?.copy(crop=existing.crop.copy())?:Layer(kind="text",text="",width=.65f)
+        val l=pending?:existing?.copy(crop=existing.crop.copy())?:run{val y=listOf(.5f,.32f,.68f).firstOrNull{candidate->project.layers.none{it.kind=="text" && abs(it.y-candidate)<.13f}}?:.5f;Layer(kind="text",text="",width=.65f,y=y)}
         // Legacy text keeps its original bitmap geometry until the user explicitly commits an edit.
         l.textLayoutVersion=1
         existing?.let{layerViews[it.id]?.visibility=View.INVISIBLE}
@@ -489,9 +496,8 @@ class MainActivity : AppCompatActivity() {
         if(project.source.isBlank()){toast("사진 또는 영상을 선택해 주세요");return}
         syncTransforms();persist();stopAudio();engine.clearHelperBox()
         val snapshot=store.copy(project);val exporter=Exporter(this);activeExport=exporter
-        val progress=ProgressBar(this,null,android.R.attr.progressBarStyleHorizontal).apply{max=100}
-        val dialog=AlertDialog.Builder(this).setTitle("스토리 만드는 중").setView(progress).setNegativeButton("취소"){_,_->exporter.cancel();activeExport=null;toast("취소했습니다. 초안은 보존됩니다")}.setCancelable(false).show()
-        exporter.export(snapshot,{progress.progress=it}){result->dialog.dismiss();activeExport=null
+        val dialog=ExportProgressDialog(this){exporter.cancel();activeExport=null;toast("취소했습니다. 초안은 보존됩니다")}.also{it.show()}
+        exporter.export(snapshot,{dialog.update(it)}){result->dialog.dismiss();activeExport=null
             result.onSuccess{f->latest=f;if(share)share(f) else safe{Sharing.gallery(this,f);toast("갤러리에 저장했습니다")}}
                 .onFailure{e->AlertDialog.Builder(this).setTitle("출력 실패").setMessage("${e.message}\n초안은 보존되었습니다.").setPositiveButton("다시 시도"){_,_->render(share)}.setNegativeButton("닫기",null).show()}
         }

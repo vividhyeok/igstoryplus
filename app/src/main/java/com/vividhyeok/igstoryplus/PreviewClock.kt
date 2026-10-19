@@ -49,7 +49,7 @@ class PreviewClock(private val context:Context,private val project:()->Project,
         val p=project();if(p.source.isBlank())return
         if(p.music?.let{!MusicRange.valid(it,p.durationMs())}==true)return
         photo.durationMs=p.durationMs()
-        if(p.music==null)beats=floatArrayOf()
+        if(p.music==null){beats=floatArrayOf();beatKey="";generation++}
         playing=true;state(true);stamp=SystemClock.elapsedRealtime()
         video()?.apply{volume=if(p.music==null)1f else 0f;play()}
         p.music?.let{m->runCatching{
