@@ -65,7 +65,7 @@ class MainActivity : AppCompatActivity() {
     private val openSheets=mutableListOf<android.app.Dialog>()
     private val prefs by lazy { getSharedPreferences("settings",MODE_PRIVATE) }
     private val clock by lazy { PreviewClock(this,{project},live,{editingPlayer},{layerViews}){playing->chrome.playback(playing)} }
-    private val musicPanels by lazy { MusicPanels(this,{project},clock,{syncTransforms();history.push(project)},{ensureMusicLayer();restoreLayers();contextTools()},{saveMusic()},{mode->pick(mode,if(mode=="music")arrayOf("audio/*") else arrayOf("image/*"))},{m->selectMusic(m)},{stopAudio();edit{project.music=null;project.layers.removeAll{it.kind=="music"}}}) }
+    private val musicPanels by lazy { MusicPanels(this,{project},clock,{if(!clock.playing)syncTransforms();history.push(project)},{ensureMusicLayer();restoreLayers();contextTools()},{saveMusic()},{mode->pick(mode,if(mode=="music")arrayOf("audio/*") else arrayOf("image/*"))},{m->selectMusic(m)},{stopAudio();edit{project.music=null;project.layers.removeAll{it.kind=="music"}}}) }
     private val picker=registerForActivityResult(ActivityResultContracts.OpenDocument()){uri->if(uri!=null)importUri(uri)}
     private val folderPicker=registerForActivityResult(ActivityResultContracts.OpenDocumentTree()){uri->
         if(uri!=null) safe {

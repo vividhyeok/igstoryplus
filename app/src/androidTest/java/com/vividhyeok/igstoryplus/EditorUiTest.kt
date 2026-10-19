@@ -136,7 +136,21 @@ class EditorUiTest {
             onView(withTagValue(org.hamcrest.Matchers.`is`("music-waveform" as Any))).perform(swipeRight())
             scenario.onActivity{assertEquals(10,it.project.duration);assertTrue(it.project.music!!.startMs>0);assertTrue(MusicRange.valid(it.project.music!!,10000))}
             SystemClock.sleep(1000) // The new range is auditioned once, then returns to paused.
-            val playback=point("선택 구간 재생");tapAt(playback.first,playback.second);SystemClock.sleep(600);screenshot("ux-music-playing");tapAt(playback.first,playback.second)
+            fun assertPlaying(){scenario.onActivity{a->
+                fun playing(v:View):Boolean{if(v.contentDescription=="미리보기 일시정지")return true;if(v is ViewGroup)for(i in 0 until v.childCount)if(playing(v.getChildAt(i)))return true;return false}
+                assertTrue("Live music changes must not stop playback",playing(a.window.decorView))
+            }}
+            val playback=point("선택 구간 재생");tapAt(playback.first,playback.second);SystemClock.sleep(600)
+            onView(withContentDescription("음악 반응 강도")).perform(scrollTo(),swipeRight());assertPlaying()
+            screenshot("ux-music-playing")
+            onView(withContentDescription("선택 구간 일시정지")).perform(scrollTo())
+            val pause=point("선택 구간 일시정지");tapAt(pause.first,pause.second)
+            onView(withText("볼륨")).perform(scrollTo(),click())
+            onView(withText("소리 미리듣기 · 재생/일시정지")).perform(click())
+            onView(withContentDescription("음악 볼륨")).perform(swipeLeft());assertPlaying()
+            scenario.onActivity{assertTrue(it.project.music!!.volume<1f)}
+            screenshot("ux-audio-mixer")
+            onView(withContentDescription("시트 완료")).perform(click())
             onView(withText("음악 카드 디자인")).perform(scrollTo(),click());screenshot("ux-music-cards")
             onView(withContentDescription("음악 카드: 앨범 아트")).perform(scrollTo(),click())
             scenario.onActivity{assertEquals("앨범 아트",it.project.music!!.card)}

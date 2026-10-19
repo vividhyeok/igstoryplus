@@ -30,3 +30,7 @@ GPU render frames are evidence, not editor screenshots. Actual editor captures u
 ## v0.3.4 re-edit reliability
 
 The v0.3.3 tag was blocked by the existing double-tap-after-IME-cancel regression at EditorUiTest line 230; no v0.3.3 stable release was published. The failure and screenshots remain in Actions run 39258121395. Completed tap pairs now use input event timestamps, density-aware slop, and open the editor after the second gesture ends. Drag/pinch/cancel do not count as taps. A Robolectric queued-input test covers delayed dispatch, single opening, third taps and drag rejection. The existing real double-tap/IME test is retained. v0.3.4 repeats all gates.
+
+## v0.3.5 uninterrupted live controls
+
+Music-panel history checkpoints no longer synchronize temporary animated View transforms while the clock is playing; the project already holds the base layer poses. This preserves audio playback and avoids recording temporary animation as a saved pose. The UI test changes reaction strength and music gain during actual preview, checks the clock playback control remains active, and captures ux-audio-mixer. All previous tests remain enabled.
