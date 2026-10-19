@@ -141,8 +141,8 @@ class MainActivity : AppCompatActivity() {
         editor.onLayerDoubleTap={v->project.layers.firstOrNull{layerViews[it.id]===v && it.kind=="text"}?.let{textEditor(it)}}
         editor.source.setOnTouchListener(BackgroundGestures(editor.source,{project},{foregroundBounds},
             {stopPreview();gestureBefore=store.copy(project);selected="background";engine.clearHelperBox();contextTools()},
-            {live.pose=project.pose.copy()},
-            {gestureBefore?.let{history.push(it)};gestureBefore=null;persist()},
+            {live.pose=project.pose.copy();guides.followPoint(project.pose.x,project.pose.y)},
+            {guides.clear();gestureBefore?.let{history.push(it)};gestureBefore=null;persist()},
             {hit->if(previewMode)return@BackgroundGestures;selected=if(hit && selected!="background")"background" else null;engine.clearHelperBox();contextTools()},
             {if(!previewMode)crop(null)}))
         center.addOnLayoutChangeListener{_,_,_,_,_,_,_,_,_->
@@ -379,8 +379,8 @@ class MainActivity : AppCompatActivity() {
         fun update(){image.invalidate()}
         listOf("원본" to 0f,"1:1" to 1f,"4:5" to .8f,"9:16" to 9f/16).forEach{(n,a)->contextBar.addView(button(n){draft.aspect=a;update()})}
         contextBar.addView(button("자유"){val box=column();slider(box,"자유 비율",(if(draft.aspect>0)draft.aspect else 1f)/2,false){draft.aspect=(it*2).coerceAtLeast(.25f);update()};sheet("자유 크롭",box)})
-        contextBar.addView(button("↻"){draft.rotation=(draft.rotation+90)%360;update()}.apply{contentDescription="90도 회전"})
-        contextBar.addView(button("⇄"){draft.flip=!draft.flip;update()}.apply{contentDescription="좌우 반전"})
+        contextBar.addView(EditorIcons.button(this,"90도 회전"){draft.rotation=(draft.rotation+90)%360;update()})
+        contextBar.addView(EditorIcons.button(this,"좌우 반전"){draft.flip=!draft.flip;update()})
         contextBar.addView(button("초기화"){draft.x=.5f;draft.y=.5f;draft.zoom=1f;draft.aspect=0f;draft.rotation=0f;draft.flip=false;update()})
         update()
     }

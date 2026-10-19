@@ -70,8 +70,9 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
             waveform.invalidate();save()
         }
         length.setOnClickListener{if(!p.video){val choices=column();var d:Dialog?=null;val grid=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL};for(chunk in (5..15).toList().chunked(4)){val row=LinearLayout(activity);chunk.forEach{seconds->row.addView(button("${seconds}초"){checkpoint();p.duration=seconds;activity.getSharedPreferences("settings",0).edit().putInt("musicDuration",seconds).apply();clock.pausePlayback();clock.seek(0);update();d?.dismiss()},LinearLayout.LayoutParams(0,dp(48),1f))};grid.addView(row)};choices.addView(grid);d=sheet("음악 길이",choices)}}
-        waveform.onStart={checkpoint();clock.pausePlayback();play.setImageDrawable(EditorIcons.drawable("미리보기 재생"))}
-        waveform.onRange={start,finished->m.startMs=start;range.text=String.format(Locale.ROOT,"%.1f — %.1f초",start/1000f,(start+p.durationMs()).coerceAtMost(m.durationMs)/1000f);if(finished){save();clock.seek(0)}}
+        var resumeAfterDrag=false
+        waveform.onStart={resumeAfterDrag=clock.playing;checkpoint();clock.pausePlayback();play.setImageDrawable(EditorIcons.drawable("미리보기 재생"));play.contentDescription="선택 구간 재생"}
+        waveform.onRange={start,finished->m.startMs=start;range.text=String.format(Locale.ROOT,"%.1f — %.1f초",start/1000f,(start+p.durationMs()).coerceAtMost(m.durationMs)/1000f);if(finished){save();clock.seek(0);if(resumeAfterDrag && MusicRange.valid(m,p.durationMs()))clock.play();resumeAfterDrag=false;play.setImageDrawable(EditorIcons.drawable(if(clock.playing)"미리보기 일시정지" else "미리보기 재생"));play.contentDescription=if(clock.playing)"선택 구간 일시정지" else "선택 구간 재생"}}
         val loop=Switch(activity).apply{text="짧은 음악 반복 · 기본 OFF";setTextColor(Color.WHITE);isChecked=m.loop;minHeight=dp(48);setOnCheckedChangeListener{_,enabled->checkpoint();m.loop=enabled;clock.pausePlayback();clock.seek(0);update()}}
         body.addView(loop)
         body.addView(button("음악 카드 디자인"){cards()})

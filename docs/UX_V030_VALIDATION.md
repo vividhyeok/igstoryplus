@@ -24,3 +24,25 @@ Project additions have constructor defaults: identity photo pose, edge-centered 
 The background-centered effect is a soft geometric falloff, not subject segmentation or an AI mask. Thumbnail motion is frozen; the full canvas previews motion with the same GLES style implementation used for export. Music cards are baked into MP4, not Instagram-native interactive music stickers.
 
 Galaxy S22 touch feel, Samsung keyboard, camera capture, device hardware encoder performance, sustained thermal behavior and real installed Instagram composer/handoff require physical-device confirmation. Emulator coverage must not be described as those physical-device results.
+
+## Actual run and visual review
+
+[600de64 full CI](https://github.com/vividhyeok/igstoryplus/actions/runs/39202415188) passed 42 tests: app unit 6, PhotoEditor unit 20, Android UI/integration 16. Four actual movies (5/15/30/60 seconds), JPEG and seven GLES style images passed stream/geometry/duration/fps and full-frame decoding checks. The GPU foreground-pose comparison and cached PCM waveform tests passed. APK signing and release re-download comparison passed. Later compatibility refinements are re-run through the same gates; the release's attached validation-report identifies its exact commit and counts.
+
+The actual captures were downloaded from the [verified development release](https://github.com/vividhyeok/igstoryplus/releases/tag/dev-23-600de64) and visually reviewed. The footage/art in screenshots is test-created media, not shipped sample content or a mockup of the UI.
+
+| Actual screen | Review result |
+|---|---|
+| Main photo | Loaded photo, large canvas, seven vector tools, distinct white Share CTA; no blank initial capture |
+| Text + IME | Real keyboard visible; new phrase above existing text; tools and input remain above IME |
+| Text styles | Current phrase in horizontal cards; selection visible, canvas retained |
+| Photo styles | All seven real GPU thumbnails ready before capture; strength and motion remain on the same panel |
+| Music library | Search, artwork, title/artist/duration and import; no metadata fields crowding the screen |
+| Music waveform | Real PCM peaks, bright selection frame, start/end, small duration, play/restart controls |
+| Music cards | Current art/text in visibly distinct full-card, compact and art-only designs |
+| PNG tray | Actual SAF test folder; grid, tabs, refresh/change; filename is not silently cut without ellipsis |
+| Crop | Full-canvas grid, cancel/done and ratios; not a small popup or stale main-screen capture |
+| Preview | Editing chrome/helper boxes hidden; play/pause/restart/seek and immediate edit return |
+| Export | Compact dark progress with real percentage and cancel; draft retained on cancellation |
+
+Visual QA found and corrected an early blank-photo capture, incomplete thumbnail capture, overlapping new/old text placement, stale crop capture and a large white export dialog. Repeated text editing and software-IME timing were tested again rather than waived. Fixtures do not establish photo aesthetics across all real-world scenes, speaker output quality, or Galaxy S22 performance.
