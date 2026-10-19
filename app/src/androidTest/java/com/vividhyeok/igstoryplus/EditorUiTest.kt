@@ -26,6 +26,13 @@ class EditorUiTest {
     private val instrumentation=InstrumentationRegistry.getInstrumentation()
     private val context=instrumentation.targetContext
     private fun screenshot(name:String){val f=File(context.getExternalFilesDir(null),"validation/$name.png").apply{parentFile!!.mkdirs()};instrumentation.uiAutomation.takeScreenshot().let{b->f.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)}}}
+    private fun tapAt(x:Float,y:Float){val now=SystemClock.uptimeMillis();instrumentation.sendPointerSync(MotionEvent.obtain(now,now,MotionEvent.ACTION_DOWN,x,y,0));instrumentation.sendPointerSync(MotionEvent.obtain(now,SystemClock.uptimeMillis(),MotionEvent.ACTION_UP,x,y,0))}
+    private fun point(description:String):Pair<Float,Float>{var p=0f to 0f;onView(withContentDescription(description)).check{v,_->val xy=IntArray(2);v.getLocationOnScreen(xy);p=xy[0]+v.width/2f to xy[1]+v.height/2f};return p}
+    private fun tapLive(scenario:ActivityScenario<MainActivity>,description:String){
+        var p:Pair<Float,Float>?=null
+        scenario.onActivity{a->fun find(v:View):View?{if(v.contentDescription==description)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};val v=find(a.window.decorView)?:error("Missing live control: $description");val xy=IntArray(2);v.getLocationOnScreen(xy);p=xy[0]+v.width/2f to xy[1]+v.height/2f}
+        tapAt(p!!.first,p!!.second)
+    }
     private fun editor(v:View):PhotoEditorView? {
         if(v is PhotoEditorView)return v
         if(v is ViewGroup)for(i in 0 until v.childCount)editor(v.getChildAt(i))?.let{return it}
@@ -100,7 +107,7 @@ class EditorUiTest {
             onView(withText("15초")).perform(click());onView(withText("10초")).perform(click())
             onView(withTagValue(org.hamcrest.Matchers.`is`("music-waveform" as Any))).perform(swipeRight())
             scenario.onActivity{assertEquals(10,it.project.duration);assertTrue(it.project.music!!.startMs>0);assertTrue(MusicRange.valid(it.project.music!!,10000))}
-            onView(withContentDescription("선택 구간 재생")).perform(click());SystemClock.sleep(600);screenshot("ux-music-playing")
+            val playback=point("선택 구간 재생");tapAt(playback.first,playback.second);SystemClock.sleep(600);screenshot("ux-music-playing");tapAt(playback.first,playback.second)
             onView(withText("음악 카드 디자인")).perform(scrollTo(),click());screenshot("ux-music-cards")
             onView(withContentDescription("음악 카드: 앨범 아트")).perform(scrollTo(),click())
             scenario.onActivity{assertEquals("앨범 아트",it.project.music!!.card)}
@@ -112,9 +119,9 @@ class EditorUiTest {
             onView(withContentDescription("사진 스타일: Grainy")).perform(scrollTo(),click())
             onView(withContentDescription("사진 스타일: Flow Blur")).perform(scrollTo(),click())
             onView(withContentDescription("시트 완료")).perform(click())
-            onView(withContentDescription("미리보기 재생")).perform(click());SystemClock.sleep(500);screenshot("ux-preview")
+            tapLive(scenario,"미리보기 재생");SystemClock.sleep(500);screenshot("ux-preview");tapLive(scenario,"미리보기 일시정지")
             onView(withContentDescription("미리보기 재생 위치")).perform(click());SystemClock.sleep(100)
-            onView(withContentDescription("미리보기 일시정지")).perform(click());onView(withContentDescription("처음부터")).perform(click())
+            onView(withContentDescription("처음부터")).perform(click())
             onView(withText("편집")).perform(click());assertEquals(before,outputs())
             onView(withText("사진 추가")).perform(click());onView(withText("배경 자르기")).perform(click());screenshot("ux-photo-crop")
             onView(withText("4:5")).perform(click());onView(withText("취소")).perform(click())
@@ -208,9 +215,9 @@ class EditorUiTest {
         val before=outputs()
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             scenario.onActivity{it.project.duration=10}
-            onView(withContentDescription("미리보기 재생")).perform(click());SystemClock.sleep(350)
+            tapLive(scenario,"미리보기 재생");SystemClock.sleep(350)
             scenario.onActivity{a->fun photo(v:View):LivePhoto?{if(v is LivePhoto)return v;if(v is ViewGroup)for(i in 0 until v.childCount)photo(v.getChildAt(i))?.let{return it};return null};assertEquals(10000L,photo(a.window.decorView)!!.durationMs)}
-            onView(withContentDescription("미리보기 일시정지")).perform(click())
+            tapLive(scenario,"미리보기 일시정지")
             onView(withText("편집")).perform(click())
             assertEquals(before,outputs())
             onView(withText("사진 추가")).perform(click());onView(withText("배경 자르기")).perform(click())
