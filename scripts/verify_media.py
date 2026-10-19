@@ -12,6 +12,7 @@ root = pathlib.Path(sys.argv[1])
 reports = {}
 beat_report = json.loads((root / "beat-sync.json").read_text())
 assert beat_report["gpuDelta"] > 1 and beat_report["mp4Delta"] > 0.8, beat_report
+assert beat_report["compositionPixelError"] < .025, beat_report
 assert beat_report["onsetMs"] % 500 < 100, beat_report
 subprocess.run(["ffmpeg", "-v", "error", "-xerror", "-i", str(root / "beat-sync-5s.mp4"), "-f", "null", "-"], check=True)
 reports["beat_sync"] = beat_report

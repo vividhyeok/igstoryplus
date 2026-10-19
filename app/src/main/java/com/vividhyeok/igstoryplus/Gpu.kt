@@ -55,7 +55,7 @@ class GpuProgram {
             vec2 bgUv=(uReaction>.5&&uReaction<1.5&&uFramePose<.5)?(uv-.5)/(1.+uGlow*.016)+.5:uv;
             vec4 bg=texture2D(uTex,clamp(bgUv,0.,1.));
             if(uReaction>.5&&uReaction<1.5&&uFramePose<.5)bg=mix(bg,(texture2D(uTex,clamp(bgUv+vec2(.004,0.),0.,1.))+texture2D(uTex,clamp(bgUv-vec2(.004,0.),0.,1.)))*.5,uGlow*.4);
-            if(uCompose>.5){vec2 q=localPhoto(uv);if(q.x>=0.&&q.x<=1.&&q.y>=0.&&q.y<=1.)bg=texture2D(uPhoto,q);}
+            if(uCompose>.5){vec2 q=localPhoto(uv);if(q.x>=0.&&q.x<=1.&&q.y>=0.&&q.y<=1.)bg=texture2D(uPhoto,vec2(q.x,uFlip>.5?q.y:1.-q.y));}
             return bg;
         }
         void main(){

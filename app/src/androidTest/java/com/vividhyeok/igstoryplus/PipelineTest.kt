@@ -114,10 +114,15 @@ class PipelineTest {
             retriever.setDataSource(movie.absolutePath)
             val hit=retriever.getFrameAtTime(peak*50000L,android.media.MediaMetadataRetriever.OPTION_CLOSEST)!!
             val rest=retriever.getFrameAtTime(quiet*50000L,android.media.MediaMetadataRetriever.OPTION_CLOSEST)!!
+            val scaled=Bitmap.createScaledBitmap(rest,off.width,off.height,true)
+            var compositionError=0.0
+            for(y in 0 until off.height step 2)for(x in 0 until off.width step 2){val a=off.getPixel(x,y);val b=scaled.getPixel(x,y);compositionError+=abs(Color.red(a)-Color.red(b))+abs(Color.green(a)-Color.green(b))+abs(Color.blue(a)-Color.blue(b))}
+            compositionError/=((off.width+1)/2*((off.height+1)/2)*3*255.0)
+            assertTrue("Photo orientation and preview/output geometry must match: $compositionError",compositionError<.025)
             val delta=light(hit)-light(rest)
             assertTrue("MP4 light must follow detected onset: $delta",delta>.8)
             hit.outputStream(File(evidence,"beat-mp4-onset.png"));rest.outputStream(File(evidence,"beat-mp4-quiet.png"))
-            File(evidence,"beat-sync.json").writeText("""{"onsetMs":${peak*50},"quietMs":${quiet*50},"gpuDelta":$gpuDelta,"mp4Delta":$delta}""")
+            File(evidence,"beat-sync.json").writeText("""{"onsetMs":${peak*50},"quietMs":${quiet*50},"gpuDelta":$gpuDelta,"mp4Delta":$delta,"compositionPixelError":$compositionError}""")
         }finally{retriever.release()}
     }
     @Test fun hWaveformCachePoseParityAndShortAudioGuard(){

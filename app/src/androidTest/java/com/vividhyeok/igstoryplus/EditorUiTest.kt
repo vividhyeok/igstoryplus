@@ -126,6 +126,9 @@ class EditorUiTest {
         items.forEach{val bitmap=Artwork.decode(context,it.uri);assertEquals(512,bitmap.width);assertEquals(512,bitmap.height);assertEquals(0,Color.alpha(bitmap.getPixel(0,0)))}
         Store(context).save(Project(source=fixtureStory()))
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            var ready=false
+            for(attempt in 0 until 100){liveActivity{a->fun find(v:View):LivePhoto?{if(v is LivePhoto)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};ready=find(a.window.decorView)?.frameReady==true};if(ready)break;SystemClock.sleep(100)}
+            assertTrue("Bundled library capture needs the actual source photo",ready)
             onView(withContentDescription("내 이모지")).perform(click());SystemClock.sleep(400);screenshot("ux-bundled-emoji")
             onView(withContentDescription("이모지 검색")).perform(replaceText("커피"),closeSoftKeyboard())
             onView(withContentDescription("커피")).perform(click())
