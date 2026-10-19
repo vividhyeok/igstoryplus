@@ -29,10 +29,17 @@ class EditorUiTest {
     private fun tapAt(x:Float,y:Float){val now=SystemClock.uptimeMillis();instrumentation.sendPointerSync(MotionEvent.obtain(now,now,MotionEvent.ACTION_DOWN,x,y,0));instrumentation.sendPointerSync(MotionEvent.obtain(now,SystemClock.uptimeMillis(),MotionEvent.ACTION_UP,x,y,0))}
     private fun swipeAt(x:Float,y:Float,dx:Float){
         val down=SystemClock.uptimeMillis()
-        fun send(action:Int,px:Float){MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,px,y,0).also{instrumentation.sendPointerSync(it);it.recycle()}}
+        fun send(action:Int,px:Float){MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,px,y,0).also{assertTrue(instrumentation.uiAutomation.injectInputEvent(it,false));it.recycle()}}
         send(MotionEvent.ACTION_DOWN,x)
         for(i in 1..8){SystemClock.sleep(16);send(MotionEvent.ACTION_MOVE,x+dx*i/8)}
         send(MotionEvent.ACTION_UP,x+dx)
+    }
+    private fun liveTap(x:Float,y:Float){
+        val down=SystemClock.uptimeMillis()
+        for(action in listOf(MotionEvent.ACTION_DOWN,MotionEvent.ACTION_UP)){
+            MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,x,y,0).also{assertTrue(instrumentation.uiAutomation.injectInputEvent(it,false));it.recycle()}
+            SystemClock.sleep(16)
+        }
     }
     private fun point(description:String):Pair<Float,Float>{var p=0f to 0f;onView(withContentDescription(description)).check{v,_->val xy=IntArray(2);v.getLocationOnScreen(xy);p=xy[0]+v.width/2f to xy[1]+v.height/2f};return p}
     private fun tapLive(scenario:ActivityScenario<MainActivity>,description:String){
@@ -143,23 +150,32 @@ class EditorUiTest {
             onView(withTagValue(org.hamcrest.Matchers.`is`("music-waveform" as Any))).perform(swipeRight())
             scenario.onActivity{assertEquals(10,it.project.duration);assertTrue(it.project.music!!.startMs>0);assertTrue(MusicRange.valid(it.project.music!!,10000))}
             SystemClock.sleep(1000) // The new range is auditioned once, then returns to paused.
-            fun assertPlaying(){scenario.onActivity{a->
+            fun assertPlaying(expected:Boolean=true){
+                var actual=false
+                for(attempt in 0 until 40){scenario.onActivity{a->
                 fun playing(v:View):Boolean{if(v.contentDescription=="미리보기 일시정지")return true;if(v is ViewGroup)for(i in 0 until v.childCount)if(playing(v.getChildAt(i)))return true;return false}
-                assertTrue("Live music changes must not stop playback",playing(a.window.decorView))
-            }}
+                actual=playing(a.window.decorView)
+                };if(actual==expected)return;SystemClock.sleep(50)}
+                assertEquals("Live music changes must preserve the requested playback state",expected,actual)
+            }
             onView(withContentDescription("음악 반응 강도")).perform(scrollTo())
             val strengthPoint=point("음악 반응 강도");val playback=point("선택 구간 재생")
-            tapAt(playback.first,playback.second);SystemClock.sleep(600)
-            swipeAt(strengthPoint.first,strengthPoint.second,120f);assertPlaying()
-            screenshot("ux-music-playing")
-            tapAt(playback.first,playback.second)
+            android.util.Log.i("TestRunner","live-control: reaction play")
+            liveTap(playback.first,playback.second);SystemClock.sleep(600)
+            swipeAt(strengthPoint.first,strengthPoint.second,120f);SystemClock.sleep(400);assertPlaying()
+            scenario.onActivity{assertTrue("Actual touch must change reaction strength",kotlin.math.abs(it.project.style.beat-.55f)>.01f)}
+            android.util.Log.i("TestRunner","live-control: reaction changed; pausing")
+            liveTap(playback.first,playback.second);SystemClock.sleep(400);assertPlaying(false)
+            screenshot("ux-music-live-controls")
             onView(withText("볼륨")).perform(scrollTo(),click())
             val gain=point("음악 볼륨");val listen=point("소리 미리듣기 · 재생/일시정지")
-            tapAt(listen.first,listen.second);SystemClock.sleep(300)
-            swipeAt(gain.first,gain.second,-120f);assertPlaying()
+            android.util.Log.i("TestRunner","live-control: mixer play")
+            liveTap(listen.first,listen.second);SystemClock.sleep(400)
+            swipeAt(gain.first,gain.second,-120f);SystemClock.sleep(400);assertPlaying()
             scenario.onActivity{assertTrue(it.project.music!!.volume<1f)}
+            android.util.Log.i("TestRunner","live-control: mixer changed; pausing")
+            liveTap(listen.first,listen.second);SystemClock.sleep(400);assertPlaying(false)
             screenshot("ux-audio-mixer")
-            tapAt(listen.first,listen.second)
             onView(withContentDescription("시트 완료")).perform(click())
             onView(withText("음악 카드 디자인")).perform(scrollTo(),click());screenshot("ux-music-cards")
             onView(withContentDescription("음악 카드: 앨범 아트")).perform(scrollTo(),click())
@@ -250,7 +266,11 @@ class EditorUiTest {
             onView(withText("취소")).perform(click())
             scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text);assertNull(Store(context).textEdit())}
               awaitCanvasAfterIme(scenario)
-            onView(withContentDescription("텍스트 레이어: 이전 문구")).perform(doubleClick())
+            val textPoint=point("텍스트 레이어: 이전 문구")
+            liveTap(textPoint.first,textPoint.second);SystemClock.sleep(80);liveTap(textPoint.first,textPoint.second)
+            var reopened=false
+            for(attempt in 0 until 40){scenario.onActivity{reopened=it.window.decorView.findViewWithTag<EditText>("canvas-text-input")!=null};if(reopened)break;SystemClock.sleep(50)}
+            assertTrue("Two actual taps must reopen text",reopened)
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("수정 취소"))
             onView(withText("취소")).perform(click())
             scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text)}

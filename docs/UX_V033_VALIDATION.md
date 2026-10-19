@@ -38,3 +38,7 @@ Music-panel history checkpoints no longer synchronize temporary animated View tr
 ## v0.3.6 playback test input
 
 v0.3.5 was blocked by Espresso AppNotIdleException while the new test attempted a slider action during continuous preview. The test now locates controls while paused, injects real tap/drag events during playback, asserts playback remains active, captures the mixer, and pauses before returning to Espresso. Assertions and application behavior are retained, matching the established real-touch preview tests. No stable v0.3.5 was published.
+
+## v0.3.7 asynchronous live touch delivery
+
+v0.3.6 retained a re-edit timing failure in one run and stalled after capturing live reaction controls; no release was published. Live input now uses UiAutomation nonblocking injection, validates playing and paused states, and captures controls after explicitly pausing so screenshot synchronization cannot wait on continuous GPU frames. The screen recording retains the actual playing gestures. Double tap uses two actual asynchronous tap pairs after the IME viewport settles, followed by a bounded wait for the editor; no repeated taps or bypass of the editing path. Progress markers identify each live-control stage.
