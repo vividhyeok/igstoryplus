@@ -17,8 +17,7 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
         override fun onWindowFocusChanged(hasWindowFocus:Boolean){super.onWindowFocusChanged(hasWindowFocus);if(hasWindowFocus && hasFocus())post{showKeyboard()}}
         override fun onDraw(c: Canvas) {
             // Same 960px reference layout and decoration as Artwork.text().
-            if(draft.type=="Soft Label") c.drawRoundRect(12f,6f,948f,height-6f,28f,28f,
-                Paint(Paint.ANTI_ALIAS_FLAG).apply { color=Color.argb((draft.emphasis*180).toInt(),20,20,25) })
+            Artwork.textDecoration(c,draft,height)
             super.onDraw(c)
         }
     }
@@ -50,12 +49,14 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
         changed(draft)
         input.typeface=Artwork.typeface(draft)
         input.setTextColor(if(draft.type=="Whisper") (draft.color and 0x00ffffff) or (220 shl 24) else draft.color)
-        input.letterSpacing=if(draft.type=="Whisper") .13f else .015f
+        input.letterSpacing=Artwork.letterSpacing(draft)
+        input.setTextSize(TypedValue.COMPLEX_UNIT_PX,Artwork.textSize(draft))
         input.gravity=Gravity.TOP or when(draft.align){0->Gravity.START;2->Gravity.END;else->Gravity.CENTER_HORIZONTAL}
         input.setShadowLayer(if(draft.type=="Echo Type")2f else if(draft.type=="Offset Type").01f else 0f,
             if(draft.type=="Offset Type" || draft.type=="Echo Type")2+draft.emphasis*7 else 0f,
             if(draft.type=="Offset Type" || draft.type=="Echo Type")2+draft.emphasis*5 else 0f,
             Color.argb((draft.emphasis*100).toInt(),Color.red(draft.color),Color.green(draft.color),Color.blue(draft.color)))
+        if(draft.type=="Film Caption")input.setShadowLayer(4f,0f,2f,Color.BLACK)
         input.requestLayout();input.invalidate();input.post { position() }
     }
     private fun position() {

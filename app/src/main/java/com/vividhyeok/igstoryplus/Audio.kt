@@ -27,9 +27,17 @@ object Audio {
         } finally { r.release() }
     }
     private fun key(s: String)=MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).joinToString(""){"%02x".format(it)}
-    fun analyze(c: Context, m: Music, durationMs: Long): FloatArray {
-        val f=File(c.cacheDir,"beat-${key(m.uri+":"+m.startMs+":"+durationMs+":"+m.loop)}.json")
-        if(f.exists()) return Store(c).gson.fromJson(f.readText(),FloatArray::class.java)
+    fun analyze(c:Context,m:Music,durationMs:Long):FloatArray=features(c,m,durationMs).onsets
+    fun reaction(features:AudioFeatures,mode:String):FloatArray=when(mode){
+        "Ambient Breathing"->FloatArray(features.low.size){max(features.onsets[it]*.7f,features.low[it]*.3f)}
+        "Album Aura"->FloatArray(features.energy.size){features.fast[it]*.65f+features.slow[it]*.35f}
+        else->features.onsets
+    }
+    @Synchronized fun features(c: Context, m: Music, durationMs: Long): AudioFeatures {
+        val uri=Uri.parse(m.uri)
+        val identity=runCatching{if(uri.scheme=="file")File(uri.path!!).let{"${it.length()}:${it.lastModified()}"} else c.contentResolver.query(uri,arrayOf(android.provider.OpenableColumns.SIZE,android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED),null,null,null)?.use{if(it.moveToFirst())"${it.getLong(0)}:${it.getLong(1)}" else ""}}.getOrNull()?:""
+        val f=File(c.cacheDir,"features-v3-${key(m.uri+":"+identity+":"+m.startMs+":"+durationMs+":"+m.loop)}.json")
+        if(f.exists())runCatching{Store(c).gson.fromJson(f.readText(),AudioFeatures::class.java)}.getOrNull()?.let{if(it.onsets.isNotEmpty())return it}
         val extractor=MediaExtractor(); var decoder: MediaCodec?=null
         try {
             extractor.setDataSource(c,Uri.parse(m.uri),null)
@@ -38,6 +46,7 @@ object Audio {
             extractor.seekTo(m.startMs*1000,MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
             val codec=MediaCodec.createDecoderByType(format.getString(MediaFormat.KEY_MIME)!!); decoder=codec; codec.configure(format,null,null,0); codec.start()
             val energy=DoubleArray((durationMs/50+1).toInt()); val counts=IntArray(energy.size)
+            val signals=SignalAccumulator(energy.size)
             val info=MediaCodec.BufferInfo(); var inputDone=false; var outputDone=false
             var rate=format.getInteger(MediaFormat.KEY_SAMPLE_RATE); var channels=format.getInteger(MediaFormat.KEY_CHANNEL_COUNT); var pcmFloat=false
             val deadline=System.nanoTime()+60_000_000_000L
@@ -61,14 +70,15 @@ object Audio {
                     while(buffer.remaining()>=(if(pcmFloat)4 else 2)) {
                         val sample=if(pcmFloat)buffer.float.toDouble() else buffer.short/32768.0
                         val t=info.presentationTimeUs/1000.0-m.startMs+index.toDouble()/channels/rate*1000
-                        val bin=(t/50).toInt(); if(t>=0 && bin in energy.indices){ energy[bin]+=sample*sample; counts[bin]++ }; index++
+                        val bin=(t/50).toInt(); if(t>=0 && bin in energy.indices){ energy[bin]+=sample*sample; counts[bin]++;signals.add(sample,bin,rate,channels) }; index++
                     }
                     outputDone=info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM!=0; codec.releaseOutputBuffer(o,false)
                 }
             }
             val rms=DoubleArray(energy.size){sqrt(energy[it]/counts[it].coerceAtLeast(1))}
             if(m.loop){val span=(m.durationMs-m.startMs).coerceAtLeast(1);for(i in rms.indices)if(i*50L>=span)rms[i]=rms[((i*50L%span)/50).toInt().coerceIn(rms.indices)]}
-            val result=onsets(rms); f.writeText(Store(c).gson.toJson(result)); return result
+            val result=signals.finish(rms,if(m.loop)(m.durationMs-m.startMs).coerceAtLeast(1) else null)
+            val temp=File(f.parentFile,f.name+".tmp");temp.writeText(Store(c).gson.toJson(result));check(temp.renameTo(f));return result
         } finally { runCatching { decoder?.stop() }; decoder?.release(); extractor.release() }
     }
     /** Adaptive local-mean/std onset peak picking, adapted from the user's rhythm-mp3 onset.ts.

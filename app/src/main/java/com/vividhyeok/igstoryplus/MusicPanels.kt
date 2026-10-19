@@ -87,6 +87,10 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
             override fun onProgressChanged(s:SeekBar,value:Int,user:Boolean){if(user){p.style.beat=value/100f;clock.updateStyle()}}
         })
         body.addView(reaction);body.addView(strength)
+        val modes=LinearLayout(activity)
+        (if(p.video)listOf("빛 반응","Music Dot") else listOf("빛 반응","Ambient Breathing","Album Aura","Music Dot")).forEach{mode->modes.addView(button(mode){checkpoint();p.style.reaction=mode;clock.updateStyle();save();for(i in 0 until modes.childCount)modes.getChildAt(i).alpha=if((modes.getChildAt(i) as TextView).text==mode)1f else .5f}.apply{alpha=if(p.style.reaction==mode)1f else .5f})}
+        body.addView(HorizontalScrollView(activity).apply{isHorizontalScrollBarEnabled=false;addView(modes)})
+        body.addView(label(if(p.video)"영상은 빛 반응 · Music Dot 지원" else "Ambient · Aura는 원본 사진 뒤 배경에만 적용",11f))
         body.addView(button("음악 카드 디자인"){cards()})
         val extra=LinearLayout(activity)
         extra.addView(button("곡 교체"){library()},LinearLayout.LayoutParams(0,dp(48),1f))
@@ -105,7 +109,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
         clipDialog?.dismiss();clipDialog=null
         val m=project().music?:return
         val body=column();val row=LinearLayout(activity);val previews=mutableListOf<View>()
-        listOf("기본 카드","작은 카드","앨범 아트","텍스트","숨김").forEach{style->
+        EditorCatalog.cards.forEach{style->
             val tile=column();val image=ImageView(activity).apply{scaleType=ImageView.ScaleType.FIT_CENTER;contentDescription="음악 카드: $style";minimumHeight=dp(104)}
             if(style=="숨김")image.setImageDrawable(EditorIcons.drawable("닫기")) else image.setImageBitmap(Artwork.musicCard(activity,m.copy(card=style),Layer(kind="music")))
             tile.addView(image,LinearLayout.LayoutParams(dp(140),dp(110)));tile.addView(label(style,12f).apply{gravity=Gravity.CENTER})

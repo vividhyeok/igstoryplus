@@ -30,7 +30,7 @@ class BackgroundGestures(private val view:View,private val project:()->Project,p
         val d=if(n>1)hypot(e.getX(1)-e.getX(0),e.getY(1)-e.getY(0)) else 0f
         val a=if(n>1)atan2(e.getY(1)-e.getY(0),e.getX(1)-e.getX(0))*180f/PI.toFloat() else 0f
         when(e.actionMasked){
-            MotionEvent.ACTION_DOWN->{active=project().source.isNotBlank() && !project().video && hit(cx,cy);moving=false;downX=cx;downY=cy;x=cx;y=cy}
+            MotionEvent.ACTION_DOWN->{active=project().source.isNotBlank() && hit(cx,cy);moving=false;downX=cx;downY=cy;x=cx;y=cy}
             MotionEvent.ACTION_POINTER_DOWN->{x=cx;y=cy;distance=d;angle=a}
             MotionEvent.ACTION_MOVE->if(active){
                 if(!moving && (hypot(cx-downX,cy-downY)>slop || n>1)){moving=true;begin();v.parent.requestDisallowInterceptTouchEvent(true)}

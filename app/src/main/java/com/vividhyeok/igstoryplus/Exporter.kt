@@ -31,12 +31,13 @@ class Exporter(private val context: Context) {
         Thread {
             try {
                 p.music?.let{check(MusicRange.valid(it,p.durationMs())){"음악이 스토리보다 짧습니다. 음악 구간을 조정하거나 반복을 직접 켜 주세요."}}
-                val base=if(p.video) null else Artwork.background(context,p,1080)
+                val base=if(p.video) null else Artwork.background(context,p,1080,drawPhoto=false)
+                val foreground=if(p.video)null else Artwork.cropped(Artwork.decode(context,p.source,4096),p.crop)
                 val layers=p.layers.map { it to Artwork.layer(context,it,p.music) }
-                val beats=if(p.style.beat>0 && p.music!=null) Audio.analyze(context,p.music!!,p.durationMs()) else floatArrayOf()
+                val beats=if(p.style.beat>0 && p.music!=null) Audio.reaction(Audio.features(context,p.music!!,p.durationMs()),p.style.reaction) else floatArrayOf()
                 if(cancelled) return@Thread
                 if(!p.animated()) {
-                    val b=filteredBitmap(base!!,p.style); val canvas=Canvas(b)
+                    val b=filteredBitmap(base!!,p.style,foreground,p.pose); val canvas=Canvas(b)
                     layers.forEach { (l,bitmap)-> drawLayer(canvas,l,bitmap,1080,1920) }
                     file.outputStream().use{check(b.compress(Bitmap.CompressFormat.JPEG,92,it))}
                     if(cancelled){file.delete();return@Thread}
@@ -47,12 +48,13 @@ class Exporter(private val context: Context) {
                         sourceTemp=temp
                         temp.outputStream().use{base!!.compress(Bitmap.CompressFormat.JPEG,98,it)}; Uri.fromFile(temp)
                     }
+                    val preparedEffects=baseEffects(context,p,beats,foreground=foreground)
                     handler.post {
                         if(cancelled){sourceTemp?.delete();return@post}
                         runCatching {
-                            val effects=baseEffects(context,p,beats).toMutableList()
+                            val effects=preparedEffects.toMutableList()
                             // GLES2 guarantees eight texture units, including the background sampler.
-                            layers.chunked(6).forEach{batch->effects+=OverlayEffect(batch.map{(l,b)-> overlay(l,b,p.durationMs()) as TextureOverlay})}
+                            layers.chunked(6).forEach{batch->effects+=OverlayEffect(batch.map{(l,b)-> overlay(l,b,p.durationMs(),p.music,beats,p.style) as TextureOverlay})}
                             val media=MediaItem.Builder().setUri(source).apply {
                                 if(!p.video)setImageDurationMs(p.durationMs()) else setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(p.durationMs()).build())
                             }.build()
@@ -83,11 +85,11 @@ class Exporter(private val context: Context) {
         }.start()
     }
     companion object {
-        fun baseEffects(c:Context,p:Project,beats:FloatArray=floatArrayOf(),preview:Boolean=false):List<Effect> {
+        fun baseEffects(c:Context,p:Project,beats:FloatArray=floatArrayOf(),preview:Boolean=false,foreground:Bitmap?=null):List<Effect> {
             val effects=mutableListOf<Effect>()
             if(p.video){effects+=FrameDropEffect.createDefaultFrameDropEffect(30f);effects+=ScaleAndRotateTransformation.Builder().setRotationDegrees(-p.crop.rotation).setScale(if(p.crop.flip)-1f else 1f,1f).build();effects+=videoCrop(c,p)}
             effects+=Presentation.createForWidthAndHeight(if(preview)540 else 1080,if(preview)960 else 1920,Presentation.LAYOUT_SCALE_TO_FIT)
-            effects+=StyleEffect(p.style,p.durationMs(),beats)
+            effects+=StyleEffect(p.style,p.durationMs(),beats,foreground,p.pose.copy(),p.video)
             return effects
         }
         fun videoCrop(c:Context,p:Project):androidx.media3.effect.Crop {
@@ -108,8 +110,11 @@ class Exporter(private val context: Context) {
             val s=l.width*w/b.width*l.scale
             canvas.save(); canvas.translate(l.x*w,l.y*h); canvas.rotate(l.rotation); canvas.scale(s,s); canvas.drawBitmap(b,-b.width/2f,-b.height/2f,Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)); canvas.restore()
         }
-        fun overlay(l: Layer,b: Bitmap,durationMs: Long): BitmapOverlay = object:BitmapOverlay(){
-            override fun getBitmap(presentationTimeUs: Long)=b
+        fun overlay(l: Layer,b: Bitmap,durationMs: Long,music:Music?=null,beats:FloatArray=floatArrayOf(),style:Style=Style()): BitmapOverlay = object:BitmapOverlay(){
+            override fun getBitmap(presentationTimeUs: Long):Bitmap{
+                if(l.kind!="music" || music==null || (music.card!="Progress Line" && (style.reaction!="Music Dot" || style.beat<=0)))return b
+                return b.copy(Bitmap.Config.ARGB_8888,true).also{drawMusicIndicator(Canvas(it),it.width.toFloat(),it.height.toFloat(),music.card,(presentationTimeUs%(durationMs*1000)).toFloat()/(durationMs*1000),beatAt(beats,presentationTimeUs)*style.beat,style.reaction=="Music Dot" && style.beat>0,style.auraColor)}
+            }
             override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
                 val phase=Motion.phase(presentationTimeUs,durationMs); val pulse=Motion.scale(l,phase)
                 val s=l.width*1080/b.width*l.scale*pulse

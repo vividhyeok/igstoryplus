@@ -10,7 +10,8 @@ data class Crop(var x: Float = .5f, var y: Float = .5f, var zoom: Float = 1f,
 data class Style(var name: String = "Simple", var amount: Float = .25f, var motion: Boolean = false,
                  var blur: Float = .55f, var brightness: Float = .75f, var warmth: Float = 0f,
                  var speed: Float = 1f, var scope: Float = .75f, var beat: Float = 0f,
-                 var region:String="가장자리",var centerX:Float=.5f,var centerY:Float=.5f)
+                 var region:String="가장자리",var centerX:Float=.5f,var centerY:Float=.5f,
+                 var reaction:String="빛 반응",var auraColor:Int=0xFF98B8CF.toInt())
 
 data class PhotoPose(var x:Float=.5f,var y:Float=.5f,var scale:Float=1f,var rotation:Float=0f)
 data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String = "photo", var uri: String = "",
@@ -18,7 +19,8 @@ data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String
                  var color: Int = -1, var align: Int = 1, var emphasis: Float = .3f,
                  var x: Float = .5f, var y: Float = .5f, var scale: Float = 1f,
                  var rotation: Float = 0f, var width: Float = .45f, var motion: Boolean = false,
-                 var crop: Crop = Crop(), var textLayoutVersion: Int = 0)
+                 var crop: Crop = Crop(), var textLayoutVersion: Int = 0,
+                 var photoStyle:Style?=null,var motionStyle:String="기본",var motionAmount:Float=.4f)
 data class Music(var uri: String = "", var title: String = "", var artist: String = "", var album: String = "",
                  var art: String = "", var durationMs: Long = 0, var startMs: Long = 0, var card: String = "작은 카드", var volume: Float = 1f,
                  var loop:Boolean=false)
@@ -55,6 +57,8 @@ class Store(val context: Context) {
 }
 data class TextEditDraft(val existingId:String?,val layer:Layer)
 class History {
+    val canUndo get()=back.isNotEmpty()
+    val canRedo get()=forward.isNotEmpty()
     private val back = ArrayDeque<String>()
     private val forward = ArrayDeque<String>()
     private val gson = Gson()

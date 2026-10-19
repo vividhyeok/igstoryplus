@@ -13,7 +13,7 @@ class StylePicker(private val activity:Activity,private val project:()->Project,
     fun show(){
         val box=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(8),0,dp(8),0)}
         val row=LinearLayout(activity);val images=linkedMapOf<String,ImageView>()
-        val names=listOf("Simple","Grainy","Gritty","Lores","Handheld","Zoomblur","Flow Blur")
+        val names=EditorCatalog.photos
         var refreshThumbnails:()->Unit={}
         var dialog:EditorSheet?=null
         fun border(name:String)=GradientDrawable().apply{setColor(0xFF343438.toInt());cornerRadius=dp(10).toFloat();setStroke(dp(2),if(project().style.name==name)Color.WHITE else Color.TRANSPARENT)}

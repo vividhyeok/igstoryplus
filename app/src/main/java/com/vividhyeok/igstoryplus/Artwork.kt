@@ -77,22 +77,33 @@ object Artwork {
         return if(l<=r && t<=d) Bitmap.createBitmap(b,l,t,r-l+1,d-t+1) else b
     }
     fun layer(c: Context, l: Layer, music: Music?): Bitmap = when(l.kind) {
-        "photo" -> cropped(decode(c,l.uri,(l.width*1080*l.scale*l.crop.zoom).toInt().coerceIn(512,4096)),l.crop)
+        "photo" -> cropped(decode(c,l.uri,(l.width*1080*l.scale*l.crop.zoom).toInt().coerceIn(512,4096)),l.crop).let{b->l.photoStyle?.let{filteredBitmap(b,it.copy(motion=false,beat=0f))}?:b}
         "png" -> decode(c,l.uri,(l.width*1080*l.scale).toInt().coerceIn(256,2048)).let{if(EmojiLibrary.bundled(l.uri))it else trimAlpha(it)}
         "music" -> musicCard(c,music ?: Music(),l)
         else -> text(c,l)
     }
-    fun typeface(l:Layer):Typeface = if(l.font.startsWith("system:"))Typeface.create(l.font.removePrefix("system:"),Typeface.NORMAL) else if(l.font.isNotBlank()) runCatching { Typeface.createFromFile(l.font) }.getOrDefault(Typeface.DEFAULT) else Typeface.create(if(l.type=="Whisper") "sans-serif-light" else "sans-serif-medium",Typeface.NORMAL)
-    fun textSize(l:Layer)=if(l.textLayoutVersion>0)88f else 58f
+    fun typeface(l:Layer):Typeface = if(l.font.startsWith("system:"))Typeface.create(l.font.removePrefix("system:"),Typeface.NORMAL) else if(l.font.isNotBlank()) runCatching { Typeface.createFromFile(l.font) }.getOrDefault(Typeface.DEFAULT) else Typeface.create(when(l.type){"Whisper","Margin Note"->"sans-serif-light";"Mono Stamp"->"monospace";"Editorial Serif"->"serif";else->"sans-serif-medium"},Typeface.NORMAL)
+    fun textSize(l:Layer)=(if(l.textLayoutVersion>0)88f else 58f)*when(l.type){"Film Caption"->.73f;"Mono Stamp"->.86f;"Editorial Serif"->1.18f;"Margin Note"->.82f;else->1f}
+    fun letterSpacing(l:Layer)=when(l.type){"Whisper"->.13f;"Mono Stamp"->.09f;"Film Caption"->.035f;"Editorial Serif"->.002f;else->.015f}
+    fun textDecoration(canvas:Canvas,l:Layer,height:Int){
+        val paint=Paint(Paint.ANTI_ALIAS_FLAG)
+        if(l.type=="Soft Label" || l.type=="Mono Stamp"){
+            paint.color=if(l.type=="Mono Stamp")Color.argb(185,20,24,27) else Color.argb((l.emphasis*180).toInt(),20,20,25)
+            canvas.drawRoundRect(12f,6f,948f,height-6f,if(l.type=="Mono Stamp")4f else 28f,if(l.type=="Mono Stamp")4f else 28f,paint)
+        }
+        if(l.type=="Margin Note"){paint.color=l.color;paint.alpha=150;paint.strokeWidth=2f;canvas.drawLine(22f,32f,22f,height-32f,paint)}
+        if(l.type=="Editorial Serif"){paint.color=l.color;paint.alpha=100;paint.strokeWidth=1.5f;canvas.drawLine(40f,height-14f,920f,height-14f,paint)}
+    }
     fun text(c: Context, l: Layer): Bitmap {
         val p=TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
             color=l.color; textSize=textSize(l)
             typeface=typeface(l)
-            letterSpacing=if(l.type=="Whisper") .13f else .015f
+            letterSpacing=letterSpacing(l)
+            if(l.type=="Film Caption")setShadowLayer(4f,0f,2f,Color.BLACK)
         }
         val layout=StaticLayout.Builder.obtain(l.text,0,l.text.length,p,880).setAlignment(when(l.align){0->Layout.Alignment.ALIGN_NORMAL;2->Layout.Alignment.ALIGN_OPPOSITE;else->Layout.Alignment.ALIGN_CENTER}).setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE).setIncludePad(true).build()
         val b=Bitmap.createBitmap(960,layout.height+64,Bitmap.Config.ARGB_8888); val canvas=Canvas(b)
-        if(l.type=="Soft Label") canvas.drawRoundRect(12f,6f,948f,b.height-6f,28f,28f,Paint(Paint.ANTI_ALIAS_FLAG).apply { color=Color.argb((l.emphasis*180).toInt(),20,20,25) })
+        textDecoration(canvas,l,b.height)
         canvas.translate(40f,32f)
         if(l.textLayoutVersion>0 && (l.type=="Offset Type" || l.type=="Echo Type")) p.setShadowLayer(if(l.type=="Echo Type")2f else .01f,2+l.emphasis*7,2+l.emphasis*5,Color.argb((l.emphasis*100).toInt(),Color.red(l.color),Color.green(l.color),Color.blue(l.color)))
         if(l.textLayoutVersion==0 && (l.type=="Offset Type" || l.type=="Echo Type")) {
@@ -102,6 +113,7 @@ object Artwork {
         layout.draw(canvas); return if(l.textLayoutVersion>0)b else trimAlpha(b)
     }
     fun musicCard(c: Context, m: Music, l: Layer): Bitmap {
+        if(m.card in listOf("Mini Credit","Cover Caption","Mono Tag","Progress Line"))return newMusicCard(c,m)
         val artOnly=m.card=="앨범 아트"; val textOnly=m.card=="텍스트";val full=m.card=="기본 카드";val compact=m.card=="작은 카드";val size=if(artOnly)420 else if(full)480 else if(compact)680 else 800
         val b=Bitmap.createBitmap(size,if(artOnly)420 else if(full)600 else if(compact)150 else 180,Bitmap.Config.ARGB_8888); val cv=Canvas(b)
         cv.clipPath(Path().apply{addRoundRect(0f,0f,b.width.toFloat(),b.height.toFloat(),24f,24f,Path.Direction.CW)})
@@ -120,4 +132,34 @@ object Artwork {
             cv.drawText(line(m.artist),x,if(full)555f else if(compact)107f else 125f,paint)
         }; return b
     }
+    fun palette(c:Context,uri:String):Int{
+        if(uri.isBlank())return 0xFF98B8CF.toInt()
+        val image=decode(c,uri,32);var r=0;var g=0;var b=0;var count=0
+        for(y in 0 until image.height)for(x in 0 until image.width){val color=image.getPixel(x,y);if(Color.alpha(color)>128){r+=Color.red(color);g+=Color.green(color);b+=Color.blue(color);count++}}
+        if(count==0)return 0xFF98B8CF.toInt()
+        return Color.rgb((r/count+40).coerceAtMost(230),(g/count+40).coerceAtMost(230),(b/count+40).coerceAtMost(230))
+    }
+    private fun newMusicCard(c:Context,m:Music):Bitmap{
+        val cover=m.card=="Cover Caption";val mono=m.card=="Mono Tag";val mini=m.card=="Mini Credit"
+        val width=if(cover)480 else if(mini)600 else 680;val height=if(cover)558 else if(mini)104 else if(mono)118 else 172
+        val bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);val canvas=Canvas(bitmap)
+        val paint=TextPaint(Paint.ANTI_ALIAS_FLAG)
+        if(!cover){paint.color=if(mono)0xD5222529.toInt() else 0xEF24272B.toInt();canvas.drawRoundRect(0f,0f,width.toFloat(),height.toFloat(),if(mono)5f else 18f,if(mono)5f else 18f,paint)}
+        val artRect=if(cover)Rect(24,0,456,432) else if(mini)Rect(12,12,92,92) else Rect(16,16,136,136)
+        if(!mono){val art=if(m.art.isBlank())null else runCatching{decode(c,m.art,512)}.getOrNull()
+            if(art!=null){val side=min(art.width,art.height);canvas.drawBitmap(art,Rect((art.width-side)/2,(art.height-side)/2,(art.width+side)/2,(art.height+side)/2),artRect,Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG))}
+            else{paint.color=0xFF59636B.toInt();canvas.drawRect(artRect,paint);EditorIcons.drawable("음악").apply{setBounds(artRect.left+18,artRect.top+18,artRect.right-18,artRect.bottom-18);draw(canvas)}}
+        }
+        val x=if(cover)24f else if(mono)26f else if(mini)108f else 154f
+        paint.color=Color.WHITE;paint.textSize=if(cover)29f else if(mini)28f else if(mono)28f else 34f;paint.typeface=if(mono)Typeface.MONOSPACE else Typeface.create("sans-serif-medium",Typeface.NORMAL)
+        if(cover)paint.setShadowLayer(3f,0f,1f,Color.BLACK)
+        fun line(value:String)=android.text.TextUtils.ellipsize(value.replace('\n',' '),paint,width-x-30,android.text.TextUtils.TruncateAt.END).toString()
+        canvas.drawText(line(m.title),x,if(cover)479f else if(mini)43f else 54f,paint)
+        paint.textSize=if(mini)22f else if(mono)23f else 25f;paint.color=0xFFD0D3D6.toInt();paint.typeface=if(mono)Typeface.MONOSPACE else Typeface.DEFAULT
+        canvas.drawText(line(m.artist),x,if(cover)524f else if(mini)77f else 96f,paint)
+        if(mono){paint.color=0xFF98B8CF.toInt();canvas.drawRect(12f,24f,15f,96f,paint)}
+        if(m.card=="Progress Line"){paint.color=0xFF666A6D.toInt();paint.strokeWidth=3f;canvas.drawLine(16f,height-10f,width-16f,height-10f,paint)}
+        return bitmap
+    }
+
 }
