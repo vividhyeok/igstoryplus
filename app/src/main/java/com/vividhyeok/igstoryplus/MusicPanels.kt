@@ -35,7 +35,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
                 val row=LinearLayout(activity).apply{gravity=Gravity.CENTER_VERTICAL;contentDescription="음악 선택: ${m.title}";minimumHeight=dp(72);isFocusable=true}
                 row.addView(ImageView(activity).apply{scaleType=ImageView.ScaleType.CENTER_CROP;setBackgroundColor(0xFF39393F.toInt());Glide.with(this).load(m.art).into(this)},LinearLayout.LayoutParams(dp(52),dp(52)))
                 row.addView(column().apply{addView(label(m.title,15f).apply{maxLines=1;ellipsize=TextUtils.TruncateAt.END});addView(label("${m.artist} · ${m.durationMs/1000}초",12f).apply{maxLines=1;ellipsize=TextUtils.TruncateAt.END;setTextColor(Color.LTGRAY)})},LinearLayout.LayoutParams(0,-2,1f))
-                row.setOnClickListener{WaveformCache.worker.execute{val readable=library.readable(m);activity.runOnUiThread{if(!dialog!!.isShowing)return@runOnUiThread;if(readable){dialog?.dismiss();select(m.copy())}else Toast.makeText(activity,"원본 음악이 없거나 권한이 만료되었습니다. 파일을 다시 가져오세요.",Toast.LENGTH_LONG).show()}}}
+                row.setOnClickListener{row.isEnabled=false;Thread{val readable=library.readable(m);activity.runOnUiThread{if(!dialog!!.isShowing)return@runOnUiThread;if(readable){dialog?.dismiss();select(m.copy())}else{row.isEnabled=true;Toast.makeText(activity,"원본 음악이 없거나 권한이 만료되었습니다. 파일을 다시 가져오세요.",Toast.LENGTH_LONG).show()}}}.start()}
                 rows.addView(row)
             }
             if(rows.childCount==0)rows.addView(label(if(items.isEmpty())"음악 파일을 한 번 가져오면 여기에 보관됩니다" else "검색 결과가 없습니다",13f))

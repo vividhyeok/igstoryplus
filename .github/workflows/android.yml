@@ -70,6 +70,7 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "dist/igstoryplus-v${VERSION_NAME}-arm64-v8a.apk"
           cp app/build/outputs/apk/release/app-release.apk "dist/igstoryplus-v${VERSION_NAME}-universal.apk"
           cp validation/ffprobe-report.json dist/validation-report.json
+          (cd validation && zip -q ../dist/ux-screenshots.zip ux-*.png editor-text-ime.png editor-text-styles.png pose-*.png)
       - name: Inspect APK package and signature
         run: |
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"

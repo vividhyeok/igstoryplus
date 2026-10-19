@@ -16,7 +16,8 @@ object WaveformCache {
     /** Full-track PCM peak envelope, bounded memory; called off the UI thread once per source. */
     @Synchronized fun peaks(c:Context,m:Music):FloatArray{
         val length=runCatching{c.contentResolver.openAssetFileDescriptor(Uri.parse(m.uri),"r")?.use{it.length}}.getOrNull()
-        val modified=runCatching{c.contentResolver.query(Uri.parse(m.uri),arrayOf(android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED),null,null,null)?.use{if(it.moveToFirst())it.getLong(0) else 0L}}.getOrDefault(0L)
+        val uri=Uri.parse(m.uri)
+        val modified=if(uri.scheme=="file")File(uri.path!!).lastModified() else runCatching{c.contentResolver.query(uri,arrayOf(android.provider.DocumentsContract.Document.COLUMN_LAST_MODIFIED),null,null,null)?.use{if(it.moveToFirst())it.getLong(0) else 0L}}.getOrDefault(0L)
         val key=MessageDigest.getInstance("SHA-256").digest("${m.uri}:${m.durationMs}:$length:$modified".toByteArray()).joinToString(""){"%02x".format(it)}
         val cache=File(c.cacheDir,"waveform-$key.json");val gson=Store(c).gson
         if(cache.exists())runCatching{gson.fromJson(cache.readText(),FloatArray::class.java)}.getOrNull()?.let{if(it.size==2048)return it}

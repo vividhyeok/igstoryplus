@@ -104,6 +104,8 @@ class PipelineTest {
         val p=Project(source=photo(),duration=15,style=Style(name="Flow Blur",motion=true,beat=.25f))
         val m=Audio.metadata(c,wav());m.title="Demo";m.artist="vividhyeok";m.startMs=1000;p.music=m
         p.layers.add(Layer(kind="music",width=.55f,y=.8f,motion=true));p.layers.add(Layer(kind="text",text="조금 다르게",type="Drift Type",motion=true,y=.3f))
+        val png=File(c.filesDir,"pipeline-test-only.png");val sticker=Bitmap.createBitmap(512,512,Bitmap.Config.ARGB_8888);Canvas(sticker).drawCircle(256f,256f,120f,Paint().apply{color=Color.YELLOW});png.outputStream().use{sticker.compress(Bitmap.CompressFormat.PNG,100,it)}
+        p.layers.add(Layer(kind="png",uri=Uri.fromFile(png).toString(),width=.089f,x=.2f,y=.6f,motion=true))
         val a=Audio.analyze(c,m,p.durationMs());val cached=Audio.analyze(c,m,p.durationMs());assertArrayEquals(a,cached,0f);assertTrue(a.any{it>0})
         val f=export(p,"music-flow-15s");Exporter.inspect(f,p)
         val tracks=tracks(f);assertTrue(tracks.any{it.getString(MediaFormat.KEY_MIME)=="video/avc"});assertTrue(tracks.any{it.getString(MediaFormat.KEY_MIME)=="audio/mp4a-latm"})

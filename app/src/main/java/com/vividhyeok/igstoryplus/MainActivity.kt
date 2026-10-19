@@ -437,9 +437,12 @@ class MainActivity : AppCompatActivity() {
                 val fav=prefs.getStringSet("favorites",emptySet())?:emptySet();val recent=prefs.getString("recent","")!!.split("|")
                 val sorted=files.filter{when(filter){"최근 사용"->it.uri.toString() in recent;"즐겨찾기"->it.uri.toString() in fav;else->true}}.sortedWith(compareByDescending<DocumentFile>{it.uri.toString() in fav}.thenBy{recent.indexOf(it.uri.toString()).let{i->if(i<0)999 else i}}.thenBy{it.name})
                 loading.text=if(files.isEmpty())"이 폴더에 PNG를 넣으면 여기에 표시됩니다" else "${files.size}개 · ★ 즐겨찾기 우선"
+                grid.visibility=if(sorted.isEmpty())View.GONE else View.VISIBLE
+                if(files.isNotEmpty() && sorted.isEmpty())loading.text=if(filter=="즐겨찾기")"PNG를 길게 누르면 즐겨찾기에 추가됩니다" else "아직 사용한 PNG가 없습니다"
                 grid.adapter=EmojiAdapter(sorted,fav,{f->val uri=f.uri.toString();dialog?.dismiss();safe{edit{project.layers.add(Layer(kind="png",uri=uri,width=.089f));selected=project.layers.last().id};prefs.edit().putString("recent",(listOf(uri)+recent.filter{it!=uri}).take(30).joinToString("|")).apply()}},
                     {f->val uri=f.uri.toString();val favorites=(prefs.getStringSet("favorites",emptySet())?:emptySet()).toMutableSet();if(!favorites.add(uri))favorites.remove(uri);prefs.edit().putStringSet("favorites",favorites).apply();dialog?.dismiss();emojiLibrary()})
-            }.onFailure{loading.text="폴더가 없거나 권한이 만료되었습니다. 폴더를 다시 선택해 주세요."}}
+                (dialog as? EditorSheet)?.resize()
+            }.onFailure{grid.visibility=View.GONE;loading.text="폴더가 없거나 권한이 만료되었습니다. 폴더를 다시 선택해 주세요.";(dialog as? EditorSheet)?.resize()}}
         }.start()
     }
     private fun ensureMusicLayer(){

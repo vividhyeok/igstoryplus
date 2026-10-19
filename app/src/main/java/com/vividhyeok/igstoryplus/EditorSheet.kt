@@ -26,6 +26,9 @@ class EditorSheet(context:Context,title:String,private val body:View,onDone:(()-
     }
     override fun show(){
         super.show()
+        resize()
+    }
+    fun resize(){
         val metrics=context.resources.displayMetrics
         body.measure(View.MeasureSpec.makeMeasureSpec(metrics.widthPixels-dp(24),View.MeasureSpec.EXACTLY),View.MeasureSpec.makeMeasureSpec(0,View.MeasureSpec.UNSPECIFIED))
         val height=(body.measuredHeight+dp(112)).coerceIn(dp(180),(metrics.heightPixels*fraction).toInt())
