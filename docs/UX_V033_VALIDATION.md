@@ -34,3 +34,7 @@ The v0.3.3 tag was blocked by the existing double-tap-after-IME-cancel regressio
 ## v0.3.5 uninterrupted live controls
 
 Music-panel history checkpoints no longer synchronize temporary animated View transforms while the clock is playing; the project already holds the base layer poses. This preserves audio playback and avoids recording temporary animation as a saved pose. The UI test changes reaction strength and music gain during actual preview, checks the clock playback control remains active, and captures ux-audio-mixer. All previous tests remain enabled.
+
+## v0.3.6 playback test input
+
+v0.3.5 was blocked by Espresso AppNotIdleException while the new test attempted a slider action during continuous preview. The test now locates controls while paused, injects real tap/drag events during playback, asserts playback remains active, captures the mixer, and pauses before returning to Espresso. Assertions and application behavior are retained, matching the established real-touch preview tests. No stable v0.3.5 was published.
