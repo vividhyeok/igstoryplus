@@ -58,13 +58,17 @@ class PreviewClock(private val context:Context,private val project:()->Project,
                 setMediaItem(MediaItem.Builder().setUri(m.uri).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(m.startMs).setEndPositionMs(min(m.startMs+p.durationMs(),m.durationMs)).build()).build())
                 repeatMode=Player.REPEAT_MODE_ONE;prepare();seekTo(time%min(p.durationMs(),m.durationMs-m.startMs).coerceAtLeast(1));play()
             }
-            val key="${m.uri}:${m.startMs}:${p.durationMs()}:${m.loop}"
-            if(p.style.beat>0 && key!=beatKey){beatKey=key;beats=floatArrayOf();val token=++generation
-                Thread{val result=runCatching{Audio.analyze(context,m.copy(),p.durationMs())}.getOrDefault(floatArrayOf());handler.post{if(token==generation){beats=result;if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}}}.start()}
+            analyzeBeats()
         }}
         handler.post(tick)
     }
-    fun updateStyle(){val p=project();photo.durationMs=p.durationMs();photo.style=p.style.copy();if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}
+    private fun analyzeBeats(){
+        val p=project();val m=p.music?:return;val key="${m.uri}:${m.startMs}:${p.durationMs()}:${m.loop}"
+        if(p.style.beat>0 && key!=beatKey){beatKey=key;beats=floatArrayOf();val token=++generation;val snapshot=m.copy();val duration=p.durationMs()
+            Thread{val result=runCatching{Audio.analyze(context.applicationContext,snapshot,duration)}.getOrDefault(floatArrayOf());handler.post{if(token==generation){beats=result;if(project().video)video()?.setVideoEffects(Exporter.baseEffects(context,project(),beats,preview=true))}}}.start()
+        }
+    }
+    fun updateStyle(){val p=project();photo.durationMs=p.durationMs();photo.style=p.style.copy();analyzeBeats();if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}
     fun setVolume(volume:Float){audio?.volume=volume.coerceIn(0f,1f)}
     fun seek(position:Long){
         val p=project();time=position.coerceIn(0,(p.durationMs()-1).coerceAtLeast(0));stamp=SystemClock.elapsedRealtime()

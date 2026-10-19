@@ -103,7 +103,6 @@ class EditorUiTest {
             onView(withContentDescription("음악 카드: 앨범 아트")).perform(scrollTo(),click())
             scenario.onActivity{assertEquals("앨범 아트",it.project.music!!.card)}
             onView(withContentDescription("시트 완료")).perform(click())
-            onView(withContentDescription("시트 완료")).perform(click())
             onView(withContentDescription("music 레이어")).perform(swipeUp());screenshot("ux-music-placed")
             scenario.onActivity{assertTrue(it.project.layers.first{l->l.kind=="music"}.y<.8f)}
             androidx.test.espresso.Espresso.pressBack()

@@ -20,7 +20,8 @@ object Audio {
         val r=MediaMetadataRetriever()
         try {
             r.setDataSource(c,Uri.parse(uri))
-            val m=Music(uri=uri,title=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)?:"제목 없음",artist=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)?:"아티스트",album=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)?:"",durationMs=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()?:0)
+            val filename=runCatching{c.contentResolver.query(Uri.parse(uri),arrayOf(android.provider.OpenableColumns.DISPLAY_NAME),null,null,null)?.use{if(it.moveToFirst())it.getString(0) else null}}.getOrNull()?:Uri.parse(uri).lastPathSegment?.substringAfterLast('/')
+            val m=Music(uri=uri,title=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)?:filename?.substringBeforeLast('.')?:"제목 없음",artist=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)?:"아티스트",album=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)?:"",durationMs=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()?:0)
             r.embeddedPicture?.let { bytes -> val f=File(c.filesDir,"art-${key(uri)}.jpg"); f.writeBytes(bytes); m.art=Uri.fromFile(f).toString() }
             return m
         } finally { r.release() }

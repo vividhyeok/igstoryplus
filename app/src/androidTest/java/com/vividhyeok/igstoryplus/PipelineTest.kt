@@ -146,6 +146,7 @@ class PipelineTest {
             val f=File(c.cacheDir,"fixture.$ext");testContext.assets.open("audio.$ext").use{i->f.outputStream().use{i.copyTo(it)}}
             val music=Audio.metadata(c,Uri.fromFile(f).toString());assertEquals("Fixture Song",music.title);assertEquals("Fixture Artist",music.artist)
             assertTrue(music.durationMs in 1900..2200);assertTrue(Audio.analyze(c,music,2000).size>=40)
+            assertTrue(WaveformCache.peaks(c,music).any{it>0})
         }
     }
 }

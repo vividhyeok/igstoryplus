@@ -30,6 +30,33 @@ class PhotoEditorView @JvmOverloads constructor(
     var onLayerGesture: ((android.view.View, Boolean) -> Unit)? = null
     var onLayerTransform: ((android.view.View) -> Unit)? = null
     var onLayerDoubleTap: ((android.view.View) -> Unit)? = null
+    private var expandedTarget:android.view.View?=null
+
+    /** Give tiny layers a 48dp hit target, without stealing an actual hit on a higher layer.
+     * Unlike TouchDelegate's centered events, preserve coordinates for drag/pinch/rotation. */
+    override fun dispatchTouchEvent(event:android.view.MotionEvent):Boolean {
+        if(!isEnabled)return true
+        if(event.actionMasked==android.view.MotionEvent.ACTION_DOWN){
+            expandedTarget=null
+            val candidates=(childCount-1 downTo 0).map{getChildAt(it)}.filter{it.tag is ViewType && it.visibility==VISIBLE}
+            fun local(v:android.view.View):FloatArray{val point=floatArrayOf(event.x-v.left,event.y-v.top);val inverse=android.graphics.Matrix();if(v.matrix.invert(inverse))inverse.mapPoints(point);return point}
+            val exact=candidates.any{v->val q=local(v);q[0]>=0 && q[0]<=v.width && q[1]>=0 && q[1]<=v.height}
+            if(!exact)expandedTarget=candidates.firstOrNull{v->
+                val q=local(v);val target=48*resources.displayMetrics.density
+                val px=((target/kotlin.math.abs(v.scaleX).coerceAtLeast(.01f)-v.width)/2).coerceAtLeast(0f)
+                val py=((target/kotlin.math.abs(v.scaleY).coerceAtLeast(.01f)-v.height)/2).coerceAtLeast(0f)
+                q[0]>=-px && q[0]<=v.width+px && q[1]>=-py && q[1]<=v.height+py
+            }
+        }
+        expandedTarget?.let{target->
+            val transformed=android.view.MotionEvent.obtain(event);transformed.offsetLocation(-target.left.toFloat(),-target.top.toFloat())
+            val inverse=android.graphics.Matrix();if(target.matrix.invert(inverse))transformed.transform(inverse)
+            target.dispatchTouchEvent(transformed);transformed.recycle()
+            if(event.actionMasked==android.view.MotionEvent.ACTION_UP || event.actionMasked==android.view.MotionEvent.ACTION_CANCEL)expandedTarget=null
+            return true
+        }
+        return super.dispatchTouchEvent(event)
+    }
 
     private var mImgSource: FilterImageView = FilterImageView(context)
 

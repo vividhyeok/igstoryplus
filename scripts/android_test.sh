@@ -12,10 +12,10 @@ wait "$record_pid" || true
 mkdir -p validation
 adb pull /sdcard/ux-flow.mp4 validation/ux-flow-recording.mp4 || true
 if [ "$ui_result" -ne 0 ]; then
-  adb pull /sdcard/Android/data/com.vividhyeok.igstoryplus/files/validation validation
+  adb pull /sdcard/Android/data/com.vividhyeok.igstoryplus/files/validation/. validation
   exit "$ui_result"
 fi
 ./gradlew :app:connectedDebugAndroidTest --console=plain
 test_result=$?
-adb pull /sdcard/Android/data/com.vividhyeok.igstoryplus/files/validation validation
+adb pull /sdcard/Android/data/com.vividhyeok.igstoryplus/files/validation/. validation
 exit "$test_result"

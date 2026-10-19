@@ -14,6 +14,8 @@ class StylePicker(private val activity:Activity,private val project:()->Project,
         val box=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(8),0,dp(8),0)}
         val row=LinearLayout(activity);val images=linkedMapOf<String,ImageView>()
         val names=listOf("Simple","Grainy","Gritty","Lores","Handheld","Zoomblur","Flow Blur")
+        var refreshThumbnails:()->Unit={}
+        var dialog:EditorSheet?=null
         fun border(name:String)=GradientDrawable().apply{setColor(0xFF343438.toInt());cornerRadius=dp(10).toFloat();setStroke(dp(2),if(project().style.name==name)Color.WHITE else Color.TRANSPARENT)}
         names.forEach{name->
             val tile=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(4),dp(4),dp(4),dp(4));background=border(name)}
@@ -26,19 +28,23 @@ class StylePicker(private val activity:Activity,private val project:()->Project,
         box.addView(HorizontalScrollView(activity).apply{isHorizontalScrollBarEnabled=false;addView(row)})
         val label=TextView(activity).apply{text="강도";setTextColor(Color.LTGRAY);minHeight=dp(32)};box.addView(label)
         box.addView(SeekBar(activity).apply{contentDescription="사진 스타일 강도";max=100;progress=(project().style.amount*100).toInt();setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{
-            override fun onStartTrackingTouch(s:SeekBar){checkpoint()};override fun onStopTrackingTouch(s:SeekBar){save()}
+            override fun onStartTrackingTouch(s:SeekBar){checkpoint()};override fun onStopTrackingTouch(s:SeekBar){save();refreshThumbnails()}
             override fun onProgressChanged(s:SeekBar,p:Int,user:Boolean){if(user){project().style.amount=p/100f;label.text="강도 $p%";update()}}
         })},LinearLayout.LayoutParams(-1,dp(48)))
         box.addView(Switch(activity).apply{text="움직임";setTextColor(Color.WHITE);minHeight=dp(48);isChecked=project().style.motion;setOnCheckedChangeListener{_,enabled->checkpoint();project().style.motion=enabled;update();save();if(enabled)motion()}})
         val actions=LinearLayout(activity)
         fun action(text:String,run:()->Unit)=TextView(activity).apply{this.text=text;setTextColor(Color.WHITE);gravity=Gravity.CENTER;minHeight=dp(48);isFocusable=true;setOnClickListener{run()}}
-        actions.addView(action("세부 설정",details),LinearLayout.LayoutParams(0,dp(48),1f));actions.addView(action("프리셋",presets),LinearLayout.LayoutParams(0,dp(48),1f));box.addView(actions)
-        val dialog=EditorSheet(activity,"사진 스타일",box,{save()}).also{it.show()}
-        dialog.setOnDismissListener{pause();save()}
+        actions.addView(action("세부 설정"){dialog?.dismiss();details()},LinearLayout.LayoutParams(0,dp(48),1f));actions.addView(action("프리셋"){dialog?.dismiss();presets()},LinearLayout.LayoutParams(0,dp(48),1f));box.addView(actions)
+        dialog=EditorSheet(activity,"사진 스타일",box,{save()}).also{it.show()}
         val snapshot=Store(activity).copy(project());val app=activity.applicationContext
-        Thread{runCatching{Artwork.background(app,snapshot,144)}.onSuccess{base->names.forEach{name->
-            if(!dialog.isShowing)return@Thread
-            runCatching{filteredBitmap(base,snapshot.style.copy(name=name,motion=false,amount=.65f))}.onSuccess{bitmap->activity.runOnUiThread{if(dialog.isShowing)images[name]?.setImageBitmap(bitmap)}}
-        }}}.start()
+        val worker=java.util.concurrent.Executors.newSingleThreadExecutor();val generation=java.util.concurrent.atomic.AtomicInteger();var cached:android.graphics.Bitmap?=null
+        refreshThumbnails={val token=generation.incrementAndGet();val style=project().style.copy();worker.execute{
+            runCatching{cached?:Artwork.background(app,snapshot,144).also{cached=it}}.onSuccess{base->names.forEach{name->
+                if(token!=generation.get())return@execute
+                runCatching{filteredBitmap(base,style.copy(name=name,motion=false))}.onSuccess{bitmap->activity.runOnUiThread{if(dialog.isShowing && token==generation.get())images[name]?.setImageBitmap(bitmap)}}
+            }}
+        }}
+        dialog.setOnDismissListener{generation.incrementAndGet();worker.shutdownNow();pause();save()}
+        refreshThumbnails()
     }
 }

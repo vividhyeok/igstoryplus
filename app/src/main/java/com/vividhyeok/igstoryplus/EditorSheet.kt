@@ -8,7 +8,7 @@ import android.view.*
 import android.widget.*
 
 /** Small native bottom sheet. Only its handle/header intercepts swipe-to-dismiss. */
-class EditorSheet(context:Context,title:String,private val body:View,onDone:(()->Unit)?,private val fraction:Float=.68f):Dialog(context) {
+class EditorSheet(context:Context,title:String,private val body:View,onDone:(()->Unit)?,private val fraction:Float=.68f,private val canFinish:()->Boolean={true}):Dialog(context) {
     private fun dp(n:Int)=(n*context.resources.displayMetrics.density).toInt()
     init {
         val box=LinearLayout(context).apply{
@@ -20,7 +20,7 @@ class EditorSheet(context:Context,title:String,private val body:View,onDone:(()-
         heading.setOnTouchListener{v,e->when(e.actionMasked){MotionEvent.ACTION_DOWN->{down=e.rawY;true};MotionEvent.ACTION_UP->{if(e.rawY-down>dp(32))dismiss() else v.performClick();true};else->true}}
         box.addView(heading)
         box.addView(ScrollView(context).apply{isFillViewport=false;addView(body)},LinearLayout.LayoutParams(-1,0,1f))
-        box.addView(TextView(context).apply{text="완료";contentDescription="시트 완료";textSize=16f;gravity=Gravity.CENTER;setTextColor(0xFFD4FF83.toInt());minHeight=dp(48);isFocusable=true;setOnClickListener{onDone?.invoke();dismiss()}})
+        box.addView(TextView(context).apply{text="완료";contentDescription="시트 완료";textSize=16f;gravity=Gravity.CENTER;setTextColor(0xFFD4FF83.toInt());minHeight=dp(48);isFocusable=true;setOnClickListener{if(canFinish()){onDone?.invoke();dismiss()}}})
         setContentView(box,ViewGroup.LayoutParams(-1,-1))
         window?.apply{setBackgroundDrawableResource(android.R.color.transparent);setDimAmount(.12f);setGravity(Gravity.BOTTOM)}
     }

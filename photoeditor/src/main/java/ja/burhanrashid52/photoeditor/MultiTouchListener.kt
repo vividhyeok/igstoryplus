@@ -84,7 +84,11 @@ internal class MultiTouchListener(
                         photoEditorView.onLayerTransform?.invoke(view)
                     }
                 }
-            MotionEvent.ACTION_CANCEL -> mActivePointerId = INVALID_POINTER_ID
+            MotionEvent.ACTION_CANCEL -> {
+                mActivePointerId = INVALID_POINTER_ID
+                deleteView?.visibility = View.GONE
+                firePhotoEditorSDKListener(view, false)
+            }
             MotionEvent.ACTION_UP -> {
                 mActivePointerId = INVALID_POINTER_ID
                 if (deleteView != null) {

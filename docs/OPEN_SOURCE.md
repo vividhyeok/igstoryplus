@@ -18,6 +18,8 @@
 PhotoEditor 고정 commit: `4a6967d3067d37010f9673034db27f53cf70e449`.
 `photoeditor/` 저작권 주석 유지. 퍼블리싱 설정 제거, compileSdk35 적용, 문서 변형 콜백 노출, 첫 터치 선택·축소 범위·캔버스 밖 위치 처리와 helper 여백 조정. 레이어/터치/핀치/회전/선택은 엔진 재사용. 스타일·크롭 Undo/Redo는 앱 문서 모델 스냅샷으로 확장.
 
+v0.3은 선택만으로 레이어 순서가 바뀌지 않도록 자동 bringToFront를 제거하고, 취소된 터치의 문서 저장 콜백을 보완한다. 벡터 아이콘 경로, 오디오 파형 뷰/캐시, 음악 라이브러리·패널, 사진 직접 조작 컨트롤러는 앱 자체 코드이며 새로운 외부 엔진이나 브랜드 자산을 추가하지 않는다.
+
 ## 음악 분석
 
 [rhythm-mp3](https://github.com/vividhyeok/rhythm-mp3)의 `src/analysis/onset.ts`, `dsp.ts`, `tempo.ts`를 검토했다. 소유자가 재사용을 명시 요청했다. 일반 오픈소스 LICENSE는 발견하지 못했다. `Audio.onsets`는 local mean + 1.35 × standard deviation의 적응형 peak selection을 Kotlin RMS novelty에 맞춰 축소 적용한다. 원 FFT·BPM 분류 전체를 이식한 것이 아니다.

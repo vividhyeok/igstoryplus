@@ -19,7 +19,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
     private fun column()=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(8),dp(4),dp(8),dp(8))}
     private fun label(s:String,size:Float=14f)=TextView(activity).apply{text=s;textSize=size;setTextColor(Color.WHITE);gravity=Gravity.CENTER_VERTICAL;minHeight=dp(32)}
     private fun button(s:String,action:()->Unit)=label(s,15f).apply{gravity=Gravity.CENTER;minHeight=dp(48);minimumWidth=dp(48);isFocusable=true;contentDescription=s;setOnClickListener{action()}}
-    private fun sheet(title:String,body:View,done:(()->Unit)?=null,fraction:Float=.70f)=EditorSheet(activity,title,body,done,fraction).also{it.show()}
+    private fun sheet(title:String,body:View,done:(()->Unit)?=null,fraction:Float=.70f,canFinish:()->Boolean={true})=EditorSheet(activity,title,body,done,fraction,canFinish).also{it.show()}
     fun library(){
         clipDialog?.dismiss();clipDialog=null
         val body=column();var dialog:Dialog?=null
@@ -46,7 +46,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
     }
     fun clip(){
         val p=project();val m=p.music?:return library()
-        clock.pausePlayback();MusicRange.clamp(m,p.durationMs())
+        clock.pausePlayback();MusicRange.clamp(m,p.durationMs());clock.seek(0)
         val body=column();val header=LinearLayout(activity).apply{gravity=Gravity.CENTER_VERTICAL}
         header.addView(ImageView(activity).apply{scaleType=ImageView.ScaleType.CENTER_CROP;setBackgroundColor(0xFF39393F.toInt());Glide.with(this).load(m.art).into(this)},LinearLayout.LayoutParams(dp(48),dp(48)))
         header.addView(column().apply{addView(label(m.title,16f).apply{maxLines=1;ellipsize=TextUtils.TruncateAt.END});addView(label(m.artist,12f).apply{maxLines=1;ellipsize=TextUtils.TruncateAt.END;setTextColor(Color.LTGRAY)})},LinearLayout.LayoutParams(0,-2,1f))
@@ -57,7 +57,8 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
         val loading=label("실제 오디오 파형 분석 중…",12f).apply{gravity=Gravity.CENTER;setTextColor(Color.LTGRAY)};body.addView(loading)
         val controls=LinearLayout(activity).apply{gravity=Gravity.CENTER_VERTICAL}
         val length=button(if(p.video)"${p.durationMs()/1000}초 · 영상 길이" else "${p.duration}초"){}
-        val play=EditorIcons.button(activity,"미리보기 재생"){if(clock.playing)clock.pausePlayback() else if(MusicRange.valid(m,p.durationMs()))clock.play() else Toast.makeText(activity,"음악이 짧습니다. 길이를 줄이거나 반복을 켜세요.",Toast.LENGTH_LONG).show()}
+        lateinit var play:ImageButton
+        play=EditorIcons.button(activity,"미리보기 재생"){if(clock.playing)clock.pausePlayback() else if(MusicRange.valid(m,p.durationMs()))clock.play() else Toast.makeText(activity,"음악이 짧습니다. 길이를 줄이거나 반복을 켜세요.",Toast.LENGTH_LONG).show();play.setImageDrawable(EditorIcons.drawable(if(clock.playing)"미리보기 일시정지" else "미리보기 재생"));play.contentDescription=if(clock.playing)"선택 구간 일시정지" else "선택 구간 재생"}
         controls.addView(length,LinearLayout.LayoutParams(0,dp(48),1f));controls.addView(play,LinearLayout.LayoutParams(dp(48),dp(48)))
         controls.addView(EditorIcons.button(activity,"처음부터"){clock.seek(0)},LinearLayout.LayoutParams(dp(48),dp(48)));body.addView(controls)
         fun update(){
@@ -65,6 +66,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
             range.text=String.format(Locale.ROOT,"%.1f — %.1f초",m.startMs/1000f,(m.startMs+p.durationMs()).coerceAtMost(m.durationMs)/1000f)
             length.text=if(p.video)"${p.durationMs()/1000}초 · 영상 길이" else "${p.duration}초"
             if(!MusicRange.valid(m,p.durationMs()))loading.text="음악이 짧습니다. 길이를 줄이거나 반복을 직접 켜세요."
+            else if(waveform.peaks.isNotEmpty())loading.text="파형을 좌우로 드래그해 구간 선택"
             waveform.invalidate();save()
         }
         length.setOnClickListener{if(!p.video){val choices=column();var d:Dialog?=null;val grid=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL};for(chunk in (5..15).toList().chunked(4)){val row=LinearLayout(activity);chunk.forEach{seconds->row.addView(button("${seconds}초"){checkpoint();p.duration=seconds;activity.getSharedPreferences("settings",0).edit().putInt("musicDuration",seconds).apply();clock.pausePlayback();clock.seek(0);update();d?.dismiss()},LinearLayout.LayoutParams(0,dp(48),1f))};grid.addView(row)};choices.addView(grid);d=sheet("음악 길이",choices)}}
@@ -77,7 +79,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
         extra.addView(button("곡 교체"){library()},LinearLayout.LayoutParams(0,dp(48),1f))
         extra.addView(button("볼륨"){volume()},LinearLayout.LayoutParams(0,dp(48),1f));body.addView(extra)
         var dialog:Dialog?=null
-        dialog=sheet("음악 구간",body,{clock.pausePlayback();save();changed()},.78f)
+        dialog=sheet("음악 구간",body,{clock.pausePlayback();save();changed()},.78f,{val valid=MusicRange.valid(m,p.durationMs());if(!valid)Toast.makeText(activity,"길이를 줄이거나 반복을 켜야 음악 구간을 완료할 수 있습니다.",Toast.LENGTH_LONG).show();valid})
         clipDialog=dialog
         clock.onPosition={position->if(dialog.isShowing){waveform.playheadMs=position;play.setImageDrawable(EditorIcons.drawable(if(clock.playing)"미리보기 일시정지" else "미리보기 재생"));play.contentDescription=if(clock.playing)"선택 구간 일시정지" else "선택 구간 재생"}}
         play.contentDescription="선택 구간 재생"
@@ -87,6 +89,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
         update()
     }
     fun cards(){
+        clipDialog?.dismiss();clipDialog=null
         val m=project().music?:return
         val body=column();val row=LinearLayout(activity);val previews=mutableListOf<View>()
         listOf("기본 카드","작은 카드","앨범 아트","텍스트","숨김").forEach{style->
@@ -106,7 +109,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
         var dialog:Dialog?=null
         body.addView(button("앨범 아트 선택"){dialog?.dismiss();clipDialog?.dismiss();import("art")})
         body.addView(button("음악 삭제"){dialog?.dismiss();clipDialog?.dismiss();remove()})
-        dialog=sheet("곡 정보",body,{checkpoint();m.title=fields[0].text.toString();m.artist=fields[1].text.toString();m.album=fields[2].text.toString();save();changed();clipDialog?.dismiss();clip()})
+        dialog=sheet("곡 정보",body,{(activity.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager).hideSoftInputFromWindow(fields[0].windowToken,0);checkpoint();m.title=fields[0].text.toString();m.artist=fields[1].text.toString();m.album=fields[2].text.toString();save();changed();clipDialog?.dismiss();clip()})
     }
     fun volume(){val m=project().music?:return;val body=column();body.addView(label("볼륨"));body.addView(SeekBar(activity).apply{max=100;progress=(m.volume*100).toInt();contentDescription="음악 볼륨";setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{override fun onStartTrackingTouch(s:SeekBar){checkpoint()};override fun onStopTrackingTouch(s:SeekBar){save()};override fun onProgressChanged(s:SeekBar,p:Int,user:Boolean){if(user){m.volume=p/100f;clock.setVolume(m.volume)}}})});sheet("음악 볼륨",body,{save()})}
 }

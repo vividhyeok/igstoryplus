@@ -60,6 +60,7 @@ class MainActivity : AppCompatActivity() {
     private var latest: File?=null
     private var previewMode=false
     private var previewControls:View?=null
+    private val openSheets=mutableListOf<android.app.Dialog>()
     private val prefs by lazy { getSharedPreferences("settings",MODE_PRIVATE) }
     private val clock by lazy { PreviewClock(this,{project},live,{editingPlayer},{layerViews}){playing->chrome.playback(playing)} }
     private val musicPanels by lazy { MusicPanels(this,{project},clock,{syncTransforms();history.push(project)},{ensureMusicLayer();restoreLayers();contextTools()},{saveMusic()},{mode->pick(mode,if(mode=="music")arrayOf("audio/*") else arrayOf("image/*"))},{m->selectMusic(m)},{stopAudio();edit{project.music=null;project.layers.removeAll{it.kind=="music"}}}) }
@@ -327,7 +328,7 @@ class MainActivity : AppCompatActivity() {
         d=sheet(title,box)
     }
     private fun sheet(title:String,body:View,onDone:(()->Unit)?=null):android.app.Dialog {
-        return EditorSheet(this,title,body,onDone).also{it.show()}
+        return EditorSheet(this,title,body,onDone).also{dialog->openSheets.add(dialog);dialog.setOnDismissListener{openSheets.remove(dialog)};dialog.show()}
     }
     private fun slider(box:LinearLayout,label:String,value:Float,trackHistory:Boolean=true,onChange:(Float)->Unit){
         val title=text(label,13f);box.addView(title)
@@ -373,6 +374,7 @@ class MainActivity : AppCompatActivity() {
     }
     private fun closeCrop(){cropSession?.let{canvasBox.removeView(it)};cropSession=null;chrome.play.visibility=View.VISIBLE;normalTop();contextTools()}
     private fun effectCenter(){
+        openSheets.toList().forEach{it.dismiss()}
         val handle=object:View(this){
             val paint=Paint(Paint.ANTI_ALIAS_FLAG).apply{color=Color.WHITE;style=Paint.Style.STROKE;strokeWidth=dp(2).toFloat()}
             override fun onDraw(c:Canvas){val x=project.style.centerX*width;val y=project.style.centerY*height;c.drawCircle(x,y,dp(14).toFloat(),paint);c.drawLine(x-dp(22),y,x+dp(22),y,paint);c.drawLine(x,y-dp(22),x,y+dp(22),paint)}
@@ -447,8 +449,10 @@ class MainActivity : AppCompatActivity() {
     }
     private fun saveMusic(){project.music?.let{prefs.edit().putString("music:${it.uri}",store.gson.toJson(it)).apply();if(it.uri.isNotBlank())MusicLibrary(this).remember(it)};persist()}
     private fun selectMusic(m:Music){
+        val desired=prefs.getInt("musicDuration",15).coerceIn(5,15)
         edit{project.music=m;if(!project.video){project.duration=prefs.getInt("musicDuration",15).coerceIn(5,15);if(m.durationMs in 5000 until project.durationMs())project.duration=(m.durationMs/1000).toInt()};MusicRange.clamp(m,project.durationMs());ensureMusicLayer()}
         saveMusic();musicPanels.clip()
+        if(!project.video && project.duration<desired)toast("음악 길이에 맞춰 ${project.duration}초로 조정했습니다")
     }
     private fun musicMenu(){
         if(project.music==null)musicPanels.library() else musicPanels.clip()
