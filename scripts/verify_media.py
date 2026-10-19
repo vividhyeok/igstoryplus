@@ -63,7 +63,19 @@ for name, duration, audio in [("motion-5s", 5, False), ("music-flow-15s", 15, Tr
         assert loop_delta < 0.04, f"Abrupt photo loop boundary: {loop_delta}"
         reports[name]["visual_checks"] = {"quarter_frame_delta": motion_delta, "loop_boundary_delta": loop_delta}
 assert (root / "still-korean.jpg").is_file()
-assert len(list(root.glob("style-*.png"))) == 7
+assert len(list(root.glob("style-*.png"))) == 10
+quality = json.loads((root / "quality" / "styles.json").read_text())
+assert len(quality) == 5 and all(len(values) == 10 and max(values) < .0008 for values in quality.values()), quality
+reports["photo_quality_zero_identity"] = quality
+video_pose = json.loads((root / "video-pose.json").read_text())
+assert video_pose["normalizedPixelError"] < .035, video_pose
+reports["video_pose"] = video_pose
+for name in ("progress-dot-5s", "video-pose-5s"):
+    path = root / (name + ".mp4")
+    subprocess.run(["ffmpeg", "-v", "error", "-xerror", "-i", str(path), "-f", "null", "-"], check=True)
+    info = json.loads(subprocess.check_output(["ffprobe", "-v", "error", "-show_format", "-of", "json", str(path)]))
+    assert abs(float(info["format"]["duration"]) - 5) < .35, info
+    reports[name] = info
 required_screens = ["ux-photo-main", "editor-text-ime", "editor-text-styles", "ux-photo-styles", "ux-music-library", "ux-music-waveform", "ux-music-cards", "ux-png-library", "ux-photo-crop", "ux-preview", "ux-share-progress"]
 for screen in required_screens:
     assert (root / (screen + ".png")).stat().st_size > 1000, "Missing actual UI capture: " + screen
@@ -89,4 +101,4 @@ reports["_verification"] = {
     "full_frame_decode": True,
 }
 (root / "ffprobe-report.json").write_text(json.dumps(reports, indent=2), encoding="utf-8")
-print("Verified: JPEG, 7 GPU style images, H.264 1080×1920 30fps 5/15/30/60s; AAC and full frame decode.")
+print("Verified: JPEG, 10 GPU style images, H.264 1080×1920 30fps 5/15/30/60s; AAC and full frame decode.")

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       release_version:
-        description: 'Optional stable version (for example 0.3.7); tag is created only after verification'
+        description: 'Optional stable version (for example 0.4.0); tag is created only after verification'
         required: false
         type: string
 permissions:
@@ -35,6 +35,7 @@ jobs:
           chmod +x gradlew
           sudo apt-get update -qq
           sudo apt-get install -y ffmpeg
+          python -m pip install Pillow
       - name: Lint and unit tests
         run: ./gradlew :app:lintDebug :app:testDebugUnitTest :photoeditor:testDebugUnitTest --console=plain
       - name: Enable emulator acceleration
@@ -52,7 +53,9 @@ jobs:
           disable-animations: true
           script: bash scripts/android_test.sh
       - name: Inspect real rendered media
-        run: python scripts/verify_media.py validation
+        run: |
+          python scripts/verify_media.py validation
+          python scripts/quality_sheets.py validation/quality
       - name: Configure persistent release signing
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -72,21 +75,23 @@ jobs:
           elif [[ "$GITHUB_REF_TYPE" == tag ]]; then
             VERSION_NAME="${GITHUB_REF_NAME#v}"
           else
-            VERSION_NAME="0.3.7-dev.${GITHUB_RUN_NUMBER}+${GITHUB_SHA:0:7}"
+            VERSION_NAME="0.4.0-dev.${GITHUB_RUN_NUMBER}+${GITHUB_SHA:0:7}"
           fi
           echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
           VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER)) VERSION_NAME="$VERSION_NAME" ./gradlew :app:assembleRelease --console=plain
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk "dist/igstoryplus-v${VERSION_NAME}-arm64-v8a.apk"
           cp app/build/outputs/apk/release/app-release.apk "dist/igstoryplus-v${VERSION_NAME}-universal.apk"
           cp validation/ffprobe-report.json dist/validation-report.json
           (cd validation && zip -q ../dist/ux-screenshots.zip ux-*.png editor-text-ime.png editor-text-styles.png pose-*.png beat-*.png beat-sync.json)
+          (cd validation/quality && zip -q ../../dist/style-comparisons.zip comparison-*.jpg styles.json)
       - name: Inspect APK package and signature
         run: |
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
-          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs dist/*arm64-v8a.apk | tee dist/signature.txt
-          "$BUILD_TOOLS/aapt" dump badging dist/*arm64-v8a.apk | tee dist/package.txt
-          grep -q "com.vividhyeok.igstoryplus" dist/package.txt
+          "$BUILD_TOOLS/apksigner" verify --verbose --print-certs dist/*universal.apk | tee dist/signature.txt
+          "$BUILD_TOOLS/aapt" dump badging dist/*universal.apk | tee dist/package.txt
+          grep -q "package: name='com.vividhyeok.igstoryplus'" dist/package.txt
+          grep -q "versionName='$VERSION_NAME'" dist/package.txt
+          grep -q '2fcc3941f7e2bddd5ebf7f7345b90c826fc5790ccf971dd5ada5a064b1064e7e' dist/signature.txt
           cd dist && sha256sum *.apk > SHA256SUMS
       - name: Upload verification evidence
         if: always()
@@ -122,5 +127,5 @@ jobs:
         run: |
           if [[ -n "$RELEASE_VERSION" ]]; then TAG="v$RELEASE_VERSION"; elif [[ "$GITHUB_REF_TYPE" == tag ]]; then TAG="$GITHUB_REF_NAME"; else TAG="dev-${GITHUB_RUN_NUMBER}-${GITHUB_SHA:0:7}"; fi
           if ! gh release view "$TAG" >/dev/null 2>&1; then exit 0; fi
-          gh release download "$TAG" --pattern '*arm64-v8a.apk' --dir "$RUNNER_TEMP/release-download"
-          cmp dist/*arm64-v8a.apk "$RUNNER_TEMP"/release-download/*arm64-v8a.apk
+          gh release download "$TAG" --pattern '*universal.apk' --dir "$RUNNER_TEMP/release-download"
+          cmp dist/*universal.apk "$RUNNER_TEMP"/release-download/*universal.apk

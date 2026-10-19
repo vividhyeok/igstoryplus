@@ -25,6 +25,12 @@ import java.io.File
 class EditorUiTest {
     private val instrumentation=InstrumentationRegistry.getInstrumentation()
     private val context=instrumentation.targetContext
+    private fun liveActivity(action:(MainActivity)->Unit){
+        instrumentation.runOnMainSync{
+            val activity=androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance().getActivitiesInStage(androidx.test.runner.lifecycle.Stage.RESUMED).filterIsInstance<MainActivity>().single()
+            action(activity)
+        }
+    }
     private fun screenshot(name:String){SystemClock.sleep(250);val f=File(context.getExternalFilesDir(null),"validation/$name.png").apply{parentFile!!.mkdirs()};instrumentation.uiAutomation.takeScreenshot().let{b->f.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)}}}
     private fun tapAt(x:Float,y:Float){val now=SystemClock.uptimeMillis();instrumentation.sendPointerSync(MotionEvent.obtain(now,now,MotionEvent.ACTION_DOWN,x,y,0));instrumentation.sendPointerSync(MotionEvent.obtain(now,SystemClock.uptimeMillis(),MotionEvent.ACTION_UP,x,y,0))}
     private fun swipeAt(x:Float,y:Float,dx:Float){
@@ -45,7 +51,7 @@ class EditorUiTest {
     private fun tapLive(scenario:ActivityScenario<MainActivity>,description:String){
         var p:Pair<Float,Float>?=null
         for(attempt in 0 until 60){
-            scenario.onActivity{a->fun find(v:View):View?{if(v.contentDescription==description)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};val v=find(a.window.decorView);val rect=android.graphics.Rect();if(v!=null && v.isLaidOut && a.window.decorView.hasWindowFocus() && v.getGlobalVisibleRect(rect) && rect.width()>0 && rect.height()>0){p=rect.exactCenterX() to rect.exactCenterY()}}
+            liveActivity{a->fun find(v:View):View?{if(v.contentDescription==description)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};val v=find(a.window.decorView);val rect=android.graphics.Rect();if(v!=null && v.isLaidOut && a.window.decorView.hasWindowFocus() && v.getGlobalVisibleRect(rect) && rect.width()>0 && rect.height()>0){p=rect.exactCenterX() to rect.exactCenterY()}}
             if(p!=null)break;SystemClock.sleep(50)
         }
         assertNotNull("Live control must be focused and laid out: $description",p)
@@ -59,7 +65,7 @@ class EditorUiTest {
     private fun awaitCanvasAfterIme(scenario:ActivityScenario<MainActivity>){
         var previous:Pair<Int,Int>?=null;var stable=0
         for(attempt in 0 until 80){
-            scenario.onActivity{a->
+            liveActivity{a->
                 val e=editor(a.window.decorView)!!
                 val ime=androidx.core.view.ViewCompat.getRootWindowInsets(a.window.decorView)?.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime())==true
                 val size=e.width to e.height
@@ -90,14 +96,29 @@ class EditorUiTest {
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             SystemClock.sleep(500)
             onView(withContentDescription("배경 사진")).perform(swipeRight())
-            scenario.onActivity{assertTrue(it.project.pose.x>.55f);assertEquals(0f,it.project.crop.aspect)}
-            onView(withContentDescription("실행 취소")).perform(click());scenario.onActivity{assertEquals(.5f,it.project.pose.x,.005f)}
+            liveActivity{assertTrue(it.project.pose.x>.55f);assertEquals(0f,it.project.crop.aspect)}
+            onView(withContentDescription("실행 취소")).perform(click());liveActivity{assertEquals(.5f,it.project.pose.x,.005f)}
             onView(withContentDescription("다시 실행")).perform(click())
-            var cx=0f;var cy=0f;scenario.onActivity{a->val e=editor(a.window.decorView)!!;val pos=IntArray(2);e.getLocationOnScreen(pos);cx=pos[0]+e.width*.75f;cy=pos[1]+e.height*.5f}
+            var cx=0f;var cy=0f;liveActivity{a->val e=editor(a.window.decorView)!!;val pos=IntArray(2);e.getLocationOnScreen(pos);cx=pos[0]+e.width*.75f;cy=pos[1]+e.height*.5f}
             pinchAndRotate(cx,cy)
-            scenario.onActivity{assertTrue(it.project.pose.scale>1.05f);assertTrue(kotlin.math.abs(it.project.pose.rotation)>3)}
-            screenshot("ux-photo-gesture");scenario.recreate();scenario.onActivity{assertTrue(it.project.pose.x>.55f);assertTrue(it.project.pose.scale>1.05f);it.project=Project();Store(context).save(it.project)}
+            liveActivity{assertTrue(it.project.pose.scale>1.05f);assertTrue(kotlin.math.abs(it.project.pose.rotation)>3)}
+            screenshot("ux-photo-gesture");scenario.recreate();liveActivity{assertTrue(it.project.pose.x>.55f);assertTrue(it.project.pose.scale>1.05f);it.project=Project();Store(context).save(it.project)}
         }
+    }
+    @Test fun independentPhotoStyleAndNamedDraftGallery(){
+        Store(context).clearTextEdit();val source=fixtureStory();val project=Project(source=source,layers=mutableListOf(Layer(uri=source,width=.35f)))
+        val library=DraftLibrary(context);val saved=library.save("UI 복원 초안",project);Store(context).save(project)
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            onView(withContentDescription("photo 레이어")).perform(click())
+            onView(withText("스타일")).perform(click());onView(withContentDescription("사진 스타일: Gritty")).perform(click())
+            liveActivity{assertEquals("Simple",it.project.style.name);assertEquals("Gritty",it.project.layers.single().photoStyle!!.name)}
+            screenshot("ux-layer-style");onView(withContentDescription("시트 완료")).perform(click())
+            onView(withContentDescription("더보기")).perform(click());onView(withText("내 초안")).perform(scrollTo(),click());screenshot("ux-named-drafts")
+            onView(withText("UI 복원 초안")).perform(click());onView(withText("열기")).perform(click())
+            liveActivity{assertNull(it.project.layers.single().photoStyle);assertEquals("Simple",it.project.style.name)}
+            scenario.recreate();liveActivity{assertEquals(source,it.project.source)}
+        }
+        library.delete(saved)
     }
     @Test fun bundledEmojiWorkWithoutFolderGrantAndRestore(){
         Store(context).clearTextEdit();context.getSharedPreferences("settings",0).edit().remove("emojiFolder").commit()
@@ -108,9 +129,9 @@ class EditorUiTest {
             onView(withContentDescription("내 이모지")).perform(click());SystemClock.sleep(400);screenshot("ux-bundled-emoji")
             onView(withContentDescription("이모지 검색")).perform(replaceText("커피"),closeSoftKeyboard())
             onView(withContentDescription("커피")).perform(click())
-            scenario.onActivity{assertTrue(EmojiLibrary.bundled(it.project.layers.single().uri))}
+            liveActivity{assertTrue(EmojiLibrary.bundled(it.project.layers.single().uri))}
             onView(withContentDescription("png 레이어")).perform(swipeUp());scenario.recreate()
-            scenario.onActivity{assertTrue(it.project.layers.single().y<.5f);assertNotNull(Artwork.layer(context,it.project.layers.single(),null))}
+            liveActivity{assertTrue(it.project.layers.single().y<.5f);assertNotNull(Artwork.layer(context,it.project.layers.single(),null))}
             screenshot("ux-bundled-emoji-placed")
         }
     }
@@ -127,9 +148,9 @@ class EditorUiTest {
         context.getSharedPreferences("settings",0).edit().putString("emojiFolder",tree.toString()).apply();Store(context).save(Project(source=fixtureStory()))
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             onView(withContentDescription("내 이모지")).perform(click());SystemClock.sleep(400);screenshot("ux-png-library")
-            onView(withContentDescription("test-only.png")).perform(click());scenario.onActivity{assertEquals("png",it.project.layers.single().kind);assertEquals(.089f,it.project.layers.single().width)}
+            onView(withContentDescription("test-only.png")).perform(click());liveActivity{assertEquals("png",it.project.layers.single().kind);assertEquals(.089f,it.project.layers.single().width)}
             onView(withContentDescription("png 레이어")).perform(swipeUp())
-            scenario.recreate();scenario.onActivity{assertEquals("png",it.project.layers.single().kind);assertTrue(it.project.layers.single().y<.5f);it.project=Project();Store(context).save(it.project)}
+            scenario.recreate();liveActivity{assertEquals("png",it.project.layers.single().kind);assertTrue(it.project.layers.single().y<.5f);it.project=Project();Store(context).save(it.project)}
         }
         android.provider.DocumentsContract.deleteDocument(context.contentResolver,doc)
         context.getSharedPreferences("settings",0).edit().remove("emojiFolder").apply()
@@ -143,7 +164,7 @@ class EditorUiTest {
         val before=outputs()
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             var photoReady=false
-            for(attempt in 0 until 100){scenario.onActivity{a->fun find(v:View):LivePhoto?{if(v is LivePhoto)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};photoReady=find(a.window.decorView)?.frameReady==true};if(photoReady)break;SystemClock.sleep(100)}
+            for(attempt in 0 until 100){liveActivity{a->fun find(v:View):LivePhoto?{if(v is LivePhoto)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};photoReady=find(a.window.decorView)?.frameReady==true};if(photoReady)break;SystemClock.sleep(100)}
             assertTrue("Initial photo must have actually rendered",photoReady);SystemClock.sleep(150);screenshot("ux-photo-main")
             onView(withContentDescription("음악")).perform(click());screenshot("ux-music-library")
             onView(withContentDescription("음악 선택: ${music.title}")).perform(click())
@@ -154,20 +175,20 @@ class EditorUiTest {
             }
             assertTrue("Waveform must contain decoded, nonzero PCM peaks",ready)
             screenshot("ux-music-waveform")
-            scenario.onActivity{assertEquals(.55f,it.project.style.beat,.001f)}
+            liveActivity{assertEquals(.55f,it.project.style.beat,.001f)}
             onView(withText("음악 반응")).perform(scrollTo(),click())
-            scenario.onActivity{assertEquals(0f,it.project.style.beat,0f)}
+            liveActivity{assertEquals(0f,it.project.style.beat,0f)}
             onView(withText("음악 반응")).perform(click())
             onView(withContentDescription("음악 반응 강도")).perform(scrollTo())
             screenshot("ux-music-reaction")
             onView(withText("15초")).perform(scrollTo())
             onView(withText("15초")).perform(click());onView(withText("10초")).perform(click())
             onView(withTagValue(org.hamcrest.Matchers.`is`("music-waveform" as Any))).perform(swipeRight())
-            scenario.onActivity{assertEquals(10,it.project.duration);assertTrue(it.project.music!!.startMs>0);assertTrue(MusicRange.valid(it.project.music!!,10000))}
+            liveActivity{assertEquals(10,it.project.duration);assertTrue(it.project.music!!.startMs>0);assertTrue(MusicRange.valid(it.project.music!!,10000))}
             SystemClock.sleep(1000) // The new range is auditioned once, then returns to paused.
             fun assertPlaying(expected:Boolean=true){
                 var actual=false
-                for(attempt in 0 until 40){scenario.onActivity{a->
+                for(attempt in 0 until 40){liveActivity{a->
                 fun playing(v:View):Boolean{if(v.contentDescription=="미리보기 일시정지")return true;if(v is ViewGroup)for(i in 0 until v.childCount)if(playing(v.getChildAt(i)))return true;return false}
                 actual=playing(a.window.decorView)
                 };if(actual==expected)return;SystemClock.sleep(50)}
@@ -178,7 +199,7 @@ class EditorUiTest {
             android.util.Log.i("TestRunner","live-control: reaction play")
             liveTap(playback.first,playback.second);SystemClock.sleep(600)
             swipeAt(strengthPoint.first,strengthPoint.second,120f);SystemClock.sleep(400);assertPlaying()
-            scenario.onActivity{assertTrue("Actual touch must change reaction strength",kotlin.math.abs(it.project.style.beat-.55f)>.01f)}
+            liveActivity{assertTrue("Actual touch must change reaction strength",kotlin.math.abs(it.project.style.beat-.55f)>.01f)}
             android.util.Log.i("TestRunner","live-control: reaction changed; pausing")
             liveTap(playback.first,playback.second);SystemClock.sleep(400);assertPlaying(false)
             screenshot("ux-music-live-controls")
@@ -187,17 +208,17 @@ class EditorUiTest {
             android.util.Log.i("TestRunner","live-control: mixer play")
             liveTap(listen.first,listen.second);SystemClock.sleep(400)
             swipeAt(gain.first,gain.second,-120f);SystemClock.sleep(400);assertPlaying()
-            scenario.onActivity{assertTrue(it.project.music!!.volume<1f)}
+            liveActivity{assertTrue(it.project.music!!.volume<1f)}
             android.util.Log.i("TestRunner","live-control: mixer changed; pausing")
             liveTap(listen.first,listen.second);SystemClock.sleep(400);assertPlaying(false)
             screenshot("ux-audio-mixer")
             onView(withContentDescription("시트 완료")).perform(click())
             onView(withText("음악 카드 디자인")).perform(scrollTo(),click());screenshot("ux-music-cards")
             onView(withContentDescription("음악 카드: 앨범 아트")).perform(scrollTo(),click())
-            scenario.onActivity{assertEquals("앨범 아트",it.project.music!!.card)}
+            liveActivity{assertEquals("앨범 아트",it.project.music!!.card)}
             onView(withContentDescription("시트 완료")).perform(click())
             onView(withContentDescription("music 레이어")).perform(swipeUp());screenshot("ux-music-placed")
-            scenario.onActivity{assertTrue(it.project.layers.first{l->l.kind=="music"}.y<.8f)}
+            liveActivity{assertTrue(it.project.layers.first{l->l.kind=="music"}.y<.8f)}
             androidx.test.espresso.Espresso.pressBack()
             onView(withText("스타일")).perform(click())
             var thumbnails=false
@@ -212,10 +233,10 @@ class EditorUiTest {
             onView(withText("편집")).perform(click());assertEquals(before,outputs())
             onView(withText("사진 추가")).perform(click());onView(withText("배경 자르기")).perform(click());onView(withContentDescription("드래그로 크롭 위치, 핀치로 확대")).check(androidx.test.espresso.assertion.ViewAssertions.matches(isDisplayed()));screenshot("ux-photo-crop")
             onView(withText("4:5")).perform(click());onView(withText("취소")).perform(click())
-            scenario.onActivity{assertEquals(0f,it.project.crop.aspect)}
+            liveActivity{assertEquals(0f,it.project.crop.aspect)}
             onView(withContentDescription("인스타 스토리로 공유")).perform(click());screenshot("ux-share-progress")
             onView(withText("취소")).perform(click())
-            scenario.onActivity{assertNotNull(Store(context).load().music);it.project=Project();Store(context).save(it.project)}
+            liveActivity{assertNotNull(Store(context).load().music);it.project=Project();Store(context).save(it.project)}
         }
     }
     @Test fun musicCardKeepsOrderMotionDuplicateAndHideControls(){
@@ -227,15 +248,15 @@ class EditorUiTest {
             onView(withContentDescription("music 레이어")).perform(click())
             onView(withContentDescription("레이어 추가 작업")).perform(scrollTo(),click())
             onView(withText("뒤로")).perform(click())
-            scenario.onActivity{assertEquals("music",it.project.layers.first().kind)}
+            liveActivity{assertEquals("music",it.project.layers.first().kind)}
             onView(withContentDescription("레이어 추가 작업")).perform(scrollTo(),click())
             onView(withText("미세 모션 OFF")).perform(click())
-            scenario.onActivity{assertTrue(it.project.layers.first{l->l.kind=="music"}.motion)}
+            liveActivity{assertTrue(it.project.layers.first{l->l.kind=="music"}.motion)}
             onView(withContentDescription("레이어 추가 작업")).perform(scrollTo(),click())
             onView(withText("복제")).perform(click())
-            scenario.onActivity{assertEquals(2,it.project.layers.count{l->l.kind=="music"})}
+            liveActivity{assertEquals(2,it.project.layers.count{l->l.kind=="music"})}
             onView(withText("카드 숨김")).perform(scrollTo(),click())
-            scenario.onActivity{assertNotNull(it.project.music);assertTrue(it.project.layers.none{l->l.kind=="music"});it.project=Project();Store(context).save(it.project)}
+            liveActivity{assertNotNull(it.project.music);assertTrue(it.project.layers.none{l->l.kind=="music"});it.project=Project();Store(context).save(it.project)}
         }
     }
     @Test fun directTextIsLiveCancelableAndSurvivesRecreation(){
@@ -246,9 +267,9 @@ class EditorUiTest {
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             onView(withContentDescription("텍스트")).perform(click())
             var imeVisible=false
-            for(i in 0 until 40){scenario.onActivity{a->imeVisible=androidx.core.view.ViewCompat.getRootWindowInsets(a.window.decorView)?.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime())==true};if(imeVisible)break;SystemClock.sleep(100)}
+            for(i in 0 until 40){liveActivity{a->imeVisible=androidx.core.view.ViewCompat.getRootWindowInsets(a.window.decorView)?.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime())==true};if(imeVisible)break;SystemClock.sleep(100)}
             assertTrue("The soft keyboard must actually be visible, not just an editable field",imeVisible)
-            scenario.onActivity{a->
+            liveActivity{a->
                 val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input")
                 val connection=input.onCreateInputConnection(android.view.inputmethod.EditorInfo())!!
                 assertTrue(connection.setComposingText("ㅎ",1));assertTrue(connection.setComposingText("한",1))
@@ -259,7 +280,7 @@ class EditorUiTest {
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("한글 조합\n두 번째 줄"))
             instrumentation.waitForIdleSync();SystemClock.sleep(300)
             screenshot("editor-text-ime")
-            scenario.onActivity{a->
+            liveActivity{a->
                 val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input")
                 assertNotNull(input);assertTrue(input.parent is android.widget.FrameLayout)
                 assertEquals("한글 조합\n두 번째 줄",input.text.toString())
@@ -275,29 +296,29 @@ class EditorUiTest {
             onView(withText("스타일")).perform(click())
             screenshot("editor-text-styles")
             onView(withContentDescription("Whisper")).perform(scrollTo(),click())
-            scenario.onActivity{a->assertEquals("Whisper",Store(context).textEdit()!!.layer.type);assertEquals(.13f,a.window.decorView.findViewWithTag<EditText>("canvas-text-input").letterSpacing,.001f)}
+            liveActivity{a->assertEquals("Whisper",Store(context).textEdit()!!.layer.type);assertEquals(.13f,a.window.decorView.findViewWithTag<EditText>("canvas-text-input").letterSpacing,.001f)}
             scenario.recreate()
             onView(withContentDescription("캔버스 텍스트 입력")).check(androidx.test.espresso.assertion.ViewAssertions.matches(withText("한글 조합\n두 번째 줄")))
             onView(withText("취소")).perform(click())
-            scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text);assertNull(Store(context).textEdit())}
+            liveActivity{assertEquals("이전 문구",it.project.layers.single().text);assertNull(Store(context).textEdit())}
               awaitCanvasAfterIme(scenario)
             val textPoint=point("텍스트 레이어: 이전 문구")
             liveTap(textPoint.first,textPoint.second);SystemClock.sleep(80);liveTap(textPoint.first,textPoint.second)
             var reopened=false
-            for(attempt in 0 until 40){scenario.onActivity{reopened=it.window.decorView.findViewWithTag<EditText>("canvas-text-input")!=null};if(reopened)break;SystemClock.sleep(50)}
+            for(attempt in 0 until 40){liveActivity{reopened=it.window.decorView.findViewWithTag<EditText>("canvas-text-input")!=null};if(reopened)break;SystemClock.sleep(50)}
             assertTrue("Two actual taps must reopen text",reopened)
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("수정 취소"))
             onView(withText("취소")).perform(click())
-            scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text)}
+            liveActivity{assertEquals("이전 문구",it.project.layers.single().text)}
               awaitCanvasAfterIme(scenario)
             onView(withText("수정")).perform(click())
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("최종 문구"),closeSoftKeyboard())
             SystemClock.sleep(300) // Wait for the real IME surface to leave before tapping the moved toolbar.
             onView(withText("정렬")).perform(click())
             onView(withText("완료")).perform(click())
-            scenario.onActivity{assertEquals("최종 문구",it.project.layers.single().text);assertEquals(1,it.project.layers.single().textLayoutVersion)}
+            liveActivity{assertEquals("최종 문구",it.project.layers.single().text);assertEquals(1,it.project.layers.single().textLayoutVersion)}
             onView(withContentDescription("실행 취소")).perform(click())
-            scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text);it.project=Project();Store(context).save(it.project)}
+            liveActivity{assertEquals("이전 문구",it.project.layers.single().text);it.project=Project();Store(context).save(it.project)}
         }
     }
     @Test fun motionPreviewNeverExportsAndCropIsOnCanvas(){
@@ -308,19 +329,19 @@ class EditorUiTest {
         fun outputs()=File(context.filesDir,"exports").listFiles()?.map{it.name}?.toSet()?:emptySet()
         val before=outputs()
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            scenario.onActivity{it.project.duration=10}
+            liveActivity{it.project.duration=10}
             tapLive(scenario,"미리보기 재생");SystemClock.sleep(350)
-            scenario.onActivity{a->fun photo(v:View):LivePhoto?{if(v is LivePhoto)return v;if(v is ViewGroup)for(i in 0 until v.childCount)photo(v.getChildAt(i))?.let{return it};return null};assertEquals(10000L,photo(a.window.decorView)!!.durationMs)}
+            liveActivity{a->fun photo(v:View):LivePhoto?{if(v is LivePhoto)return v;if(v is ViewGroup)for(i in 0 until v.childCount)photo(v.getChildAt(i))?.let{return it};return null};assertEquals(10000L,photo(a.window.decorView)!!.durationMs)}
             tapLive(scenario,"미리보기 일시정지")
             onView(withText("편집")).perform(click())
             assertEquals(before,outputs())
             onView(withText("사진 추가")).perform(click());onView(withText("배경 자르기")).perform(click())
-            scenario.onActivity{a->
+            liveActivity{a->
                 fun find(v:View):CropPreview?{if(v is CropPreview)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null}
                 val crop=find(a.window.decorView)!!;assertTrue(crop.height>200);assertTrue(crop.parent is android.widget.FrameLayout)
             }
             onView(withText("1:1")).perform(click());onView(withText("취소")).perform(click())
-            scenario.onActivity{assertEquals(0f,it.project.crop.aspect);it.project=Project();Store(context).save(it.project)}
+            liveActivity{assertEquals(0f,it.project.crop.aspect);it.project=Project();Store(context).save(it.project)}
         }
     }
     @Test fun koreanTextDragUndoRedoDuplicateAndDelete(){
@@ -334,26 +355,26 @@ class EditorUiTest {
             onView(withText("완료")).perform(click())
             instrumentation.waitForIdleSync()
             var x=0f;var y=0f
-            scenario.onActivity{a->assertEquals("오늘도 차분하게",a.project.layers.single().text);val e=editor(a.window.decorView)!!;val layer=e.getChildAt(e.childCount-1);val pos=IntArray(2);layer.getLocationOnScreen(pos);x=pos[0]+layer.width/2f;y=pos[1]+layer.height/2f}
+            liveActivity{a->assertEquals("오늘도 차분하게",a.project.layers.single().text);val e=editor(a.window.decorView)!!;val layer=e.getChildAt(e.childCount-1);val pos=IntArray(2);layer.getLocationOnScreen(pos);x=pos[0]+layer.width/2f;y=pos[1]+layer.height/2f}
             val down=SystemClock.uptimeMillis()
             fun pointer(action:Int,dx:Float,dy:Float){instrumentation.sendPointerSync(MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,x+dx,y+dy,0))}
             pointer(MotionEvent.ACTION_DOWN,0f,0f)
             for(i in 1..8){SystemClock.sleep(16);pointer(MotionEvent.ACTION_MOVE,i*8f,i*5f)}
             pointer(MotionEvent.ACTION_UP,64f,40f);instrumentation.waitForIdleSync()
-            scenario.onActivity{assertTrue("First drag must move selected layer",it.project.layers.single().x>.53f)}
+            liveActivity{assertTrue("First drag must move selected layer",it.project.layers.single().x>.53f)}
             val shot=File(context.getExternalFilesDir(null),"validation/editor-ui.png").apply{parentFile!!.mkdirs()}
             instrumentation.uiAutomation.takeScreenshot().let{b->shot.outputStream().use{b.compress(Bitmap.CompressFormat.PNG,100,it)}}
-            onView(withContentDescription("실행 취소")).perform(click());scenario.onActivity{assertEquals(.5f,it.project.layers.single().x,.005f)}
-            onView(withContentDescription("다시 실행")).perform(click());scenario.onActivity{assertTrue(it.project.layers.single().x>.53f)}
+            onView(withContentDescription("실행 취소")).perform(click());liveActivity{assertEquals(.5f,it.project.layers.single().x,.005f)}
+            onView(withContentDescription("다시 실행")).perform(click());liveActivity{assertTrue(it.project.layers.single().x>.53f)}
             pinchAndRotate(x+64,y+40)
-            scenario.onActivity{assertTrue("Pinch must scale",it.project.layers.single().scale>1.05f);assertTrue("Two fingers must rotate",kotlin.math.abs(it.project.layers.single().rotation)>3f)}
-            scenario.onActivity{a->val e=editor(a.window.decorView)!!;val v=e.getChildAt(e.childCount-1);assertEquals(v.width/2f,v.pivotX,.01f);assertEquals(v.height/2f,v.pivotY,.01f)}
+            liveActivity{assertTrue("Pinch must scale",it.project.layers.single().scale>1.05f);assertTrue("Two fingers must rotate",kotlin.math.abs(it.project.layers.single().rotation)>3f)}
+            liveActivity{a->val e=editor(a.window.decorView)!!;val v=e.getChildAt(e.childCount-1);assertEquals(v.width/2f,v.pivotX,.01f);assertEquals(v.height/2f,v.pivotY,.01f)}
             // Explicit layer selection exposes the context toolbar even after history restoration.
             onView(withContentDescription("더보기")).perform(click());onView(withText("레이어 목록")).perform(scrollTo(),click());onView(withText("오늘도 차분하게")).perform(click())
-            onView(withText("복제")).perform(click());scenario.onActivity{assertEquals(2,it.project.layers.size)}
-            onView(withText("삭제")).perform(scrollTo(),click());scenario.onActivity{assertEquals(1,it.project.layers.size)}
-            scenario.recreate();scenario.onActivity{assertEquals("오늘도 차분하게",it.project.layers.single().text)}
-            scenario.onActivity{it.project=Project();Store(context).save(it.project)}
+            onView(withText("복제")).perform(click());liveActivity{assertEquals(2,it.project.layers.size)}
+            onView(withText("삭제")).perform(scrollTo(),click());liveActivity{assertEquals(1,it.project.layers.size)}
+            scenario.recreate();liveActivity{assertEquals("오늘도 차분하게",it.project.layers.single().text)}
+            liveActivity{it.project=Project();Store(context).save(it.project)}
         }
     }
     private fun pinchAndRotate(cx:Float,cy:Float){
@@ -383,9 +404,14 @@ class EditorUiTest {
         }
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             var ready=false
-            for(i in 0 until 100){scenario.onActivity{ready=player(it.window.decorView)?.player?.playbackState==androidx.media3.common.Player.STATE_READY};if(ready)break;SystemClock.sleep(100)}
+            for(i in 0 until 100){liveActivity{ready=player(it.window.decorView)?.player?.playbackState==androidx.media3.common.Player.STATE_READY};if(ready)break;SystemClock.sleep(100)}
             assertTrue("Source video must play through the decoder/GPU preview",ready)
-            scenario.onActivity{it.project=Project();Store(context).save(it.project)}
+            onView(withContentDescription("배경 사진")).perform(swipeRight())
+            liveActivity{assertTrue("Video source must support direct drag",it.project.pose.x>.55f)}
+            screenshot("ux-video-direct")
+            onView(withContentDescription("실행 취소")).perform(click())
+            liveActivity{assertEquals(.5f,it.project.pose.x,.005f)}
+            liveActivity{it.project=Project();Store(context).save(it.project)}
         }
     }
 }

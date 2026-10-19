@@ -1,0 +1,31 @@
+{
+  "license": "https://unsplash.com/license",
+  "use": "Android test assets only; never shipped in release APK",
+  "photos": [
+    [
+      "nature",
+      124788,
+      "https://images.unsplash.com/photo-1472396961693-142e6e269027?w=540&q=80&fit=max"
+    ],
+    [
+      "sea",
+      26778,
+      "https://images.unsplash.com/photo-1518837695005-2083093ee35b?w=540&q=80&fit=max"
+    ],
+    [
+      "portrait",
+      33343,
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=540&q=80&fit=max"
+    ],
+    [
+      "night",
+      37243,
+      "https://images.unsplash.com/photo-1519608487953-e999c86e7455?w=540&q=80&fit=max"
+    ],
+    [
+      "cafe",
+      38486,
+      "https://images.unsplash.com/photo-1501339847302-ac426a4a7cbb?w=540&q=80&fit=max"
+    ]
+  ]
+}

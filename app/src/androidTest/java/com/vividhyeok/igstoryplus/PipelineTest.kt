@@ -47,6 +47,37 @@ class PipelineTest {
         val target=File(evidence,"$name.${f.extension}");f.copyTo(target,true);return target
     }
     private fun tracks(file:File):List<MediaFormat>{val e=MediaExtractor();return try{e.setDataSource(file.absolutePath);(0 until e.trackCount).map{e.getTrackFormat(it)}}finally{e.release()}}
+    @Test fun kNewProgressCardAndDotActuallyAnimateInMp4(){
+        val p=Project(source=photo(),duration=5,style=Style(beat=.65f,reaction="Music Dot"),music=Audio.metadata(c,wav()).apply{card="Progress Line";title="천천히 흘러가는 긴 한글 노래 제목";artist="나의 작은 기록"})
+        p.layers.add(Layer(kind="music",width=.8f,y=.8f));p.layers.add(Layer(kind="text",text="기억할 오늘\nABC 123",type="Editorial Serif",textLayoutVersion=1,width=.55f,y=.3f))
+        p.layers.add(Layer(kind="png",uri=EmojiLibrary.defaults(c).first{it.id=="flowers"}.uri,width=.15f,x=.25f,y=.6f))
+        val file=export(p,"progress-dot-5s");Exporter.inspect(file,p)
+        val r=android.media.MediaMetadataRetriever()
+        try{r.setDataSource(file.absolutePath);val first=r.getFrameAtTime(200000,android.media.MediaMetadataRetriever.OPTION_CLOSEST)!!;val last=r.getFrameAtTime(4200000,android.media.MediaMetadataRetriever.OPTION_CLOSEST)!!
+            var difference=0L;for(y in (first.height*.73).toInt() until (first.height*.87).toInt())for(x in (first.width*.1).toInt() until (first.width*.9).toInt()){val a=first.getPixel(x,y);val b=last.getPixel(x,y);difference+=abs(Color.red(a)-Color.red(b))+abs(Color.green(a)-Color.green(b))+abs(Color.blue(a)-Color.blue(b))}
+            assertTrue("Encoded progress must advance: $difference",difference>10000);first.outputStream(File(evidence,"progress-mp4-start.png"));last.outputStream(File(evidence,"progress-mp4-end.png"))
+        }finally{r.release()}
+    }
+    @Test fun lVideoPoseAndNamedDraftSnapshotsStayIndependent(){
+        val source=File(c.cacheDir,"pose-source-5s.mp4");testContext.assets.open("source-mix-5s.mp4").use{i->source.outputStream().use{i.copyTo(it)}}
+        val p=Project(source=Uri.fromFile(source).toString(),video=true,sourceDurationMs=5000,pose=PhotoPose(.62f,.44f,.82f,14f))
+        val file=export(p,"video-pose-5s");Exporter.inspect(file,p)
+        val r=android.media.MediaMetadataRetriever()
+        try{
+            r.setDataSource(file.absolutePath);val actual=r.getFrameAtTime(0,android.media.MediaMetadataRetriever.OPTION_CLOSEST)!!
+            val expected=Bitmap.createBitmap(actual.width,actual.height,Bitmap.Config.ARGB_8888);val canvas=Canvas(expected);canvas.drawColor(Color.BLACK)
+            val frame=Artwork.videoFrame(c,p.source);val scale=min(actual.width.toFloat()/frame.width,actual.height.toFloat()/frame.height)
+            canvas.translate(p.pose.x*actual.width,p.pose.y*actual.height);canvas.rotate(p.pose.rotation);canvas.scale(p.pose.scale,p.pose.scale)
+            canvas.drawBitmap(frame,null,RectF(-frame.width*scale/2,-frame.height*scale/2,frame.width*scale/2,frame.height*scale/2),Paint(Paint.FILTER_BITMAP_FLAG))
+            var error=0.0;var count=0
+            for(y in 0 until actual.height step 4)for(x in 0 until actual.width step 4){val a=actual.getPixel(x,y);val b=expected.getPixel(x,y);error+=abs(Color.red(a)-Color.red(b))+abs(Color.green(a)-Color.green(b))+abs(Color.blue(a)-Color.blue(b));count+=3}
+            error/=count*255.0;assertTrue("Video pose must match canvas geometry: $error",error<.035)
+            actual.outputStream(File(evidence,"video-pose-output.png"));expected.outputStream(File(evidence,"video-pose-reference.png"));File(evidence,"video-pose.json").writeText("""{"normalizedPixelError":$error}""")
+        }finally{r.release()}
+        val library=DraftLibrary(c);val first=library.save("첫 번째 초안",p);p.pose.x=.2f;val second=library.save("두 번째 초안",p)
+        val restored=library.all().first{it.id==first.id};assertEquals(.62f,restored.project.pose.x,.0001f);assertEquals(.2f,library.all().first{it.id==second.id}.project.pose.x,.0001f)
+        library.rename(first,"새 이름");assertEquals("새 이름",library.all().first{it.id==first.id}.name);library.delete(first);assertFalse(library.all().any{it.id==first.id});assertTrue(library.all().any{it.id==second.id});library.delete(second)
+    }
     @Test fun jOriginalAndMusicAreMixedWithIndependentGain(){
         val source=File(c.cacheDir,"source-mix-5s.mp4")
         testContext.assets.open(source.name).use{input->source.outputStream().use{input.copyTo(it)}}
@@ -122,7 +153,7 @@ class PipelineTest {
         val f=export(p,"still-korean");val b=BitmapFactory.decodeFile(f.absolutePath);assertEquals(1080,b.width);assertEquals(1920,b.height)
         val raw=Artwork.decode(c,source);val crop=Artwork.cropped(raw,Crop(aspect=1f,zoom=2f,rotation=90f,flip=true));assertEquals(crop.width,crop.height);assertTrue(crop.width<raw.width)
         val base=Artwork.background(c,p,270)
-        listOf("Simple","Grainy","Gritty","Lores","Handheld","Zoomblur","Flow Blur").forEach{n->val out=filteredBitmap(base,Style(name=n));assertEquals(270,out.width);out.outputStream(File(evidence,"style-${n.replace(" ","-")}.png"))}
+        EditorCatalog.photos.forEach{n->val out=filteredBitmap(base,Style(name=n));assertEquals(270,out.width);out.outputStream(File(evidence,"style-${n.replace(" ","-")}.png"))}
     }
     private fun Bitmap.outputStream(file:File){file.outputStream().use{compress(Bitmap.CompressFormat.PNG,100,it)}}
     @Test fun bPngFolderRefreshAndAlpha(){
