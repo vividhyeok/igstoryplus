@@ -5,6 +5,7 @@ import android.view.GestureDetector
 import android.view.GestureDetector.SimpleOnGestureListener
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.view.View.OnTouchListener
 import android.widget.ImageView
 import kotlin.math.max
@@ -36,7 +37,12 @@ internal class MultiTouchListener(
     private var mPrevY = 0f
     private var mPrevRawX = 0f
     private var mPrevRawY = 0f
-    private var touchedView: View? = null
+    private var tapDownX=0f
+    private var tapDownY=0f
+    private var tapCandidate=false
+    private var lastTapTime=0L
+    private var lastTapX=0f
+    private var lastTapY=0f
     private val mScaleGestureDetector: ScaleGestureDetector
     private val location = IntArray(2)
     private var outRect: Rect? = null
@@ -48,7 +54,12 @@ internal class MultiTouchListener(
     private val viewState: PhotoEditorViewState
 
     override fun onTouch(view: View, event: MotionEvent): Boolean {
-        touchedView = view
+        val config=ViewConfiguration.get(view.context)
+        when(event.actionMasked){
+            MotionEvent.ACTION_DOWN->{tapDownX=event.rawX;tapDownY=event.rawY;tapCandidate=true}
+            MotionEvent.ACTION_POINTER_DOWN,MotionEvent.ACTION_CANCEL->{tapCandidate=false;lastTapTime=0}
+            MotionEvent.ACTION_MOVE->{val dx=event.rawX-tapDownX;val dy=event.rawY-tapDownY;if(dx*dx+dy*dy>config.scaledTouchSlop*config.scaledTouchSlop)tapCandidate=false}
+        }
         mScaleGestureDetector.onTouchEvent(view, event)
         mGestureListener.onTouchEvent(event)
         if (!isTranslateEnabled) {
@@ -95,6 +106,16 @@ internal class MultiTouchListener(
                     deleteView.visibility = View.GONE
                 }
                 firePhotoEditorSDKListener(view, false)
+                // Recognize completed taps using input timestamps. Main-thread/IME scheduling
+                // must not turn a valid second tap into selection only. Open after transform
+                // completion so the editor is not created in the middle of a gesture.
+                val dx=event.rawX-lastTapX;val dy=event.rawY-lastTapY
+                if(tapCandidate && event.eventTime-event.downTime<=ViewConfiguration.getLongPressTimeout()){
+                    if(lastTapTime>0 && event.eventTime-lastTapTime<=ViewConfiguration.getDoubleTapTimeout() && dx*dx+dy*dy<=config.scaledDoubleTapSlop*config.scaledDoubleTapSlop){
+                        lastTapTime=0
+                        photoEditorView.onLayerDoubleTap?.invoke(view)
+                    }else{lastTapTime=event.eventTime;lastTapX=event.rawX;lastTapY=event.rawY}
+                }else lastTapTime=0
             }
             MotionEvent.ACTION_POINTER_UP -> {
                 val pointerIndexPointerUp =
@@ -183,7 +204,7 @@ internal class MultiTouchListener(
     private inner class GestureListener : SimpleOnGestureListener() {
         override fun onDown(e: MotionEvent) = true
         override fun onDoubleTap(e: MotionEvent): Boolean {
-            touchedView?.let { photoEditorView.onLayerDoubleTap?.invoke(it) }
+            // The completed-tap path above owns double taps; do not open twice.
             return true
         }
         override fun onSingleTapUp(e: MotionEvent): Boolean {
@@ -249,7 +270,7 @@ internal class MultiTouchListener(
 
     init {
         mScaleGestureDetector = ScaleGestureDetector(ScaleGestureListener())
-        mGestureListener = GestureDetector(GestureListener())
+        mGestureListener = GestureDetector(photoEditorView.context,GestureListener())
         this.deleteView = deleteView
         this.photoEditorView = photoEditorView
         this.photoEditImageView = photoEditImageView
