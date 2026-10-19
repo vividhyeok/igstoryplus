@@ -47,6 +47,48 @@ class PipelineTest {
         val target=File(evidence,"$name.${f.extension}");f.copyTo(target,true);return target
     }
     private fun tracks(file:File):List<MediaFormat>{val e=MediaExtractor();return try{e.setDataSource(file.absolutePath);(0 until e.trackCount).map{e.getTrackFormat(it)}}finally{e.release()}}
+    @Test fun jOriginalAndMusicAreMixedWithIndependentGain(){
+        val source=File(c.cacheDir,"source-mix-5s.mp4")
+        testContext.assets.open(source.name).use{input->source.outputStream().use{input.copyTo(it)}}
+        val p=Project(source=Uri.fromFile(source).toString(),video=true,sourceDurationMs=5000,sourceVolume=.5f,music=Audio.metadata(c,wav()).apply{volume=.35f})
+        export(p,"mix-both-5s")
+        p.sourceVolume=0f
+        export(p,"mix-music-only-5s")
+    }
+    @Test fun iBeatChangesGpuPixelsAndExportAtDetectedOnsets(){
+        val p=Project(source=photo(),duration=5,style=Style(beat=.55f),music=Audio.metadata(c,wav()))
+        val beats=Audio.analyze(c,p.music!!,p.durationMs())
+        val peak=beats.indices.first{it>=10 && beats[it]>.99f}
+        assertTrue("Fixture onset must align with a half-second beat",abs(peak*50L%500)<100)
+        val quiet=peak+7
+        val base=Artwork.background(c,p,270)
+        val off=filteredBitmaps(base,listOf(p.style),beat=0f).single()
+        val on=filteredBitmaps(base,listOf(p.style),beat=beatAt(beats,peak*50000L)).single()
+        fun light(b:Bitmap,center:Boolean=false):Double{
+            var total=0.0;var count=0
+            for(y in 0 until b.height step 3)for(x in 0 until b.width step 3){
+                val nx=x.toFloat()/b.width;val ny=y.toFloat()/b.height
+                if(if(center)abs(nx-.5f)<.06 && abs(ny-.5f)<.06 else nx<.12 || nx>.88){
+                    val pixel=b.getPixel(x,y);total+=Color.red(pixel)+Color.green(pixel)+Color.blue(pixel);count+=3
+                }
+            };return total/count
+        }
+        val gpuDelta=light(on)-light(off)
+        assertTrue("Beat must visibly change GPU pixels: $gpuDelta",gpuDelta>1)
+        assertTrue("Center must remain stable",abs(light(on,true)-light(off,true))<.5)
+        off.outputStream(File(evidence,"beat-gpu-quiet.png"));on.outputStream(File(evidence,"beat-gpu-onset.png"))
+        val movie=export(p,"beat-sync-5s")
+        val retriever=android.media.MediaMetadataRetriever()
+        try{
+            retriever.setDataSource(movie.absolutePath)
+            val hit=retriever.getFrameAtTime(peak*50000L,android.media.MediaMetadataRetriever.OPTION_CLOSEST)!!
+            val rest=retriever.getFrameAtTime(quiet*50000L,android.media.MediaMetadataRetriever.OPTION_CLOSEST)!!
+            val delta=light(hit)-light(rest)
+            assertTrue("MP4 light must follow detected onset: $delta",delta>.8)
+            hit.outputStream(File(evidence,"beat-mp4-onset.png"));rest.outputStream(File(evidence,"beat-mp4-quiet.png"))
+            File(evidence,"beat-sync.json").writeText("""{"onsetMs":${peak*50},"quietMs":${quiet*50},"gpuDelta":$gpuDelta,"mp4Delta":$delta}""")
+        }finally{retriever.release()}
+    }
     @Test fun hWaveformCachePoseParityAndShortAudioGuard(){
         val m=Audio.metadata(c,wav());val a=WaveformCache.peaks(c,m);assertEquals(2048,a.size);assertTrue(a.any{it>.8f});assertTrue(a.any{it<.5f});val cached=WaveformCache.peaks(c,m);assertArrayEquals(a,cached,0f)
         val p=Project(source=photo(),pose=PhotoPose(.61f,.43f,.8f,12f))

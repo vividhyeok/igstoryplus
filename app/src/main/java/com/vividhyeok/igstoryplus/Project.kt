@@ -24,7 +24,7 @@ data class Music(var uri: String = "", var title: String = "", var artist: Strin
                  var loop:Boolean=false)
 data class Project(var source: String = "", var video: Boolean = false, var sourceDurationMs: Long = 0,
                    var duration: Int = 5, var crop: Crop = Crop(), var style: Style = Style(),
-                   var layers: MutableList<Layer> = mutableListOf(), var music: Music? = null,var pose:PhotoPose=PhotoPose()) {
+                   var layers: MutableList<Layer> = mutableListOf(), var music: Music? = null,var pose:PhotoPose=PhotoPose(), var sourceVolume:Float=1f) {
     fun animated() = video || music != null || style.motion || layers.any { it.motion }
     fun durationMs(): Long = if (video) sourceDurationMs.coerceIn(1, 60000) else duration.coerceIn(5, 15) * 1000L
 }

@@ -33,7 +33,7 @@ class Exporter(private val context: Context) {
                 p.music?.let{check(MusicRange.valid(it,p.durationMs())){"음악이 스토리보다 짧습니다. 음악 구간을 조정하거나 반복을 직접 켜 주세요."}}
                 val base=if(p.video) null else Artwork.background(context,p,1080)
                 val layers=p.layers.map { it to Artwork.layer(context,it,p.music) }
-                val beats=if(p.style.beat>0 && p.music!=null) runCatching{Audio.analyze(context,p.music!!,p.durationMs())}.getOrDefault(floatArrayOf()) else floatArrayOf()
+                val beats=if(p.style.beat>0 && p.music!=null) Audio.analyze(context,p.music!!,p.durationMs()) else floatArrayOf()
                 if(cancelled) return@Thread
                 if(!p.animated()) {
                     val b=filteredBitmap(base!!,p.style); val canvas=Canvas(b)
@@ -56,7 +56,7 @@ class Exporter(private val context: Context) {
                             val media=MediaItem.Builder().setUri(source).apply {
                                 if(!p.video)setImageDurationMs(p.durationMs()) else setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(p.durationMs()).build())
                             }.build()
-                            val item=EditedMediaItem.Builder(media).setFrameRate(30).setRemoveAudio(p.music!=null).setEffects(Effects(emptyList(),effects)).build()
+                            val item=EditedMediaItem.Builder(media).setFrameRate(30).setRemoveAudio(p.sourceVolume<=0f).setEffects(Effects(Audio.volumeEffects(p.sourceVolume),effects)).build()
                             val seq=mutableListOf(EditedMediaItemSequence.Builder(item).build())
                             p.music?.let { music ->
                                 val audio=MediaItem.Builder().setUri(music.uri).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(music.startMs).setEndPositionMs(min(music.startMs+p.durationMs(),music.durationMs)).build()).build()

@@ -323,7 +323,7 @@ class MainActivity : AppCompatActivity() {
         if(l.kind=="music"){
             contextBar.addView(button("음악 구간"){musicMenu()})
             contextBar.addView(toolButton("카드"){musicPanels.cards()})
-            contextBar.addView(button("볼륨"){project.music?.let{m->val box=column();slider(box,"볼륨",m.volume){m.volume=it;clock.setVolume(it);saveMusic()};sheet("음악 볼륨",box)}})
+            contextBar.addView(button("볼륨"){musicPanels.volume()})
             contextBar.addView(button("카드 숨김"){edit{project.music?.card="숨김";ensureMusicLayer()}})
             contextBar.addView(button("⋯"){layerExtra(l)}.apply{contentDescription="레이어 추가 작업"})
             return
@@ -361,7 +361,7 @@ class MainActivity : AppCompatActivity() {
         slider(box,"가장자리 적용 범위",project.style.scope){project.style.scope=it;updateLiveStyle()}
         box.addView(button("효과 영역 · ${project.style.region}"){choices("효과 영역",listOf("전체","배경 중심","가장자리","중심점")){i->history.push(project);project.style.region=listOf("전체","배경 중심","가장자리","중심점")[i];updateLiveStyle();persist();if(i==3)effectCenter()}})
         slider(box,"루프 속도",(project.style.speed-1)/2){project.style.speed=(1+it*2).roundToInt().toFloat();updateLiveStyle()}
-        slider(box,"Beat Glow · 기본 OFF",project.style.beat){project.style.beat=it;updateLiveStyle()}
+        slider(box,"음악 반응",project.style.beat){project.style.beat=it;updateLiveStyle()}
         if(!project.video)slider(box,"사진 영상 길이 5–15초",(project.duration-5)/10f){project.duration=5+(it*10).roundToInt();prefs.edit().putInt("musicDuration",project.duration).apply();live.durationMs=project.durationMs();status.text="${project.duration}초"}
         sheet("세부 설정",box){persist();restore()}
     }
@@ -465,7 +465,7 @@ class MainActivity : AppCompatActivity() {
     private fun saveMusic(){project.music?.let{prefs.edit().putString("music:${it.uri}",store.gson.toJson(it)).apply();if(it.uri.isNotBlank())MusicLibrary(this).remember(it)};persist()}
     private fun selectMusic(m:Music){
         val desired=prefs.getInt("musicDuration",15).coerceIn(5,15)
-        edit{project.music=m;if(!project.video){project.duration=prefs.getInt("musicDuration",15).coerceIn(5,15);if(m.durationMs in 5000 until project.durationMs())project.duration=(m.durationMs/1000).toInt()};MusicRange.clamp(m,project.durationMs());ensureMusicLayer()}
+        edit{if(project.music==null)project.style.beat=.55f;project.music=m;if(!project.video){project.duration=prefs.getInt("musicDuration",15).coerceIn(5,15);if(m.durationMs in 5000 until project.durationMs())project.duration=(m.durationMs/1000).toInt()};MusicRange.clamp(m,project.durationMs());ensureMusicLayer()}
         saveMusic();musicPanels.clip()
         if(!project.video && project.duration<desired)toast("음악 길이에 맞춰 ${project.duration}초로 조정했습니다")
     }

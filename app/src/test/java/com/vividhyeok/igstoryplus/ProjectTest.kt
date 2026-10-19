@@ -5,6 +5,15 @@ import org.junit.Test
 import kotlin.math.*
 
 class ProjectTest {
+    @Test fun beatInterpolationAndLegacySourceAudio(){
+        assertEquals(.75f,beatAt(floatArrayOf(1f,.5f),25000),.0001f)
+        assertEquals(0f,beatAt(floatArrayOf(1f),-1),0f)
+        assertEquals(0f,beatAt(floatArrayOf(),1000000),0f)
+        val old=com.google.gson.Gson().fromJson("""{"video":true,"source":"movie.mp4"}""",Project::class.java)
+        assertEquals(1f,old.sourceVolume,0f)
+        val h=History();h.push(old);old.sourceVolume=.25f
+        assertEquals(1f,h.undo(old)!!.sourceVolume,0f)
+    }
     @Test fun musicRangeDoesNotSilentlyLoopOrShortenVideo(){
         val m=Music(durationMs=18000,startMs=17000);MusicRange.clamp(m,10000);assertEquals(8000L,m.startMs);assertTrue(MusicRange.valid(m,10000))
         assertFalse(MusicRange.valid(Music(durationMs=2000),15000));m.loop=true;m.startMs=17000;assertTrue(MusicRange.valid(m,60000))

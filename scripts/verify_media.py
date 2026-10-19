@@ -5,9 +5,27 @@ import pathlib
 import subprocess
 import sys
 import xml.etree.ElementTree as ET
+import math
+import struct
 
 root = pathlib.Path(sys.argv[1])
 reports = {}
+beat_report = json.loads((root / "beat-sync.json").read_text())
+assert beat_report["gpuDelta"] > 1 and beat_report["mp4Delta"] > 0.8, beat_report
+assert beat_report["onsetMs"] % 500 < 100, beat_report
+subprocess.run(["ffmpeg", "-v", "error", "-xerror", "-i", str(root / "beat-sync-5s.mp4"), "-f", "null", "-"], check=True)
+reports["beat_sync"] = beat_report
+def tone_level(name, frequency):
+    raw = subprocess.check_output(["ffmpeg", "-v", "error", "-ss", "2", "-i", str(root / (name + ".mp4")), "-t", "1", "-vn", "-ac", "1", "-ar", "8000", "-f", "f32le", "-"])
+    samples = struct.unpack("<" + "f" * (len(raw) // 4), raw)
+    real = sum(v * math.cos(2 * math.pi * frequency * i / 8000) for i, v in enumerate(samples))
+    imag = sum(v * math.sin(2 * math.pi * frequency * i / 8000) for i, v in enumerate(samples))
+    return math.hypot(real, imag) * 2 / len(samples)
+mix = {name: {str(hz): tone_level(name, hz) for hz in (220, 440)} for name in ("mix-both-5s", "mix-music-only-5s")}
+assert mix["mix-both-5s"]["440"] > .01, mix
+assert mix["mix-music-only-5s"]["440"] < mix["mix-both-5s"]["440"] * .15, mix
+assert all(levels["220"] > .01 for levels in mix.values()), mix
+reports["audio_mix"] = mix
 def frame(path, seconds):
     return subprocess.check_output(["ffmpeg", "-v", "error", "-ss", str(seconds), "-i", str(path), "-frames:v", "1", "-vf", "scale=64:114", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"])
 

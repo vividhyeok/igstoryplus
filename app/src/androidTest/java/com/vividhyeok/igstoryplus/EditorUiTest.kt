@@ -125,9 +125,17 @@ class EditorUiTest {
             }
             assertTrue("Waveform must contain decoded, nonzero PCM peaks",ready)
             screenshot("ux-music-waveform")
+            scenario.onActivity{assertEquals(.55f,it.project.style.beat,.001f)}
+            onView(withText("음악 반응")).perform(scrollTo(),click())
+            scenario.onActivity{assertEquals(0f,it.project.style.beat,0f)}
+            onView(withText("음악 반응")).perform(click())
+            onView(withContentDescription("음악 반응 강도")).perform(scrollTo())
+            screenshot("ux-music-reaction")
+            onView(withText("15초")).perform(scrollTo())
             onView(withText("15초")).perform(click());onView(withText("10초")).perform(click())
             onView(withTagValue(org.hamcrest.Matchers.`is`("music-waveform" as Any))).perform(swipeRight())
             scenario.onActivity{assertEquals(10,it.project.duration);assertTrue(it.project.music!!.startMs>0);assertTrue(MusicRange.valid(it.project.music!!,10000))}
+            SystemClock.sleep(1000) // The new range is auditioned once, then returns to paused.
             val playback=point("선택 구간 재생");tapAt(playback.first,playback.second);SystemClock.sleep(600);screenshot("ux-music-playing");tapAt(playback.first,playback.second)
             onView(withText("음악 카드 디자인")).perform(scrollTo(),click());screenshot("ux-music-cards")
             onView(withContentDescription("음악 카드: 앨범 아트")).perform(scrollTo(),click())

@@ -27,7 +27,12 @@ class StyleEffect(private val style: Style, private val durationMs: Long, privat
         override fun release() { program.release(); super.release() }
     }
 }
-fun beatAt(beats: FloatArray, timeUs: Long): Float = beats.getOrElse((timeUs/50000).toInt()){0f}
+fun beatAt(beats: FloatArray, timeUs: Long): Float {
+    if(timeUs<0)return 0f
+    val index=(timeUs/50000).toInt()
+    val a=beats.getOrElse(index){0f};val b=beats.getOrElse(index+1){a}
+    return a+(b-a)*(timeUs%50000)/50000f
+}
 class GpuProgram {
     private val vertex="""attribute vec2 aPos; varying vec2 vTex; void main(){gl_Position=vec4(aPos,0.,1.);vTex=(aPos+1.)*.5;}"""
     private val fragment="""
@@ -75,7 +80,8 @@ class GpuProgram {
                 vec3 lo=readAt(pixel).rgb; lo.r=readAt(pixel+vec2(.0015,0.)*uAmount).r;
                 col.rgb=mix(col.rgb,lo,uAmount*.75);
             }
-            col.rgb+=uGlow*edge*.045;
+            // Local light drift: preserve the center and text overlays, avoid global flashes.
+            col.rgb+=uGlow*edge*.10*(vec3(1.)-col.rgb);
             gl_FragColor=vec4(clamp(col.rgb,0.,1.),col.a);
         }
     """.trimIndent()
@@ -148,7 +154,7 @@ class LivePhoto(context: Context) : GLSurfaceView(context), GLSurfaceView.Render
 fun filteredBitmap(b: Bitmap, style: Style, foreground:Bitmap?=null,pose:PhotoPose=PhotoPose()): Bitmap {
     return filteredBitmaps(b,listOf(style),foreground,pose).single()
 }
-fun filteredBitmaps(b:Bitmap,styles:List<Style>,foreground:Bitmap?=null,pose:PhotoPose=PhotoPose(),ready:(Int,Bitmap)->Unit={_,_->}):List<Bitmap>{
+fun filteredBitmaps(b:Bitmap,styles:List<Style>,foreground:Bitmap?=null,pose:PhotoPose=PhotoPose(),beat:Float=0f,ready:(Int,Bitmap)->Unit={_,_->}):List<Bitmap>{
     val display=EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY); val versions=IntArray(2); check(EGL14.eglInitialize(display,versions,0,versions,1))
     val configs=arrayOfNulls<android.opengl.EGLConfig>(1); val count=IntArray(1)
     EGL14.eglChooseConfig(display,intArrayOf(EGL14.EGL_RENDERABLE_TYPE,EGL14.EGL_OPENGL_ES2_BIT,EGL14.EGL_SURFACE_TYPE,EGL14.EGL_PBUFFER_BIT,EGL14.EGL_RED_SIZE,8,EGL14.EGL_GREEN_SIZE,8,EGL14.EGL_BLUE_SIZE,8,EGL14.EGL_ALPHA_SIZE,8,EGL14.EGL_NONE),0,configs,0,1,count,0)
@@ -160,7 +166,7 @@ fun filteredBitmaps(b:Bitmap,styles:List<Style>,foreground:Bitmap?=null,pose:Pho
         val program=GpuProgram()
         val results=styles.mapIndexed{index,style->
         check(!Thread.currentThread().isInterrupted)
-        program.draw(tex,style,0f,true,photo=photo,pose=pose,photoWidth=foreground?.let{it.width*scale/b.width}?:1f,photoHeight=foreground?.let{it.height*scale/b.height}?:1f)
+        program.draw(tex,style,0f,true,beat=beat,photo=photo,pose=pose,photoWidth=foreground?.let{it.width*scale/b.width}?:1f,photoHeight=foreground?.let{it.height*scale/b.height}?:1f)
         val buffer=ByteBuffer.allocateDirect(b.width*b.height*4); GLES20.glReadPixels(0,0,b.width,b.height,GLES20.GL_RGBA,GLES20.GL_UNSIGNED_BYTE,buffer)
         val raw=Bitmap.createBitmap(b.width,b.height,Bitmap.Config.ARGB_8888); buffer.rewind(); raw.copyPixelsFromBuffer(buffer)
         val out=Bitmap.createBitmap(raw,0,0,b.width,b.height,android.graphics.Matrix().apply{postScale(1f,-1f)},true)

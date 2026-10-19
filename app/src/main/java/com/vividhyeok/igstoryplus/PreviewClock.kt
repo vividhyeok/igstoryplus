@@ -51,7 +51,7 @@ class PreviewClock(private val context:Context,private val project:()->Project,
         photo.durationMs=p.durationMs()
         if(p.music==null){beats=floatArrayOf();beatKey="";generation++}
         playing=true;state(true);stamp=SystemClock.elapsedRealtime()
-        video()?.apply{volume=if(p.music==null)1f else 0f;play()}
+        video()?.apply{volume=p.sourceVolume.coerceIn(0f,1f);play()}
         p.music?.let{m->runCatching{
             audio=ExoPlayer.Builder(context).build().apply{
                 volume=m.volume.coerceIn(0f,1f)
@@ -65,11 +65,12 @@ class PreviewClock(private val context:Context,private val project:()->Project,
     private fun analyzeBeats(){
         val p=project();val m=p.music?:return;val key="${m.uri}:${m.startMs}:${p.durationMs()}:${m.loop}"
         if(p.style.beat>0 && key!=beatKey){beatKey=key;beats=floatArrayOf();val token=++generation;val snapshot=m.copy();val duration=p.durationMs()
-            Thread{val result=runCatching{Audio.analyze(context.applicationContext,snapshot,duration)}.getOrDefault(floatArrayOf());handler.post{if(token==generation){beats=result;if(project().video)video()?.setVideoEffects(Exporter.baseEffects(context,project(),beats,preview=true))}}}.start()
+            Thread{val result=runCatching{Audio.analyze(context.applicationContext,snapshot,duration)};handler.post{if(token==generation){result.onSuccess{beats=it;if(project().video)video()?.setVideoEffects(Exporter.baseEffects(context,project(),beats,preview=true))}.onFailure{beatKey="";android.widget.Toast.makeText(context,"음악 반응을 분석하지 못했습니다. 음악 파일을 다시 선택해 주세요.",android.widget.Toast.LENGTH_LONG).show()}}}}.start()
         }
     }
     fun updateStyle(){val p=project();photo.durationMs=p.durationMs();photo.style=p.style.copy();analyzeBeats();if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}
     fun setVolume(volume:Float){audio?.volume=volume.coerceIn(0f,1f)}
+    fun setSourceVolume(volume:Float){video()?.volume=volume.coerceIn(0f,1f)}
     fun seek(position:Long){
         val p=project();time=position.coerceIn(0,(p.durationMs()-1).coerceAtLeast(0));stamp=SystemClock.elapsedRealtime()
         video()?.seekTo(time);audio?.seekTo(time%min(p.durationMs(),p.music?.let{it.durationMs-it.startMs}?:p.durationMs()).coerceAtLeast(1))

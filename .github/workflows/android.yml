@@ -62,7 +62,7 @@ jobs:
           if [[ "$GITHUB_REF_TYPE" == tag ]]; then
             VERSION_NAME="${GITHUB_REF_NAME#v}"
           else
-            VERSION_NAME="0.3.2-dev.${GITHUB_RUN_NUMBER}+${GITHUB_SHA:0:7}"
+            VERSION_NAME="0.3.3-dev.${GITHUB_RUN_NUMBER}+${GITHUB_SHA:0:7}"
           fi
           echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
           VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER)) VERSION_NAME="$VERSION_NAME" ./gradlew :app:assembleRelease --console=plain
@@ -70,7 +70,7 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk "dist/igstoryplus-v${VERSION_NAME}-arm64-v8a.apk"
           cp app/build/outputs/apk/release/app-release.apk "dist/igstoryplus-v${VERSION_NAME}-universal.apk"
           cp validation/ffprobe-report.json dist/validation-report.json
-          (cd validation && zip -q ../dist/ux-screenshots.zip ux-*.png editor-text-ime.png editor-text-styles.png pose-*.png)
+          (cd validation && zip -q ../dist/ux-screenshots.zip ux-*.png editor-text-ime.png editor-text-styles.png pose-*.png beat-*.png beat-sync.json)
       - name: Inspect APK package and signature
         run: |
           BUILD_TOOLS="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
