@@ -49,6 +49,10 @@ assert len(list(root.glob("style-*.png"))) == 7
 required_screens = ["ux-photo-main", "editor-text-ime", "editor-text-styles", "ux-photo-styles", "ux-music-library", "ux-music-waveform", "ux-music-cards", "ux-png-library", "ux-photo-crop", "ux-preview", "ux-share-progress"]
 for screen in required_screens:
     assert (root / (screen + ".png")).stat().st_size > 1000, "Missing actual UI capture: " + screen
+# Reject the previously observed empty-photo capture, even if chrome/text made it non-flat.
+main_pixels = frame(root / "ux-photo-main.png", 0)
+colored = sum(max(main_pixels[i:i+3]) - min(main_pixels[i:i+3]) > 12 for i in range(0, len(main_pixels), 3))
+assert colored / (len(main_pixels) / 3) > 0.15, "Main canvas capture is not the loaded fixture photo"
 groups = {
     "app_unit": pathlib.Path("app/build/test-results/testDebugUnitTest").glob("TEST-*.xml"),
     "photoeditor_unit": pathlib.Path("photoeditor/build/test-results/testDebugUnitTest").glob("TEST-*.xml"),

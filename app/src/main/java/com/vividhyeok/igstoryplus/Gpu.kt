@@ -141,7 +141,7 @@ class LivePhoto(context: Context) : GLSurfaceView(context), GLSurfaceView.Render
     override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) { GLES20.glViewport(0,0,width,height) }
     override fun onDrawFrame(gl: GL10?) {
         GLES20.glClearColor(.06f,.06f,.07f,1f); GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT)
-        if(texture!=0){program?.draw(texture,style,Motion.phase(timeUs,durationMs),true,beat,photoTexture,pose,photoWidth,photoHeight);if(!frameReady && !awaitingPhoto){frameReady=true;post{onPhotoReady?.invoke()}}}
+        if(texture!=0){program?.draw(texture,style,Motion.phase(timeUs,durationMs),true,beat,photoTexture,pose,photoWidth,photoHeight);if(!frameReady && !awaitingPhoto){GLES20.glFinish();frameReady=true;post{onPhotoReady?.invoke()}}}
     }
 }
 // A pbuffer runs exactly the same fragment shader for still exports without a visible surface.

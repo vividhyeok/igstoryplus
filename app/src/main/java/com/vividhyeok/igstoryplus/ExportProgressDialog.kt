@@ -10,7 +10,7 @@ import android.widget.*
 
 /** Export is the only blocking normal action; keep its status compact and cancellable. */
 class ExportProgressDialog(c:Context,cancel:()->Unit):Dialog(c){
-    private fun dp(n:Int)=(n*c.resources.displayMetrics.density).toInt()
+    private fun dp(n:Int)=(n*context.resources.displayMetrics.density).toInt()
     private val label=TextView(c).apply{text="준비 중 · 초안은 보존됩니다";setTextColor(Color.LTGRAY);textSize=13f}
     private val bar=ProgressBar(c,null,android.R.attr.progressBarStyleHorizontal).apply{max=100;isIndeterminate=true;progressTintList=ColorStateList.valueOf(Color.WHITE);indeterminateTintList=ColorStateList.valueOf(Color.WHITE);contentDescription="출력 진행 상태"}
     init{

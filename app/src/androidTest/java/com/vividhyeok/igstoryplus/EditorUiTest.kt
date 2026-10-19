@@ -208,6 +208,7 @@ class EditorUiTest {
             scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text)}
             onView(withText("수정")).perform(click())
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("최종 문구"),closeSoftKeyboard())
+            SystemClock.sleep(300) // Wait for the real IME surface to leave before tapping the moved toolbar.
             onView(withText("정렬")).perform(click())
             onView(withText("완료")).perform(click())
             scenario.onActivity{assertEquals("최종 문구",it.project.layers.single().text);assertEquals(1,it.project.layers.single().textLayoutVersion)}
