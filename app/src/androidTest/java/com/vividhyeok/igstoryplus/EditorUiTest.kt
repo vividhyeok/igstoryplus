@@ -42,6 +42,21 @@ class EditorUiTest {
         if(v is ViewGroup)for(i in 0 until v.childCount)editor(v.getChildAt(i))?.let{return it}
         return null
     }
+    private fun awaitCanvasAfterIme(scenario:ActivityScenario<MainActivity>){
+        var previous:Pair<Int,Int>?=null;var stable=0
+        for(attempt in 0 until 80){
+            scenario.onActivity{a->
+                val e=editor(a.window.decorView)!!
+                val ime=androidx.core.view.ViewCompat.getRootWindowInsets(a.window.decorView)?.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime())==true
+                val size=e.width to e.height
+                stable=if(!ime && !e.isLayoutRequested && size==previous && a.window.decorView.hasWindowFocus())stable+1 else 0
+                previous=size
+            }
+            if(stable>=8)return
+            SystemClock.sleep(50)
+        }
+        fail("IME must close and the actual canvas must settle before targeting a double tap")
+    }
     private fun fixtureStory():String{
         val b=Bitmap.createBitmap(720,1000,Bitmap.Config.ARGB_8888);val c=Canvas(b);val p=android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
         p.shader=android.graphics.LinearGradient(0f,0f,0f,1000f,intArrayOf(0xFFBDD2D0.toInt(),0xFFEACFA9.toInt(),0xFF8C9B82.toInt()),null,android.graphics.Shader.TileMode.CLAMP);c.drawRect(0f,0f,720f,1000f,p)
@@ -202,10 +217,12 @@ class EditorUiTest {
             onView(withContentDescription("캔버스 텍스트 입력")).check(androidx.test.espresso.assertion.ViewAssertions.matches(withText("한글 조합\n두 번째 줄")))
             onView(withText("취소")).perform(click())
             scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text);assertNull(Store(context).textEdit())}
+              awaitCanvasAfterIme(scenario)
             onView(withContentDescription("텍스트 레이어: 이전 문구")).perform(doubleClick())
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("수정 취소"))
             onView(withText("취소")).perform(click())
             scenario.onActivity{assertEquals("이전 문구",it.project.layers.single().text)}
+              awaitCanvasAfterIme(scenario)
             onView(withText("수정")).perform(click())
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("최종 문구"),closeSoftKeyboard())
             SystemClock.sleep(300) // Wait for the real IME surface to leave before tapping the moved toolbar.
