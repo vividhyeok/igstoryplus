@@ -11,7 +11,7 @@ import kotlin.math.*
 
 object Artwork {
     fun decode(context: Context, uri: String, max: Int = 2048): Bitmap {
-        val src = ImageDecoder.createSource(context.contentResolver, Uri.parse(uri))
+        val src = if(EmojiLibrary.bundled(uri))ImageDecoder.createSource(context.assets,uri.removePrefix("file:///android_asset/")) else ImageDecoder.createSource(context.contentResolver, Uri.parse(uri))
         return ImageDecoder.decodeBitmap(src) { decoder, info, _ ->
             val s = min(1f, max.toFloat() / max(info.size.width, info.size.height))
             decoder.setTargetSize((info.size.width*s).toInt().coerceAtLeast(1), (info.size.height*s).toInt().coerceAtLeast(1))
@@ -78,7 +78,7 @@ object Artwork {
     }
     fun layer(c: Context, l: Layer, music: Music?): Bitmap = when(l.kind) {
         "photo" -> cropped(decode(c,l.uri,(l.width*1080*l.scale*l.crop.zoom).toInt().coerceIn(512,4096)),l.crop)
-        "png" -> trimAlpha(decode(c,l.uri,(l.width*1080*l.scale).toInt().coerceIn(256,2048)))
+        "png" -> decode(c,l.uri,(l.width*1080*l.scale).toInt().coerceIn(256,2048)).let{if(EmojiLibrary.bundled(l.uri))it else trimAlpha(it)}
         "music" -> musicCard(c,music ?: Music(),l)
         else -> text(c,l)
     }

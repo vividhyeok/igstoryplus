@@ -1,0 +1,72 @@
+[
+  {
+    "id": "church",
+    "name": "교회",
+    "category": "교회·신앙",
+    "keywords": "예배 건물",
+    "uri": "file:///android_asset/emoji/church.png"
+  },
+  {
+    "id": "flowers",
+    "name": "꽃",
+    "category": "여행·자연",
+    "keywords": "꽃다발 선물 자연",
+    "uri": "file:///android_asset/emoji/flowers.png"
+  },
+  {
+    "id": "wooden-cross",
+    "name": "나무십자가",
+    "category": "교회·신앙",
+    "keywords": "십자가 나무",
+    "uri": "file:///android_asset/emoji/wooden-cross.png"
+  },
+  {
+    "id": "reading",
+    "name": "독서",
+    "category": "독서",
+    "keywords": "책 안경 읽기",
+    "uri": "file:///android_asset/emoji/reading.png"
+  },
+  {
+    "id": "ramen",
+    "name": "라멘",
+    "category": "음식·카페",
+    "keywords": "라면 면 요리 음식",
+    "uri": "file:///android_asset/emoji/ramen.png"
+  },
+  {
+    "id": "bible",
+    "name": "성경책",
+    "category": "교회·신앙",
+    "keywords": "성경 책",
+    "uri": "file:///android_asset/emoji/bible.png"
+  },
+  {
+    "id": "travel",
+    "name": "여행",
+    "category": "여행·자연",
+    "keywords": "여권 비행기 여행",
+    "uri": "file:///android_asset/emoji/travel.png"
+  },
+  {
+    "id": "jesus",
+    "name": "예수님",
+    "category": "교회·신앙",
+    "keywords": "예수 신앙",
+    "uri": "file:///android_asset/emoji/jesus.png"
+  },
+  {
+    "id": "coffee",
+    "name": "커피",
+    "category": "음식·카페",
+    "keywords": "아이스 커피 카페 음료",
+    "uri": "file:///android_asset/emoji/coffee.png"
+  },
+  {
+    "id": "fitting-room",
+    "name": "탈의실",
+    "category": "패션·빈티지",
+    "keywords": "옷 피팅룸 쇼핑",
+    "uri": "file:///android_asset/emoji/fitting-room.png"
+  }
+]

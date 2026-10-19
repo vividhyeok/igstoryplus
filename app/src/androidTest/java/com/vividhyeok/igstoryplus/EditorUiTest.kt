@@ -99,6 +99,21 @@ class EditorUiTest {
             screenshot("ux-photo-gesture");scenario.recreate();scenario.onActivity{assertTrue(it.project.pose.x>.55f);assertTrue(it.project.pose.scale>1.05f);it.project=Project();Store(context).save(it.project)}
         }
     }
+    @Test fun bundledEmojiWorkWithoutFolderGrantAndRestore(){
+        Store(context).clearTextEdit();context.getSharedPreferences("settings",0).edit().remove("emojiFolder").commit()
+        val items=EmojiLibrary.defaults(context);assertEquals(10,items.size);assertEquals(10,items.map{it.uri}.distinct().size)
+        items.forEach{val bitmap=Artwork.decode(context,it.uri);assertEquals(512,bitmap.width);assertEquals(512,bitmap.height);assertEquals(0,Color.alpha(bitmap.getPixel(0,0)))}
+        Store(context).save(Project(source=fixtureStory()))
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            onView(withContentDescription("내 이모지")).perform(click());SystemClock.sleep(400);screenshot("ux-bundled-emoji")
+            onView(withContentDescription("이모지 검색")).perform(replaceText("커피"),closeSoftKeyboard())
+            onView(withContentDescription("커피")).perform(click())
+            scenario.onActivity{assertTrue(EmojiLibrary.bundled(it.project.layers.single().uri))}
+            onView(withContentDescription("png 레이어")).perform(swipeUp());scenario.recreate()
+            scenario.onActivity{assertTrue(it.project.layers.single().y<.5f);assertNotNull(Artwork.layer(context,it.project.layers.single(),null))}
+            screenshot("ux-bundled-emoji-placed")
+        }
+    }
     @Test fun pngTrayUsesOnlyGrantedUserFolder(){
         Store(context).clearTextEdit()
         val tree=android.provider.DocumentsContract.buildTreeDocumentUri("com.vividhyeok.igstoryplus.test.documents","root")

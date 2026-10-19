@@ -1,0 +1,222 @@
+[
+  {
+    "source": "교회.png",
+    "bytes": 656213,
+    "sourceSha256": "d0a0aaf454b722e2a455da487e1e8f24dffa1b527a7c7852638efd2a5b15f5a0",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "church",
+    "visibleBounds": [
+      219,
+      101,
+      1036,
+      1151
+    ],
+    "outputSha256": "3272541a46da82ac609921475c59344f803bfc5094f28fb5ffbcb128e622a152",
+    "outputBytes": 131182
+  },
+  {
+    "source": "꽃.png",
+    "bytes": 1370050,
+    "sourceSha256": "351ea653540dec26f8793e32fc2874cdfb20c3b707a672957281b4f55a81d1f4",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "flowers",
+    "visibleBounds": [
+      191,
+      37,
+      1074,
+      1218
+    ],
+    "outputSha256": "0347847c21e5446527c7569e98e7d22fbec1151b0745a36aadb3b83755c9e99a",
+    "outputBytes": 236648
+  },
+  {
+    "source": "나무십자가.png",
+    "bytes": 652516,
+    "sourceSha256": "05c6edcc615bc4ce56e2662bbbc205c2b36c86502a9368e4434d2257d888dec7",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "wooden-cross",
+    "visibleBounds": [
+      247,
+      72,
+      1011,
+      1188
+    ],
+    "outputSha256": "eb9655b0c8882a8d3dbb3909e38d8cf8df86023ed71e2c5b6d417d43430ebf73",
+    "outputBytes": 102278
+  },
+  {
+    "source": "독서.png",
+    "bytes": 1143544,
+    "sourceSha256": "403ed6e0112954aeb83f133a1109e535de80873baf533803fa303c00137fbc73",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "reading",
+    "visibleBounds": [
+      14,
+      261,
+      1240,
+      994
+    ],
+    "outputSha256": "777f8beda7d5ab36257a61f9561f448a7b26b07e87190dba07156ca69e8f32e7",
+    "outputBytes": 176179
+  },
+  {
+    "source": "라멘.png",
+    "bytes": 1162434,
+    "sourceSha256": "fa960608c3db65f69367a1ca3164e01392ac0f1210bd719388517c10e9765fba",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "ramen",
+    "visibleBounds": [
+      135,
+      97,
+      1227,
+      1174
+    ],
+    "outputSha256": "b254fa95c3dd2ff19bfd8c938bac32706337b97eaec78ce5e463a3316172e4d1",
+    "outputBytes": 230471
+  },
+  {
+    "source": "성경책.png",
+    "bytes": 1093029,
+    "sourceSha256": "a3821bc9ba438c31791e837ab949d4855eeaa42f60218e785bc3bf5de8f05e4e",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "bible",
+    "visibleBounds": [
+      227,
+      108,
+      1061,
+      1155
+    ],
+    "outputSha256": "5337f13fe85ab726a9fd3fe06e255ae05f26ca640ba26b3b757d9aba4531d039",
+    "outputBytes": 181595
+  },
+  {
+    "source": "여행.png",
+    "bytes": 1137453,
+    "sourceSha256": "a12a58a297bf204b515e856f5d4c92c6b829862eb02e0e8ace12473336f42bea",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "travel",
+    "visibleBounds": [
+      215,
+      58,
+      1056,
+      1205
+    ],
+    "outputSha256": "6670ad3aa9cded50dc3de8315031b39e6dd5576575a1c95b5135a9677ea06277",
+    "outputBytes": 181547
+  },
+  {
+    "source": "예수님.png",
+    "bytes": 1153434,
+    "sourceSha256": "2a95234ef7596ccbce5b9ca2947df4db649b90bdbd95591745640804b0a5896f",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "jesus",
+    "visibleBounds": [
+      129,
+      91,
+      1124,
+      1188
+    ],
+    "outputSha256": "203a6ce4dc4e1bdfe4f62d4122c306639cf6762af9c39be4f525b28b668be0f9",
+    "outputBytes": 208804
+  },
+  {
+    "source": "커피.png",
+    "bytes": 1543936,
+    "sourceSha256": "2852a2d8d9ddadd5e3a2be3836d6106cc74df4c05b2c4148ea7641fb6e94268d",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "coffee",
+    "visibleBounds": [
+      34,
+      87,
+      1221,
+      1125
+    ],
+    "outputSha256": "da597c605aef4438c672695281c4e35da1d058dc6e6b367054556a6073949555",
+    "outputBytes": 240324
+  },
+  {
+    "source": "탈의실.png",
+    "bytes": 1417558,
+    "sourceSha256": "746c559f31d723d9e181514fb3d5d9a1df8e316ebc25d0303ea388564db8ae3a",
+    "size": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "fitting-room",
+    "visibleBounds": [
+      195,
+      67,
+      1060,
+      1169
+    ],
+    "outputSha256": "b10f5557c2e417a9370148ab427596e60a56383a82677bca9f3934c851635224",
+    "outputBytes": 206271
+  }
+]

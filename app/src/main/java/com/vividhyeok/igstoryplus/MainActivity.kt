@@ -434,27 +434,34 @@ class MainActivity : AppCompatActivity() {
         contextBar.addView(button("정렬"){l.align=(l.align+1)%3;session.refresh()})
         contextBar.addView(button("크기·강도"){val box=column();slider(box,"크기",l.width,false){l.width=it.coerceIn(.1f,1f);session.refresh()};slider(box,"스타일 강도",l.emphasis,false){l.emphasis=it;session.refresh()};sheet("텍스트 조절",box)})
     }
-    private fun emojiLibrary(filter:String="등록 폴더"){
+    private fun emojiLibrary(filter:String=if(prefs.getString("emojiFolder",null)==null)"기본 이모지" else "내 폴더"){
         val path=prefs.getString("emojiFolder",null)
-        if(path==null){var prompt:android.app.Dialog?=null;val box=column();box.addView(text("내 PNG를 이모지처럼\n원하는 폴더를 선택하세요.\n예: Pictures/igstoryplus/emoji"));box.addView(button("폴더 선택"){prompt?.dismiss();folderPicker.launch(null)});prompt=sheet("내 이모지",box);return}
-        val box=column();val actions=row();var dialog:android.app.Dialog?=null
-        val tabs=row();listOf("최근 사용","즐겨찾기","등록 폴더").forEach{tab->tabs.addView(button(tab){dialog?.dismiss();emojiLibrary(tab)}.apply{alpha=if(filter==tab)1f else .5f})};box.addView(tabs)
-        actions.addView(button("새로고침"){dialog?.dismiss();emojiLibrary()});actions.addView(button("폴더 변경"){dialog?.dismiss();folderPicker.launch(null)});box.addView(actions)
+        val box=column();var dialog:android.app.Dialog?=null;var all=emptyList<EmojiItem>();var category="전체"
+        val tabs=row();listOf("기본 이모지","내 폴더","최근 사용","즐겨찾기").forEach{tab->tabs.addView(button(tab){dialog?.dismiss();emojiLibrary(tab)}.apply{alpha=if(filter==tab)1f else .5f})};box.addView(scrollRow(tabs))
+        val search=EditText(this).apply{hint="이모지 검색";contentDescription="이모지 검색";setSingleLine(true);setTextColor(Color.WHITE);setHintTextColor(Color.GRAY)};box.addView(search)
+        val categories=row();box.addView(scrollRow(categories))
+        val actions=row();actions.addView(button("새로고침"){dialog?.dismiss();emojiLibrary(filter)});actions.addView(button("폴더 변경"){dialog?.dismiss();folderPicker.launch(null)});box.addView(actions)
         val grid=androidx.recyclerview.widget.RecyclerView(this).apply{layoutManager=androidx.recyclerview.widget.GridLayoutManager(this@MainActivity,4)};box.addView(grid,LinearLayout.LayoutParams(-1,dp(260)))
-        val loading=text("PNG 불러오는 중…");box.addView(loading)
-        dialog=sheet("내 이모지 · 길게 눌러 즐겨찾기",box)
+        val loading=text("이모지 불러오는 중…");box.addView(loading)
+        fun populate(){
+            val fav=prefs.getStringSet("favorites",emptySet())?:emptySet();val recent=prefs.getString("recent","")!!.split("|")
+            val query=search.text.toString().trim()
+            val shown=all.filter{when(filter){"기본 이모지"->EmojiLibrary.bundled(it.uri);"내 폴더"->!EmojiLibrary.bundled(it.uri);"최근 사용"->it.uri in recent;else->it.uri in fav}}
+                .filter{(category=="전체" || it.category==category) && (query.isBlank() || "${it.name} ${it.category} ${it.keywords}".contains(query,true))}
+                .sortedWith(compareByDescending<EmojiItem>{it.uri in fav}.thenBy{recent.indexOf(it.uri).let{i->if(i<0)999 else i}}.thenBy{it.name})
+            loading.text=if(shown.isEmpty())if(filter=="내 폴더" && path==null)"폴더 변경을 눌러 내 PNG 폴더를 연결하세요" else "검색 결과가 없습니다 · 길게 눌러 즐겨찾기" else "${shown.size}개 · 길게 눌러 즐겨찾기"
+            grid.adapter=EmojiAdapter(shown,fav,{f->dialog?.dismiss();safe{edit{project.layers.add(Layer(kind="png",uri=f.uri,width=if(EmojiLibrary.bundled(f.uri)).11f else .089f));selected=project.layers.last().id};prefs.edit().putString("recent",(listOf(f.uri)+recent.filter{it!=f.uri}).take(30).joinToString("|")).apply()}},
+                {f->val favorites=(prefs.getStringSet("favorites",emptySet())?:emptySet()).toMutableSet();if(!favorites.add(f.uri))favorites.remove(f.uri);prefs.edit().putStringSet("favorites",favorites).apply();populate()})
+        }
+        search.addTextChangedListener(object:android.text.TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun afterTextChanged(s:android.text.Editable?){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){populate()}})
+        dialog=sheet("이모지",box)
         Thread{
-            val result=runCatching { EmojiFolder.scan(this,Uri.parse(path)) }
-            runOnUiThread{result.onSuccess{files->
-                val fav=prefs.getStringSet("favorites",emptySet())?:emptySet();val recent=prefs.getString("recent","")!!.split("|")
-                val sorted=files.filter{when(filter){"최근 사용"->it.uri.toString() in recent;"즐겨찾기"->it.uri.toString() in fav;else->true}}.sortedWith(compareByDescending<DocumentFile>{it.uri.toString() in fav}.thenBy{recent.indexOf(it.uri.toString()).let{i->if(i<0)999 else i}}.thenBy{it.name})
-                loading.text=if(files.isEmpty())"이 폴더에 PNG를 넣으면 여기에 표시됩니다" else "${files.size}개 · ★ 즐겨찾기 우선"
-                grid.visibility=if(sorted.isEmpty())View.GONE else View.VISIBLE
-                if(files.isNotEmpty() && sorted.isEmpty())loading.text=if(filter=="즐겨찾기")"PNG를 길게 누르면 즐겨찾기에 추가됩니다" else "아직 사용한 PNG가 없습니다"
-                grid.adapter=EmojiAdapter(sorted,fav,{f->val uri=f.uri.toString();dialog?.dismiss();safe{edit{project.layers.add(Layer(kind="png",uri=uri,width=.089f));selected=project.layers.last().id};prefs.edit().putString("recent",(listOf(uri)+recent.filter{it!=uri}).take(30).joinToString("|")).apply()}},
-                    {f->val uri=f.uri.toString();val favorites=(prefs.getStringSet("favorites",emptySet())?:emptySet()).toMutableSet();if(!favorites.add(uri))favorites.remove(uri);prefs.edit().putStringSet("favorites",favorites).apply();dialog?.dismiss();emojiLibrary()})
-                (dialog as? EditorSheet)?.resize()
-            }.onFailure{grid.visibility=View.GONE;loading.text="폴더가 없거나 권한이 만료되었습니다. 폴더를 다시 선택해 주세요.";(dialog as? EditorSheet)?.resize()}}
+            val builtin=EmojiLibrary.defaults(applicationContext)
+            val user=if(path==null)Result.success(emptyList()) else runCatching{EmojiFolder.scan(this,Uri.parse(path)).map{EmojiLibrary.item(it)}}
+            runOnUiThread{if(dialog?.isShowing==true){all=builtin+user.getOrDefault(emptyList());
+                (listOf("전체")+all.map{it.category}.distinct()).forEach{value->categories.addView(button(value){category=value;populate()})}
+                populate();if(user.isFailure && filter=="내 폴더")loading.text="폴더 권한이 만료되었습니다. 폴더 변경으로 다시 연결하세요."
+            }}
         }.start()
     }
     private fun ensureMusicLayer(){

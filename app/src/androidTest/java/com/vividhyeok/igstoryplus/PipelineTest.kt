@@ -116,6 +116,7 @@ class PipelineTest {
     }
     @Test fun aStillCropTextAndAllShaders(){
         val source=photo();val p=Project(source=source)
+        p.layers.add(Layer(kind="png",uri=EmojiLibrary.defaults(c).first{it.id=="coffee"}.uri,width=.16f,x=.25f,y=.4f,rotation=15f))
         p.layers.add(Layer(kind="text",text="오늘의 작은 움직임",type="Soft Label",width=.7f,y=.7f))
         p.layers.add(Layer(kind="photo",uri=source,width=.23f,x=.77f,y=.3f,crop=Crop(aspect=1f,zoom=1.5f,rotation=90f)))
         val f=export(p,"still-korean");val b=BitmapFactory.decodeFile(f.absolutePath);assertEquals(1080,b.width);assertEquals(1920,b.height)
