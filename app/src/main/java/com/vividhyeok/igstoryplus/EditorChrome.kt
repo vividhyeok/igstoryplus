@@ -11,7 +11,7 @@ class EditorChrome(context: Context) : LinearLayout(context) {
     val top = LinearLayout(context)
     val stage = FrameLayout(context)
     val bottom = LinearLayout(context)
-    val play = TextView(context)
+    val play = EditorIcons.button(context,"미리보기 재생"){}
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
     init {
         orientation = VERTICAL
@@ -26,16 +26,9 @@ class EditorChrome(context: Context) : LinearLayout(context) {
         }
         bottom.gravity = Gravity.CENTER
         addView(scroll, LayoutParams(-1,dp(60)))
-        play.apply {
-            text = "▶"; textSize = 18f; setTextColor(Color.WHITE)
-            gravity = Gravity.CENTER; setBackgroundColor(0x99303034.toInt())
-            contentDescription = "미리보기 재생"; isFocusable = true
-        }
+        play.isFocusable = true
         stage.addView(play, FrameLayout.LayoutParams(dp(48),dp(48),Gravity.BOTTOM or Gravity.END).apply { rightMargin=dp(8);bottomMargin=dp(8) })
     }
-    fun tool(glyph: String, label: String, action: () -> Unit): TextView = TextView(context).apply {
-        text=glyph; contentDescription=label; textSize=23f; setTextColor(Color.WHITE)
-        gravity=Gravity.CENTER; minimumWidth=dp(48); minimumHeight=dp(48)
-        isFocusable=true; isClickable=true; setOnClickListener { action() }
-    }
+    fun tool(glyph: String, label: String, action: () -> Unit): ImageButton = EditorIcons.button(context,label,action)
+    fun playback(playing:Boolean){val label=if(playing)"미리보기 일시정지" else "미리보기 재생";play.contentDescription=label;play.setImageDrawable(EditorIcons.drawable(label))}
 }

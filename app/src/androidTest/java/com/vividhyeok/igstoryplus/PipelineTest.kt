@@ -47,6 +47,19 @@ class PipelineTest {
         val target=File(evidence,"$name.${f.extension}");f.copyTo(target,true);return target
     }
     private fun tracks(file:File):List<MediaFormat>{val e=MediaExtractor();return try{e.setDataSource(file.absolutePath);(0 until e.trackCount).map{e.getTrackFormat(it)}}finally{e.release()}}
+    @Test fun hWaveformCachePoseParityAndShortAudioGuard(){
+        val m=Audio.metadata(c,wav());val a=WaveformCache.peaks(c,m);assertEquals(2048,a.size);assertTrue(a.any{it>.8f});assertTrue(a.any{it<.5f});val cached=WaveformCache.peaks(c,m);assertArrayEquals(a,cached,0f)
+        val p=Project(source=photo(),pose=PhotoPose(.61f,.43f,.8f,12f))
+        val cpu=filteredBitmap(Artwork.background(c,p,270),p.style)
+        val gpu=filteredBitmap(Artwork.background(c,p,270,drawPhoto=false),p.style,Artwork.cropped(Artwork.decode(c,p.source,1536),p.crop),p.pose)
+        var difference=0.0
+        for(y in 0 until cpu.height)for(x in 0 until cpu.width){val ca=cpu.getPixel(x,y);val cb=gpu.getPixel(x,y);difference+=abs(Color.red(ca)-Color.red(cb))+abs(Color.green(ca)-Color.green(cb))+abs(Color.blue(ca)-Color.blue(cb))}
+        difference/=cpu.width*cpu.height*3.0*255
+        cpu.outputStream(File(evidence,"pose-export.png"));gpu.outputStream(File(evidence,"pose-preview.png"));assertTrue("GPU preview / still pose mismatch: $difference",difference<.025)
+        val latch=CountDownLatch(1);var failed=false
+        Handler(Looper.getMainLooper()).post{Exporter(c).export(Project(source=p.source,duration=15,music=m.copy(startMs=15000)),{}){failed=it.isFailure;latch.countDown()}}
+        assertTrue(latch.await(15,TimeUnit.SECONDS));assertTrue("Short music must not silently loop",failed)
+    }
     @Test fun gVolumeAndNewTextReferenceLayout(){
         val processor=Audio.volumeEffects(.5f).single()
         processor.configure(androidx.media3.common.audio.AudioProcessor.AudioFormat(48000,2,androidx.media3.common.C.ENCODING_PCM_16BIT));processor.flush()
@@ -104,6 +117,7 @@ class PipelineTest {
             val source=File(c.cacheDir,"source-${duration/1000}s.mp4")
             testContext.assets.open("source-${duration/1000}s.mp4").use{i->source.outputStream().use{i.copyTo(it)}}
             val v=Project(source=Uri.fromFile(source).toString(),video=true,sourceDurationMs=duration,music=Audio.metadata(c,wav()))
+            v.music!!.loop=true // Explicit user choice; shorter audio is never repeated implicitly.
             v.layers.add(Layer(kind="text",text="${duration/1000}초",type="Whisper"))
             val out=export(v,"video-${duration/1000}s");Exporter.inspect(out,v)
         }

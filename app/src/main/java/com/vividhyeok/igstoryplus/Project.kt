@@ -9,7 +9,10 @@ data class Crop(var x: Float = .5f, var y: Float = .5f, var zoom: Float = 1f,
                 var aspect: Float = 0f, var rotation: Float = 0f, var flip: Boolean = false)
 data class Style(var name: String = "Simple", var amount: Float = .25f, var motion: Boolean = false,
                  var blur: Float = .55f, var brightness: Float = .75f, var warmth: Float = 0f,
-                 var speed: Float = 1f, var scope: Float = .75f, var beat: Float = 0f)
+                 var speed: Float = 1f, var scope: Float = .75f, var beat: Float = 0f,
+                 var region:String="가장자리",var centerX:Float=.5f,var centerY:Float=.5f)
+
+data class PhotoPose(var x:Float=.5f,var y:Float=.5f,var scale:Float=1f,var rotation:Float=0f)
 data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String = "photo", var uri: String = "",
                  var text: String = "", var type: String = "Soft Label", var font: String = "",
                  var color: Int = -1, var align: Int = 1, var emphasis: Float = .3f,
@@ -17,12 +20,19 @@ data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String
                  var rotation: Float = 0f, var width: Float = .45f, var motion: Boolean = false,
                  var crop: Crop = Crop(), var textLayoutVersion: Int = 0)
 data class Music(var uri: String = "", var title: String = "", var artist: String = "", var album: String = "",
-                 var art: String = "", var durationMs: Long = 0, var startMs: Long = 0, var card: String = "작은 카드", var volume: Float = 1f)
+                 var art: String = "", var durationMs: Long = 0, var startMs: Long = 0, var card: String = "작은 카드", var volume: Float = 1f,
+                 var loop:Boolean=false)
 data class Project(var source: String = "", var video: Boolean = false, var sourceDurationMs: Long = 0,
                    var duration: Int = 5, var crop: Crop = Crop(), var style: Style = Style(),
-                   var layers: MutableList<Layer> = mutableListOf(), var music: Music? = null) {
+                   var layers: MutableList<Layer> = mutableListOf(), var music: Music? = null,var pose:PhotoPose=PhotoPose()) {
     fun animated() = video || music != null || style.motion || layers.any { it.motion }
     fun durationMs(): Long = if (video) sourceDurationMs.coerceIn(1, 60000) else duration.coerceIn(5, 15) * 1000L
+}
+
+object MusicRange {
+    fun maxStart(m:Music,length:Long)=if(m.loop)(m.durationMs-1).coerceAtLeast(0) else (m.durationMs-length).coerceAtLeast(0)
+    fun clamp(m:Music,length:Long){m.startMs=m.startMs.coerceIn(0,maxStart(m,length))}
+    fun valid(m:Music,length:Long)=m.durationMs>0 && m.startMs>=0 && (m.loop || m.durationMs-m.startMs>=length)
 }
 data class Preset(var name: String, var style: Style, var text: String, var card: String,
                   var template: Layer?=null, var musicMotion: Boolean=false, var duration: Int=5)

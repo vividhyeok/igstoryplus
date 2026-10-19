@@ -27,16 +27,19 @@ class PreviewClock(private val context:Context,private val project:()->Project,
     private var restartPending=false
     private val restart=Runnable{restartPending=false;time=0;video()?.seekTo(0);start()}
     var playing=false;private set
+    val positionMs:Long get()=time
+    var onPosition:((Long)->Unit)?=null
     private val tick=object:Runnable{override fun run(){
         if(!playing)return
         val p=project();val now=SystemClock.elapsedRealtime()
-        time=if(p.video)video()?.currentPosition?:time else (time+now-stamp)%p.durationMs();stamp=now
+        time=if(p.video)video()?.currentPosition?:time else if(audio?.playbackState==Player.STATE_READY && p.music?.loop!=true)audio!!.currentPosition.coerceAtMost(p.durationMs()-1) else (time+now-stamp)%p.durationMs();stamp=now
         p.music?.let{m->val span=min(p.durationMs(),m.durationMs-m.startMs).coerceAtLeast(1)
             audio?.let{a->val expected=time%span;if(abs(a.currentPosition-expected)>180)a.seekTo(expected)}}
         photo.showTime(time*1000,beatAt(beats,time*1000))
         val phase=Motion.phase(time*1000,p.durationMs())
         transformed=true
         p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=l.scale*Motion.scale(l,phase);v.scaleY=v.scaleX;v.translationY=(l.y+Motion.drift(l,phase))*(v.parent as View).height-v.top-v.height/2f}}
+        onPosition?.invoke(time)
         handler.postDelayed(this,33)
     }}
     fun toggle(){if(playing)pause() else start()}
@@ -44,6 +47,7 @@ class PreviewClock(private val context:Context,private val project:()->Project,
         if(playing)return
         handler.removeCallbacks(restart);restartPending=false
         val p=project();if(p.source.isBlank())return
+        if(p.music?.let{!MusicRange.valid(it,p.durationMs())}==true)return
         photo.durationMs=p.durationMs()
         if(p.music==null)beats=floatArrayOf()
         playing=true;state(true);stamp=SystemClock.elapsedRealtime()
@@ -54,7 +58,7 @@ class PreviewClock(private val context:Context,private val project:()->Project,
                 setMediaItem(MediaItem.Builder().setUri(m.uri).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(m.startMs).setEndPositionMs(min(m.startMs+p.durationMs(),m.durationMs)).build()).build())
                 repeatMode=Player.REPEAT_MODE_ONE;prepare();seekTo(time%min(p.durationMs(),m.durationMs-m.startMs).coerceAtLeast(1));play()
             }
-            val key="${m.uri}:${m.startMs}:${p.durationMs()}"
+            val key="${m.uri}:${m.startMs}:${p.durationMs()}:${m.loop}"
             if(p.style.beat>0 && key!=beatKey){beatKey=key;beats=floatArrayOf();val token=++generation
                 Thread{val result=runCatching{Audio.analyze(context,m.copy(),p.durationMs())}.getOrDefault(floatArrayOf());handler.post{if(token==generation){beats=result;if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}}}.start()}
         }}
@@ -62,6 +66,15 @@ class PreviewClock(private val context:Context,private val project:()->Project,
     }
     fun updateStyle(){val p=project();photo.durationMs=p.durationMs();photo.style=p.style.copy();if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))}
     fun setVolume(volume:Float){audio?.volume=volume.coerceIn(0f,1f)}
+    fun seek(position:Long){
+        val p=project();time=position.coerceIn(0,(p.durationMs()-1).coerceAtLeast(0));stamp=SystemClock.elapsedRealtime()
+        video()?.seekTo(time);audio?.seekTo(time%min(p.durationMs(),p.music?.let{it.durationMs-it.startMs}?:p.durationMs()).coerceAtLeast(1))
+        photo.showTime(time*1000,beatAt(beats,time*1000));val phase=Motion.phase(time*1000,p.durationMs());transformed=true
+        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=l.scale*Motion.scale(l,phase);v.scaleY=v.scaleX;v.translationY=(l.y+Motion.drift(l,phase))*(v.parent as View).height-v.top-v.height/2f}}
+        onPosition?.invoke(time)
+    }
+    fun pausePlayback(){pause()}
+    fun play(){start()}
     fun parametersChanged(){if(playing || restartPending){pause();restartPending=true;handler.removeCallbacks(restart);handler.postDelayed(restart,150)}}
     private fun pause(){
         playing=false;handler.removeCallbacks(tick);audio?.release();audio=null;video()?.pause();state(false)

@@ -27,7 +27,7 @@ object Audio {
     }
     private fun key(s: String)=MessageDigest.getInstance("SHA-256").digest(s.toByteArray()).joinToString(""){"%02x".format(it)}
     fun analyze(c: Context, m: Music, durationMs: Long): FloatArray {
-        val f=File(c.cacheDir,"beat-${key(m.uri+":"+m.startMs+":"+durationMs)}.json")
+        val f=File(c.cacheDir,"beat-${key(m.uri+":"+m.startMs+":"+durationMs+":"+m.loop)}.json")
         if(f.exists()) return Store(c).gson.fromJson(f.readText(),FloatArray::class.java)
         val extractor=MediaExtractor(); var decoder: MediaCodec?=null
         try {
@@ -66,6 +66,7 @@ object Audio {
                 }
             }
             val rms=DoubleArray(energy.size){sqrt(energy[it]/counts[it].coerceAtLeast(1))}
+            if(m.loop){val span=(m.durationMs-m.startMs).coerceAtLeast(1);for(i in rms.indices)if(i*50L>=span)rms[i]=rms[((i*50L%span)/50).toInt().coerceIn(rms.indices)]}
             val result=onsets(rms); f.writeText(Store(c).gson.toJson(result)); return result
         } finally { runCatching { decoder?.stop() }; decoder?.release(); extractor.release() }
     }

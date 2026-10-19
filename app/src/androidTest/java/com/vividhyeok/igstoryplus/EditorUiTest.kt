@@ -31,6 +31,98 @@ class EditorUiTest {
         if(v is ViewGroup)for(i in 0 until v.childCount)editor(v.getChildAt(i))?.let{return it}
         return null
     }
+    private fun fixtureStory():String{
+        val b=Bitmap.createBitmap(720,1000,Bitmap.Config.ARGB_8888);val c=Canvas(b);val p=android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+        p.shader=android.graphics.LinearGradient(0f,0f,0f,1000f,intArrayOf(0xFFBDD2D0.toInt(),0xFFEACFA9.toInt(),0xFF8C9B82.toInt()),null,android.graphics.Shader.TileMode.CLAMP);c.drawRect(0f,0f,720f,1000f,p)
+        p.shader=null;p.color=0xFFF9E5B8.toInt();c.drawCircle(490f,290f,78f,p)
+        p.color=0xFF596F66.toInt();c.drawPath(android.graphics.Path().apply{moveTo(0f,690f);cubicTo(160f,450f,300f,720f,480f,550f);lineTo(720f,730f);lineTo(720f,1000f);lineTo(0f,1000f);close()},p)
+        p.color=0xFF344E49.toInt();c.drawPath(android.graphics.Path().apply{moveTo(0f,830f);cubicTo(300f,650f,450f,970f,720f,740f);lineTo(720f,1000f);lineTo(0f,1000f);close()},p)
+        val f=File(context.filesDir,"ux-fixture.jpg");f.outputStream().use{b.compress(Bitmap.CompressFormat.JPEG,95,it)};return Uri.fromFile(f).toString()
+    }
+    private fun fixtureMusic():Music{
+        val rate=22050;val count=rate*24;val bytes=java.nio.ByteBuffer.allocate(44+count*2).order(java.nio.ByteOrder.LITTLE_ENDIAN)
+        bytes.put("RIFF".toByteArray());bytes.putInt(36+count*2);bytes.put("WAVEfmt ".toByteArray());bytes.putInt(16);bytes.putShort(1);bytes.putShort(1);bytes.putInt(rate);bytes.putInt(rate*2);bytes.putShort(2);bytes.putShort(16);bytes.put("data".toByteArray());bytes.putInt(count*2)
+        for(i in 0 until count){val t=i.toDouble()/rate;val beat=if(t%.5<.08).65 else .08;bytes.putShort((kotlin.math.sin(t*2*kotlin.math.PI*(220+20*kotlin.math.sin(t)))*beat*32767).toInt().toShort())}
+        val f=File(context.filesDir,"ux-fixture.wav");f.writeBytes(bytes.array());return Audio.metadata(context,Uri.fromFile(f).toString()).apply{title="느린 오후 — 나의 미발매 데모";artist="vividhyeok";art=fixtureStory()}
+    }
+    @Test fun backgroundPhotoIsDirectAndReversible(){
+        Store(context).clearTextEdit();Store(context).save(Project(source=fixtureStory()))
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            SystemClock.sleep(500)
+            onView(withContentDescription("배경 사진")).perform(swipeRight())
+            scenario.onActivity{assertTrue(it.project.pose.x>.55f);assertEquals(0f,it.project.crop.aspect)}
+            onView(withContentDescription("실행 취소")).perform(click());scenario.onActivity{assertEquals(.5f,it.project.pose.x,.005f)}
+            onView(withContentDescription("다시 실행")).perform(click())
+            var cx=0f;var cy=0f;scenario.onActivity{a->val e=editor(a.window.decorView)!!;val pos=IntArray(2);e.getLocationOnScreen(pos);cx=pos[0]+e.width*.75f;cy=pos[1]+e.height*.5f}
+            pinchAndRotate(cx,cy)
+            scenario.onActivity{assertTrue(it.project.pose.scale>1.05f);assertTrue(kotlin.math.abs(it.project.pose.rotation)>3)}
+            screenshot("ux-photo-gesture");scenario.recreate();scenario.onActivity{assertTrue(it.project.pose.x>.55f);assertTrue(it.project.pose.scale>1.05f);it.project=Project();Store(context).save(it.project)}
+        }
+    }
+    @Test fun pngTrayUsesOnlyGrantedUserFolder(){
+        Store(context).clearTextEdit()
+        val tree=android.provider.DocumentsContract.buildTreeDocumentUri("com.vividhyeok.igstoryplus.test.documents","root")
+        instrumentation.context.startActivity(android.content.Intent().setClassName(instrumentation.context.packageName,GrantFixtureActivity::class.java.name).addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK))
+        repeat(50){if(context.checkUriPermission(tree,android.os.Process.myPid(),android.os.Process.myUid(),android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)!=android.content.pm.PackageManager.PERMISSION_GRANTED)SystemClock.sleep(100)}
+        context.contentResolver.takePersistableUriPermission(tree,android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION or android.content.Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        EmojiFolder.scan(context,tree).forEach{android.provider.DocumentsContract.deleteDocument(context.contentResolver,it.uri)}
+        val doc=android.provider.DocumentsContract.createDocument(context.contentResolver,android.provider.DocumentsContract.buildDocumentUriUsingTree(tree,"root"),"image/png","test-only.png")!!
+        val b=Bitmap.createBitmap(512,512,Bitmap.Config.ARGB_8888);Canvas(b).drawCircle(256f,256f,120f,android.graphics.Paint().apply{color=Color.rgb(245,210,110)})
+        context.contentResolver.openOutputStream(doc)!!.use{b.compress(Bitmap.CompressFormat.PNG,100,it)}
+        context.getSharedPreferences("settings",0).edit().putString("emojiFolder",tree.toString()).apply();Store(context).save(Project(source=fixtureStory()))
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            onView(withContentDescription("내 이모지")).perform(click());SystemClock.sleep(400);screenshot("ux-png-library")
+            onView(withContentDescription("test-only.png")).perform(click());scenario.onActivity{assertEquals("png",it.project.layers.single().kind);assertEquals(.089f,it.project.layers.single().width)}
+            onView(withContentDescription("png 레이어")).perform(swipeUp())
+            scenario.recreate();scenario.onActivity{assertEquals("png",it.project.layers.single().kind);assertTrue(it.project.layers.single().y<.5f);it.project=Project();Store(context).save(it.project)}
+        }
+        android.provider.DocumentsContract.deleteDocument(context.contentResolver,doc)
+        context.getSharedPreferences("settings",0).edit().remove("emojiFolder").apply()
+    }
+    @Test fun waveformLibraryVisualStylesAndSharedPreview(){
+        Store(context).clearTextEdit();val source=fixtureStory();val music=fixtureMusic();MusicLibrary(context).remember(music)
+        Store(context).save(Project(source=source,style=Style(name="Flow Blur",motion=true,beat=.15f),layers=mutableListOf(Layer(kind="text",text="천천히 흐르는 오후",type="Drift Type",motion=true,y=.25f,textLayoutVersion=1))))
+        fun outputs()=File(context.filesDir,"exports").listFiles()?.map{it.name}?.toSet()?:emptySet()
+        val before=outputs()
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            SystemClock.sleep(600);screenshot("ux-photo-main")
+            onView(withContentDescription("음악")).perform(click());screenshot("ux-music-library")
+            onView(withContentDescription("음악 선택: ${music.title}")).perform(click())
+            var ready=false
+            for(i in 0 until 100){
+                try{onView(withTagValue(org.hamcrest.Matchers.`is`("music-waveform" as Any))).check{v,_->ready=(v as AudioWaveformView).peaks.any{it>0}}}catch(_:Exception){}
+                if(ready)break;SystemClock.sleep(100)
+            }
+            assertTrue("Waveform must contain decoded, nonzero PCM peaks",ready)
+            screenshot("ux-music-waveform")
+            onView(withText("15초")).perform(click());onView(withText("10초")).perform(click())
+            onView(withTagValue(org.hamcrest.Matchers.`is`("music-waveform" as Any))).perform(swipeRight())
+            scenario.onActivity{assertEquals(10,it.project.duration);assertTrue(it.project.music!!.startMs>0);assertTrue(MusicRange.valid(it.project.music!!,10000))}
+            onView(withContentDescription("선택 구간 재생")).perform(click());SystemClock.sleep(600);screenshot("ux-music-playing")
+            onView(withText("음악 카드 디자인")).perform(scrollTo(),click());screenshot("ux-music-cards")
+            onView(withContentDescription("음악 카드: 앨범 아트")).perform(scrollTo(),click())
+            scenario.onActivity{assertEquals("앨범 아트",it.project.music!!.card)}
+            onView(withContentDescription("시트 완료")).perform(click())
+            onView(withContentDescription("시트 완료")).perform(click())
+            onView(withContentDescription("music 레이어")).perform(swipeUp());screenshot("ux-music-placed")
+            scenario.onActivity{assertTrue(it.project.layers.first{l->l.kind=="music"}.y<.8f)}
+            androidx.test.espresso.Espresso.pressBack()
+            onView(withText("스타일")).perform(click());SystemClock.sleep(800);screenshot("ux-photo-styles")
+            onView(withContentDescription("사진 스타일: Grainy")).perform(scrollTo(),click())
+            onView(withContentDescription("사진 스타일: Flow Blur")).perform(scrollTo(),click())
+            onView(withContentDescription("시트 완료")).perform(click())
+            onView(withContentDescription("미리보기 재생")).perform(click());SystemClock.sleep(500);screenshot("ux-preview")
+            onView(withContentDescription("미리보기 재생 위치")).perform(click());SystemClock.sleep(100)
+            onView(withContentDescription("미리보기 일시정지")).perform(click());onView(withContentDescription("처음부터")).perform(click())
+            onView(withText("편집")).perform(click());assertEquals(before,outputs())
+            onView(withText("사진 추가")).perform(click());onView(withText("배경 자르기")).perform(click());screenshot("ux-photo-crop")
+            onView(withText("4:5")).perform(click());onView(withText("취소")).perform(click())
+            scenario.onActivity{assertEquals(0f,it.project.crop.aspect)}
+            onView(withContentDescription("인스타 스토리로 공유")).perform(click());screenshot("ux-share-progress")
+            onView(withText("취소")).perform(click())
+            scenario.onActivity{assertNotNull(Store(context).load().music);it.project=Project();Store(context).save(it.project)}
+        }
+    }
     @Test fun musicCardKeepsOrderMotionDuplicateAndHideControls(){
         Store(context).clearTextEdit()
         val source=File(context.filesDir,"music-ui-source.jpg")
@@ -118,6 +210,7 @@ class EditorUiTest {
             onView(withContentDescription("미리보기 재생")).perform(click());SystemClock.sleep(350)
             scenario.onActivity{a->fun photo(v:View):LivePhoto?{if(v is LivePhoto)return v;if(v is ViewGroup)for(i in 0 until v.childCount)photo(v.getChildAt(i))?.let{return it};return null};assertEquals(10000L,photo(a.window.decorView)!!.durationMs)}
             onView(withContentDescription("미리보기 일시정지")).perform(click())
+            onView(withText("편집")).perform(click())
             assertEquals(before,outputs())
             onView(withText("사진 추가")).perform(click());onView(withText("배경 자르기")).perform(click())
             scenario.onActivity{a->

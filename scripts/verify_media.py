@@ -46,6 +46,9 @@ for name, duration, audio in [("motion-5s", 5, False), ("music-flow-15s", 15, Tr
         reports[name]["visual_checks"] = {"quarter_frame_delta": motion_delta, "loop_boundary_delta": loop_delta}
 assert (root / "still-korean.jpg").is_file()
 assert len(list(root.glob("style-*.png"))) == 7
+required_screens = ["ux-photo-main", "editor-text-ime", "editor-text-styles", "ux-photo-styles", "ux-music-library", "ux-music-waveform", "ux-music-cards", "ux-png-library", "ux-photo-crop", "ux-preview", "ux-share-progress"]
+for screen in required_screens:
+    assert (root / (screen + ".png")).stat().st_size > 1000, "Missing actual UI capture: " + screen
 groups = {
     "app_unit": pathlib.Path("app/build/test-results/testDebugUnitTest").glob("TEST-*.xml"),
     "photoeditor_unit": pathlib.Path("photoeditor/build/test-results/testDebugUnitTest").glob("TEST-*.xml"),

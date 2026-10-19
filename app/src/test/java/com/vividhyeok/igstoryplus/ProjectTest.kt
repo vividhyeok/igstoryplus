@@ -5,10 +5,16 @@ import org.junit.Test
 import kotlin.math.*
 
 class ProjectTest {
+    @Test fun musicRangeDoesNotSilentlyLoopOrShortenVideo(){
+        val m=Music(durationMs=18000,startMs=17000);MusicRange.clamp(m,10000);assertEquals(8000L,m.startMs);assertTrue(MusicRange.valid(m,10000))
+        assertFalse(MusicRange.valid(Music(durationMs=2000),15000));m.loop=true;m.startMs=17000;assertTrue(MusicRange.valid(m,60000))
+        val p=Project(video=true,sourceDurationMs=60000,music=m);assertEquals(60000L,p.durationMs())
+    }
     @Test fun legacyDraftDefaultsAndNewTextHistoryStayCompatible(){
         val gson=com.google.gson.Gson()
         val old=gson.fromJson("""{"source":"old.jpg","layers":[{"kind":"text","text":"오래된 초안","font":"system:serif"}],"music":{"title":"노래"}}""",Project::class.java)
         assertEquals(0,old.layers.single().textLayoutVersion);assertEquals(1f,old.music!!.volume)
+        assertFalse(old.music!!.loop);assertEquals(PhotoPose(),old.pose);assertEquals("가장자리",old.style.region)
         val h=History();h.push(old);old.layers.single().text="새 문구";old.layers.single().textLayoutVersion=1
         val restored=h.undo(old)!!;assertEquals("오래된 초안",restored.layers.single().text);assertEquals("system:serif",restored.layers.single().font)
     }

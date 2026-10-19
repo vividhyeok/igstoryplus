@@ -30,6 +30,7 @@ class Exporter(private val context: Context) {
         val file=output!!
         Thread {
             try {
+                p.music?.let{check(MusicRange.valid(it,p.durationMs())){"음악이 스토리보다 짧습니다. 음악 구간을 조정하거나 반복을 직접 켜 주세요."}}
                 val base=if(p.video) null else Artwork.background(context,p,1080)
                 val layers=p.layers.map { it to Artwork.layer(context,it,p.music) }
                 val beats=if(p.style.beat>0 && p.music!=null) runCatching{Audio.analyze(context,p.music!!,p.durationMs())}.getOrDefault(floatArrayOf()) else floatArrayOf()
@@ -59,7 +60,7 @@ class Exporter(private val context: Context) {
                             val seq=mutableListOf(EditedMediaItemSequence.Builder(item).build())
                             p.music?.let { music ->
                                 val audio=MediaItem.Builder().setUri(music.uri).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(music.startMs).setEndPositionMs(min(music.startMs+p.durationMs(),music.durationMs)).build()).build()
-                                seq+=EditedMediaItemSequence.Builder(EditedMediaItem.Builder(audio).setRemoveVideo(true).setEffects(Effects(Audio.volumeEffects(music.volume),emptyList())).build()).setIsLooping(true).build()
+                                seq+=EditedMediaItemSequence.Builder(EditedMediaItem.Builder(audio).setRemoveVideo(true).setEffects(Effects(Audio.volumeEffects(music.volume),emptyList())).build()).setIsLooping(music.loop).build()
                             }
                             val enc=DefaultEncoderFactory.Builder(context).setRequestedVideoEncoderSettings(VideoEncoderSettings.Builder().setBitrate(6_000_000).build()).setRequestedAudioEncoderSettings(AudioEncoderSettings.Builder().setBitrate(160_000).build()).build()
                             transformer=Transformer.Builder(context).setVideoMimeType(MimeTypes.VIDEO_H264).setAudioMimeType(MimeTypes.AUDIO_AAC).setEncoderFactory(enc).addListener(object: Transformer.Listener {

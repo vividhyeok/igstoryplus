@@ -67,7 +67,7 @@ internal class MultiTouchListener(
                 if (deleteView != null) {
                     deleteView.visibility = View.VISIBLE
                 }
-                view.bringToFront()
+                // Selection must not silently change document stacking order. Explicit host actions do.
                 viewState.currentSelectedView = view
                 firePhotoEditorSDKListener(view, true)
             }
