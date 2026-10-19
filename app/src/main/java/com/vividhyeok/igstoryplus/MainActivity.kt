@@ -197,7 +197,7 @@ class MainActivity : AppCompatActivity() {
                     if(cached!=null)store.gson.fromJson(cached,Music::class.java) else Audio.metadata(this,uri.toString())
                 }.also{result->runOnUiThread{result.onSuccess{m->selectMusic(m)}.onFailure{toast(it.message?:"지원하지 않는 오디오")}}}}.start()
             }
-            "art"->{edit{project.music?.art=uri.toString()};saveMusic();musicMenu()}
+            "art"->{edit{project.music?.art=uri.toString()};project.music?.let{refreshAura(it)};saveMusic();musicMenu()}
             "font", "font-edit"->{
                 val f=File(filesDir,"fonts/${System.currentTimeMillis()}.ttf").apply{parentFile!!.mkdirs()}
                 contentResolver.openInputStream(uri)!!.use{i->f.outputStream().use{i.copyTo(it)}}
@@ -495,8 +495,12 @@ class MainActivity : AppCompatActivity() {
         val desired=prefs.getInt("musicDuration",15).coerceIn(5,15)
         edit{if(project.music==null)project.style.beat=.55f;project.music=m;if(!project.video){project.duration=prefs.getInt("musicDuration",15).coerceIn(5,15);if(m.durationMs in 5000 until project.durationMs())project.duration=(m.durationMs/1000).toInt()};MusicRange.clamp(m,project.durationMs());ensureMusicLayer()}
         saveMusic();musicPanels.clip()
-        backgroundWorker.execute{val color=runCatching{Artwork.palette(applicationContext,m.art)}.getOrDefault(0xFF98B8CF.toInt());runOnUiThread{if(project.music?.uri==m.uri){project.style.auraColor=color;updateLiveStyle();persist()}}}
+        refreshAura(m)
         if(!project.video && project.duration<desired)toast("음악 길이에 맞춰 ${project.duration}초로 조정했습니다")
+    }
+    private fun refreshAura(m:Music){
+        val uri=m.uri;val art=m.art
+        backgroundWorker.execute{val color=runCatching{Artwork.palette(applicationContext,art)}.getOrDefault(0xFF98B8CF.toInt());runOnUiThread{if(project.music?.uri==uri && project.music?.art==art){project.style.auraColor=color;updateLiveStyle();persist()}}}
     }
     private fun musicMenu(){
         if(project.music==null)musicPanels.library() else musicPanels.clip()
