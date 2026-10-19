@@ -142,7 +142,7 @@ class MainActivity : AppCompatActivity() {
             {if(!previewMode)crop(null)}))
         center.addOnLayoutChangeListener{_,_,_,_,_,_,_,_,_->
             val h=center.height;val w=min(center.width,(h*9f/16).toInt()); val ch=(w*16f/9).toInt()
-            if(w>0 && (canvasBox.width!=w || canvasBox.height!=ch)){canvasBox.layoutParams=FrameLayout.LayoutParams(w,ch,Gravity.CENTER);canvasBox.post{restoreLayers()}}
+            if(w>0 && (canvasBox.width!=w || canvasBox.height!=ch)){canvasBox.layoutParams=FrameLayout.LayoutParams(w,ch,Gravity.CENTER);canvasBox.post{relayoutLayers()}}
         }
         empty=column().apply{gravity=Gravity.CENTER;addView(text("오늘의 한 장에\n작은 움직임을.",27f));addView(text("사진을 고르고 바로 시작하세요",14f));addView(button("사진 · 영상 선택"){pick("base",arrayOf("image/*","video/*"))}.apply{background=rounded(Color.rgb(53,57,47))});addView(button("카메라"){camera()})}
         canvasBox.addView(empty,FrameLayout.LayoutParams(-1,-1))
@@ -240,10 +240,14 @@ class MainActivity : AppCompatActivity() {
         restoreLayers();contextTools()
     }
     private fun updateLiveStyle(){clock.updateStyle()}
+    private fun relayoutLayers(){
+        if(editor.width<=0)return
+        project.layers.forEach{l->layerViews[l.id]?.let{v->v.translationX=l.x*editor.width-v.left-v.width/2f;v.translationY=l.y*editor.height-v.top-v.height/2f;v.scaleX=l.scale*editor.width/(layerReferenceWidth[l.id]?:editor.width);v.scaleY=v.scaleX}}
+    }
     private fun restoreLayers(){
         if(editor.width<=0)return
         if(textSession!=null){
-            project.layers.forEach{l->layerViews[l.id]?.let{v->v.translationX=l.x*editor.width-v.left-v.width/2f;v.translationY=l.y*editor.height-v.top-v.height/2f;v.scaleX=l.scale*editor.width/(layerReferenceWidth[l.id]?:editor.width);v.scaleY=v.scaleX}}
+            relayoutLayers()
             return
         }
         rebuilding=true;engine.clearAllViews();layerViews.clear();layerReferenceWidth.clear()
@@ -252,6 +256,7 @@ class MainActivity : AppCompatActivity() {
             val w=(l.width*editor.width).toInt().coerceIn(8,editor.width*2);val h=(w.toFloat()/original.width*original.height).toInt().coerceAtLeast(1)
             engine.addImage(Bitmap.createScaledBitmap(original,w,h,true))
             val v=editor.getChildAt(editor.childCount-1);layerViews[l.id]=v;layerReferenceWidth[l.id]=editor.width
+            v.setTag(R.id.layer_reference_width,editor.width)
             v.contentDescription=if(l.kind=="text")"텍스트 레이어: ${l.text}" else "${l.kind} 레이어"
             v.isFocusable=true
             v.post{

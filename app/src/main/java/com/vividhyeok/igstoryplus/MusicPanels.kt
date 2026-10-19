@@ -81,7 +81,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
         var dialog:Dialog?=null
         dialog=sheet("음악 구간",body,{clock.pausePlayback();save();changed()},.78f,{val valid=MusicRange.valid(m,p.durationMs());if(!valid)Toast.makeText(activity,"길이를 줄이거나 반복을 켜야 음악 구간을 완료할 수 있습니다.",Toast.LENGTH_LONG).show();valid})
         clipDialog=dialog
-        clock.onPosition={position->if(dialog.isShowing){waveform.playheadMs=position;play.setImageDrawable(EditorIcons.drawable(if(clock.playing)"미리보기 일시정지" else "미리보기 재생"));play.contentDescription=if(clock.playing)"선택 구간 일시정지" else "선택 구간 재생"}}
+        clock.onPosition={position->if(dialog.isShowing)waveform.playheadMs=position}
         play.contentDescription="선택 구간 재생"
         dialog.setOnDismissListener{clock.pausePlayback();clock.onPosition=null;save()}
         val snapshot=m.copy();val app=activity.applicationContext

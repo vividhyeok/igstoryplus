@@ -38,7 +38,7 @@ class PreviewClock(private val context:Context,private val project:()->Project,
         photo.showTime(time*1000,beatAt(beats,time*1000))
         val phase=Motion.phase(time*1000,p.durationMs())
         transformed=true
-        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=l.scale*Motion.scale(l,phase);v.scaleY=v.scaleX;v.translationY=(l.y+Motion.drift(l,phase))*(v.parent as View).height-v.top-v.height/2f}}
+        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=baseScale(l,v)*Motion.scale(l,phase);v.scaleY=v.scaleX;v.translationY=(l.y+Motion.drift(l,phase))*(v.parent as View).height-v.top-v.height/2f}}
         onPosition?.invoke(time)
         handler.postDelayed(this,33)
     }}
@@ -74,7 +74,7 @@ class PreviewClock(private val context:Context,private val project:()->Project,
         val p=project();time=position.coerceIn(0,(p.durationMs()-1).coerceAtLeast(0));stamp=SystemClock.elapsedRealtime()
         video()?.seekTo(time);audio?.seekTo(time%min(p.durationMs(),p.music?.let{it.durationMs-it.startMs}?:p.durationMs()).coerceAtLeast(1))
         photo.showTime(time*1000,beatAt(beats,time*1000));val phase=Motion.phase(time*1000,p.durationMs());transformed=true
-        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=l.scale*Motion.scale(l,phase);v.scaleY=v.scaleX;v.translationY=(l.y+Motion.drift(l,phase))*(v.parent as View).height-v.top-v.height/2f}}
+        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=baseScale(l,v)*Motion.scale(l,phase);v.scaleY=v.scaleX;v.translationY=(l.y+Motion.drift(l,phase))*(v.parent as View).height-v.top-v.height/2f}}
         onPosition?.invoke(time)
     }
     fun pausePlayback(){pause()}
@@ -89,7 +89,8 @@ class PreviewClock(private val context:Context,private val project:()->Project,
         if(!transformed)return
         transformed=false
         val p=project()
-        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=l.scale;v.scaleY=l.scale;v.translationY=l.y*(v.parent as View).height-v.top-v.height/2f}}
+        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=baseScale(l,v);v.scaleY=v.scaleX;v.translationY=l.y*(v.parent as View).height-v.top-v.height/2f}}
     }
+    private fun baseScale(l:Layer,v:View):Float{val width=(v.parent as View).width;return l.scale*width/((v.getTag(R.id.layer_reference_width) as? Int)?:width).coerceAtLeast(1)}
     fun release(){stop();generation++}
 }

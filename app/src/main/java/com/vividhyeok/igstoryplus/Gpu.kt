@@ -129,7 +129,7 @@ class LivePhoto(context: Context) : GLSurfaceView(context), GLSurfaceView.Render
     private var bitmap: Bitmap?=null
     private var texture=0
     private var program: GpuProgram?=null
-    init { setEGLContextClientVersion(2); setRenderer(this);renderMode=RENDERMODE_WHEN_DIRTY }
+    init { setEGLContextClientVersion(2); setRenderer(this);renderMode=RENDERMODE_WHEN_DIRTY;holder.setFixedSize(540,960) }
     override fun onResume(){super.onResume();requestRender()}
     override fun onPause(){super.onPause()}
     fun setPhoto(b: Bitmap,photo:Bitmap?=null) { queueEvent { bitmap=b;foreground=photo;if(texture!=0) GLES20.glDeleteTextures(1,intArrayOf(texture),0); texture=upload(b);if(photoTexture!=0)GLES20.glDeleteTextures(1,intArrayOf(photoTexture),0);photoTexture=photo?.let{upload(it)}?:0;photo?.let{val s=min(b.width.toFloat()/it.width,b.height.toFloat()/it.height);photoWidth=it.width*s/b.width;photoHeight=it.height*s/b.height} }; requestRender() }
