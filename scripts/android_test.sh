@@ -2,6 +2,15 @@
 # Preserve rendered evidence even when an assertion fails; never turn a test failure into success.
 set +e
 mkdir -p validation
+# A freshly booted API 35 Quickstep can show its own ANR over the test Activity.
+# Settle the system and close only that unrelated launcher before recording/tests;
+# never dismiss igstoryplus errors or weaken any UI assertions.
+adb shell input keyevent KEYCODE_WAKEUP
+adb shell wm dismiss-keyguard
+sleep 15
+adb shell am force-stop com.android.launcher3
+adb shell am force-stop com.android.launcher3.quickstep
+adb shell dumpsys window windows > validation/windows-before-tests.txt
 adb logcat -v brief AndroidRuntime:E TestRunner:I MediaCodec:E '*:S' > validation/android-runtime.txt &
 log_pid=$!
 trap 'kill "$log_pid" 2>/dev/null || true' EXIT
