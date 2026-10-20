@@ -9,3 +9,4 @@ local.properties
 captures/
 hs_err_pid*.log
 validation/
+replay_pid*.log
