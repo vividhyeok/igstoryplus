@@ -23,7 +23,7 @@ class QualityTest {
             val base=Bitmap.createScaledBitmap(original,270,480,true)
             val settings=EditorCatalog.photos.flatMap{name->listOf(0f,.25f,1f).map{Style(name=name,amount=it)}}
             val rendered=filteredBitmaps(base,settings)
-            legacyFilteredBitmaps(base,EditorCatalog.photos.take(7).map{Style(name=it)}).forEachIndexed{index,bitmap->bitmap.save("before-$scene-${EditorCatalog.photos[index].replace(" ","-")}")}
+            legacyFilteredBitmaps(base,listOf("Simple","Grainy","Gritty","Lores","Handheld","Zoomblur","Flow Blur").map{Style(name=it)}).forEachIndexed{index,bitmap->bitmap.save("before-$scene-${listOf("Simple","Grainy","Gritty","Lores","Handheld","Zoomblur","Flow Blur")[index].replace(" ","-")}")}
             val identity=EditorCatalog.photos.mapIndexed{index,name->
                 val zero=rendered[index*3];val difference=delta(base,zero);assertTrue("$scene $name 0% must be identity: $difference",difference<.0008)
                 for(level in 0..2)rendered[index*3+level].save("$scene-${name.replace(" ","-")}-$level")

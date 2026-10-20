@@ -64,9 +64,9 @@ for name, duration, audio in [("motion-5s", 5, False), ("music-flow-15s", 15, Tr
         assert loop_delta < 0.04, f"Abrupt photo loop boundary: {loop_delta}"
         reports[name]["visual_checks"] = {"quarter_frame_delta": motion_delta, "loop_boundary_delta": loop_delta}
 assert (root / "still-korean.jpg").is_file()
-assert len(list(root.glob("style-*.png"))) == 10
+assert len(list(root.glob("style-*.png"))) == 15
 quality = json.loads((root / "quality" / "styles.json").read_text())
-assert len(quality) == 5 and all(len(values) == 10 and max(values) < .0008 for values in quality.values()), quality
+assert len(quality) == 5 and all(len(values) == 15 and max(values) < .0008 for values in quality.values()), quality
 reports["photo_quality_zero_identity"] = quality
 video_pose = json.loads((root / "video-pose.json").read_text())
 assert video_pose["normalizedPixelError"] < .035, video_pose

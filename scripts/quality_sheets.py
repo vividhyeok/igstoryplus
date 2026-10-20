@@ -4,7 +4,7 @@ import sys
 from PIL import Image, ImageDraw, ImageOps
 
 root = pathlib.Path(sys.argv[1])
-styles = ["Simple", "Grainy", "Gritty", "Lores", "Handheld", "Zoomblur", "Flow-Blur", "Shutter-Drag", "Sensor-Raw", "Frame-Echo"]
+styles = ["Simple", "Grainy", "Gritty", "Lores", "Handheld", "Zoomblur", "Flow-Blur", "Shutter-Drag", "Sensor-Raw", "Frame-Echo", "Clean", "Warm-Film", "Soft-Fade", "Mono", "Cool-Night"]
 for scene in ("nature", "sea", "portrait", "night", "cafe"):
     sheet = Image.new("RGB", (3 * 216, len(styles) * 414), "#18181c")
     draw = ImageDraw.Draw(sheet)
