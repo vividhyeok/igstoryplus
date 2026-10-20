@@ -93,12 +93,18 @@ object Artwork {
             paint.color=if(l.textBackground=="반투명")0xA6000000.toInt() else l.color
             if(l.textBackground=="라인"){paint.style=Paint.Style.STROKE;paint.strokeWidth=3f}
             val background=Path()
+            var previous:RectF?=null;var previousLine=-2
             for(line in 0 until layout.lineCount){
                 if(layout.text.subSequence(layout.getLineStart(line),layout.getLineEnd(line)).isBlank())continue
                 if(layout.getLineRight(line)-layout.getLineLeft(line)<1f)continue
                 val rect=RectF(40+layout.getLineLeft(line)-16,32+layout.getLineTop(line)-3f,40+layout.getLineRight(line)+16,32+layout.getLineBottom(line)+3f)
                 val row=Path().apply{addRoundRect(rect,14f,14f,Path.Direction.CW)}
                 background.op(row,Path.Op.UNION)
+                previous?.takeIf{line==previousLine+1}?.let{above->
+                    val left=maxOf(above.left,rect.left);val right=minOf(above.right,rect.right)
+                    if(right>left)background.op(Path().apply{addRect(left,above.bottom-14f,right,rect.top+14f,Path.Direction.CW)},Path.Op.UNION)
+                }
+                previous=rect;previousLine=line
             }
             // One contour: no doubled translucent seams or internal outline borders.
             canvas.drawPath(background,paint);return

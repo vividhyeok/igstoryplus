@@ -36,6 +36,7 @@ class StoryPlusTest{
         for(mode in listOf("채움","반투명","라인")){
             layer.textBackground=mode;val b=Bitmap.createBitmap(960,layout.height+64,Bitmap.Config.ARGB_8888);Artwork.textDecoration(Canvas(b),layer,b.height,layout)
             assertEquals("Joined $mode must not redraw a seam",when(mode){"채움"->255;"반투명"->166;else->0},Color.alpha(b.getPixel(480,join)))
+            if(mode!="라인"){val edge=(40+layout.getLineLeft(0)-15).toInt();assertEquals("Equal-width lines must join without a bitten-in corner",if(mode=="채움")255 else 166,Color.alpha(b.getPixel(edge,join)))}
             image(Artwork.text(c,layer),"plus-inline-background-$mode")
         }
         val editable=android.text.SpannableStringBuilder(text);val span=editable.getSpans(0,editable.length,InlineEmoji.ImageGlyph::class.java).first();editable.append(" 추가");InlineEmoji.apply(c,layer,editable)
