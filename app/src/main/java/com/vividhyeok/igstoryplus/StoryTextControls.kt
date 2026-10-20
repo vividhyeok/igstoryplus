@@ -25,7 +25,6 @@ class StoryTextControls(private val activity:Activity,private val chrome:EditorC
         chrome.top.addView(icon("더보기","텍스트 추가 설정"){advanced()},LinearLayout.LayoutParams(dp(48),-1))
         chrome.top.addView(item("완료","텍스트 완료"){session.finish(true)},LinearLayout.LayoutParams(dp(64),-1))
         chrome.bottom.addView(item("내 이모지","텍스트 개인 이모지"){customEmoji()}.apply{textSize=13f})
-        chrome.bottom.addView(item("😀","텍스트 이모지"){emoji()})
         val chips=mutableListOf<TextView>()
         EditorCatalog.text.forEach{name->
             val chip=item(if(name in EditorCatalog.storyText)when(name){"클래식"->"Aa";"모던"->"Modern";"굵게"->"Aa";"타자기"->"Aa";"네온"->"Neon";else->"Aa"} else name,"텍스트 스타일: $name"){
@@ -35,8 +34,8 @@ class StoryTextControls(private val activity:Activity,private val chrome:EditorC
         }
         val size=object:View(activity){
             private val paint=Paint(Paint.ANTI_ALIAS_FLAG)
-            override fun onDraw(c:Canvas){val x=width/2f;paint.color=0x66FFFFFF;paint.strokeWidth=dp(2).toFloat();c.drawLine(x,dp(10).toFloat(),x,height-dp(10).toFloat(),paint);paint.color=Color.WHITE;c.drawCircle(x,dp(10)+(height-dp(20))*(1-(layer.width-.2f)/.8f).coerceIn(0f,1f),dp(5).toFloat(),paint)}
-            override fun onTouchEvent(e:MotionEvent):Boolean{if(e.actionMasked==MotionEvent.ACTION_DOWN)parent.requestDisallowInterceptTouchEvent(true);layer.width=(.2f+.8f*(1-e.y/height)).coerceIn(.2f,1f);session.refresh();invalidate();if(e.actionMasked==MotionEvent.ACTION_UP)parent.requestDisallowInterceptTouchEvent(false);return true}
+            override fun onDraw(c:Canvas){val x=width/2f;paint.color=0x66FFFFFF;paint.strokeWidth=dp(2).toFloat();c.drawLine(x,dp(10).toFloat(),x,height-dp(10).toFloat(),paint);paint.color=Color.WHITE;c.drawCircle(x,dp(10)+(height-dp(20))*(1-(layer.textSizeScale-.25f)/1.55f).coerceIn(0f,1f),dp(5).toFloat(),paint)}
+            override fun onTouchEvent(e:MotionEvent):Boolean{if(e.actionMasked==MotionEvent.ACTION_DOWN)parent.requestDisallowInterceptTouchEvent(true);layer.textSizeScale=(.25f+1.55f*(1-e.y/height)).coerceIn(.25f,1.8f);session.refresh();invalidate();if(e.actionMasked==MotionEvent.ACTION_UP)parent.requestDisallowInterceptTouchEvent(false);return true}
         }.apply{contentDescription="텍스트 크기"}
         chrome.stage.addView(size,FrameLayout.LayoutParams(dp(28),dp(160),Gravity.CENTER_VERTICAL or Gravity.START).apply{leftMargin=dp(2)})
         session.auxiliary(size)
@@ -51,29 +50,13 @@ class StoryTextControls(private val activity:Activity,private val chrome:EditorC
         val strip=row();colors.forEach{color->strip.addView(item("●","텍스트 색상 $color"){layer.color=color;session.refresh()}.apply{setTextColor(color);textSize=30f})}
         tray("색상",HorizontalScrollView(activity).apply{isHorizontalScrollBarEnabled=false;addView(strip)})
     }
-    private fun emoji(){
-        val body=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL;setBackgroundColor(0xFF202024.toInt())}
-        val header=row();header.addView(item("⌨","키보드로 돌아가기"){closeTray();session.keyboard(true)})
-        header.addView(TextView(activity).apply{text="문장 안에 넣을 이모지";setTextColor(Color.LTGRAY);textSize=12f});body.addView(header)
-        val recent=activity.getSharedPreferences("settings",0).getString("textEmojiRecent","")!!.split("|").filter{it.isNotEmpty()}
-        val emojis=(recent+listOf("😀","😃","😄","😁","😆","😅","😂","🤣","😊","🥰","😍","😎","😭","🥲","🙌","👏","👍","❤️","🔥","✨","🎉","🙏","👍🏽","👩‍💻","🇰🇷")).distinct()
-        val strip=row()
-        emojis.chunked(2).forEach{pair->val column=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL};pair.forEach{emoji->column.addView(item(emoji,"문자 이모지 $emoji"){
-            session.insertEmoji(emoji);val history=(listOf(emoji)+recent.filter{it!=emoji}).take(12);activity.getSharedPreferences("settings",0).edit().putString("textEmojiRecent",history.joinToString("|")).apply()
-        }.apply{textSize=27f},LinearLayout.LayoutParams(dp(48),dp(46)))};strip.addView(column)}
-        body.addView(HorizontalScrollView(activity).apply{isHorizontalScrollBarEnabled=false;addView(strip)})
-        tray("이모지",body)
-    }
     private fun customEmoji(){
         val body=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL;setBackgroundColor(0xFF202024.toInt())}
         val header=row();header.addView(item("⌨","키보드로 돌아가기"){closeTray();session.keyboard(true)})
         header.addView(TextView(activity).apply{text="내 이모지 · 문장 안에 삽입";setTextColor(Color.LTGRAY);textSize=12f});body.addView(header)
-        val strip=row();body.addView(HorizontalScrollView(activity).apply{isHorizontalScrollBarEnabled=false;addView(strip)})
-        fun populate(items:List<EmojiItem>){
-            strip.removeAllViews();items.chunked(2).forEach{pair->val column=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL}
-                pair.forEach{emoji->column.addView(ImageView(activity).apply{contentDescription="문장 이모지: ${emoji.name}";setPadding(dp(7),dp(5),dp(7),dp(5));scaleType=ImageView.ScaleType.FIT_CENTER;setImageBitmap(InlineEmoji.bitmap(activity,emoji.uri));isFocusable=false;setOnClickListener{session.insertCustomEmoji(emoji.uri)}},LinearLayout.LayoutParams(dp(58),dp(52)))};strip.addView(column)
-            }
-        }
+        val grid=androidx.recyclerview.widget.RecyclerView(activity).apply{contentDescription="내 이모지 목록";layoutManager=androidx.recyclerview.widget.GridLayoutManager(activity,2,androidx.recyclerview.widget.RecyclerView.HORIZONTAL,false);isNestedScrollingEnabled=false}
+        body.addView(grid,LinearLayout.LayoutParams(-1,dp(152)))
+        fun populate(items:List<EmojiItem>){grid.adapter=InlineEmojiAdapter(items){session.insertCustomEmoji(it.uri)}}
         val defaults=EmojiLibrary.defaults(activity);populate(defaults);tray("개인 이모지",body)
         val path=activity.getSharedPreferences("settings",0).getString("emojiFolder",null)
         if(path!=null)Thread{val user=runCatching{EmojiFolder.scan(activity.applicationContext,android.net.Uri.parse(path)).map{EmojiLibrary.item(it)}}.getOrDefault(emptyList());activity.runOnUiThread{if(panel=="개인 이모지" && body.isAttachedToWindow)populate(defaults+user)}}.start()
@@ -83,6 +66,8 @@ class StoryTextControls(private val activity:Activity,private val chrome:EditorC
         val fonts=row();listOf("기본" to "","세리프" to "system:serif","모노" to "system:monospace").forEach{(label,font)->fonts.addView(item(label){layer.font=font;session.refresh()})};fonts.addView(item("개인 폰트"){importFont()});body.addView(fonts)
         val label=TextView(activity).apply{text="효과 강도";setTextColor(Color.LTGRAY);setPadding(dp(16),0,0,0)};body.addView(label)
         body.addView(SeekBar(activity).apply{max=100;progress=(layer.emphasis*100).toInt();setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{override fun onStartTrackingTouch(s:SeekBar){};override fun onStopTrackingTouch(s:SeekBar){};override fun onProgressChanged(s:SeekBar,v:Int,user:Boolean){if(user){layer.emphasis=v/100f;session.refresh()}}})},LinearLayout.LayoutParams(-1,dp(48)))
+        body.addView(TextView(activity).apply{text="줄 너비 · 글자 크기는 유지";setTextColor(Color.WHITE);setPadding(dp(16),dp(8),0,0)})
+        body.addView(SeekBar(activity).apply{contentDescription="텍스트 줄 너비";max=100;progress=((layer.width-.25f)/.7f*100).toInt().coerceIn(0,100);setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{override fun onStartTrackingTouch(s:SeekBar){};override fun onStopTrackingTouch(s:SeekBar){};override fun onProgressChanged(s:SeekBar,v:Int,user:Boolean){if(user){layer.width=.25f+.7f*v/100f;session.refresh()}}})},LinearLayout.LayoutParams(-1,dp(48)))
         tray("설정",body)
     }
 }

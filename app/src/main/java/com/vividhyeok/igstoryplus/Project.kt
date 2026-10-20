@@ -11,7 +11,7 @@ data class Style(var name: String = "Simple", var amount: Float = .25f, var moti
                  var blur: Float = .55f, var brightness: Float = .75f, var warmth: Float = 0f,
                  var speed: Float = 1f, var scope: Float = .75f, var beat: Float = 0f,
                  var region:String="가장자리",var centerX:Float=.5f,var centerY:Float=.5f,
-                 var reaction:String="빛 반응",var auraColor:Int=0xFF98B8CF.toInt(),var reactionTarget:String="기존")
+                 var reaction:String="빛 반응",var auraColor:Int=0xFF98B8CF.toInt(),var reactionTarget:String="기존",var videoFilters:Boolean=false)
 
 data class PhotoPose(var x:Float=.5f,var y:Float=.5f,var scale:Float=1f,var rotation:Float=0f)
 data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String = "photo", var uri: String = "",
@@ -22,7 +22,7 @@ data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String
                  var crop: Crop = Crop(), var textLayoutVersion: Int = 0,
                  var photoStyle:Style?=null,var motionStyle:String="기본",var motionAmount:Float=.4f,
                  var textBackground:String="기존",var inlineEmoji:MutableMap<String,String> = mutableMapOf(),
-                 var accent:String="없음",var accentAmount:Float=.5f,var beatMotion:Boolean=false,var locked:Boolean=false)
+                 var accent:String="없음",var accentAmount:Float=.5f,var beatMotion:Boolean=false,var locked:Boolean=false,var textSizeScale:Float=1f)
 data class Music(var uri: String = "", var title: String = "", var artist: String = "", var album: String = "",
                  var art: String = "", var durationMs: Long = 0, var startMs: Long = 0, var card: String = "스토리", var volume: Float = 1f,
                  var loop:Boolean=false)

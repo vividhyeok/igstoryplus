@@ -89,7 +89,7 @@ class Exporter(private val context: Context) {
         fun baseEffects(c:Context,p:Project,beats:FloatArray=floatArrayOf(),preview:Boolean=false,foreground:Bitmap?=null):List<Effect> {
             val effects=mutableListOf<Effect>()
             if(p.video){effects+=FrameDropEffect.createDefaultFrameDropEffect(30f);effects+=ScaleAndRotateTransformation.Builder().setRotationDegrees(-p.crop.rotation).setScale(if(p.crop.flip)-1f else 1f,1f).build();effects+=videoCrop(c,p)}
-            effects+=Presentation.createForWidthAndHeight(if(preview)540 else 1080,if(preview)960 else 1920,Presentation.LAYOUT_SCALE_TO_FIT)
+            effects+=Presentation.createForWidthAndHeight(if(preview && !p.video)540 else 1080,if(preview && !p.video)960 else 1920,Presentation.LAYOUT_SCALE_TO_FIT)
             effects+=StyleEffect(p.style,p.durationMs(),beats,foreground,p.pose.copy(),p.video)
             return effects
         }

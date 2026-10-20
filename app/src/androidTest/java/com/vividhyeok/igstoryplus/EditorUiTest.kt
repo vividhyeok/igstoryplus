@@ -122,7 +122,7 @@ class EditorUiTest {
     }
     @Test fun bundledEmojiWorkWithoutFolderGrantAndRestore(){
         Store(context).clearTextEdit();context.getSharedPreferences("settings",0).edit().remove("emojiFolder").commit()
-        val items=EmojiLibrary.defaults(context);assertEquals(10,items.size);assertEquals(10,items.map{it.uri}.distinct().size)
+        val items=EmojiLibrary.defaults(context);assertEquals(29,items.size);assertEquals(29,items.map{it.uri}.distinct().size)
         items.forEach{val bitmap=Artwork.decode(context,it.uri);assertEquals(512,bitmap.width);assertEquals(512,bitmap.height);assertEquals(0,Color.alpha(bitmap.getPixel(0,0)))}
         Store(context).save(Project(source=fixtureStory()))
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
@@ -318,7 +318,7 @@ class EditorUiTest {
             SystemClock.sleep(300) // Wait for the real IME surface to leave before tapping the moved toolbar.
             onView(withContentDescription("텍스트 정렬")).perform(click())
             onView(withText("완료")).perform(click())
-            liveActivity{assertEquals("최종 문구",it.project.layers.single().text);assertEquals(1,it.project.layers.single().textLayoutVersion)}
+            liveActivity{assertEquals("최종 문구",it.project.layers.single().text);assertEquals(2,it.project.layers.single().textLayoutVersion)}
             onView(withContentDescription("실행 취소")).perform(click())
             liveActivity{assertEquals("이전 문구",it.project.layers.single().text);it.project=Project();Store(context).save(it.project)}
         }

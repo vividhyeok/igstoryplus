@@ -74,7 +74,7 @@ class StoryPlusTest{
             onView(withText("위치 잠금 · 레이어 목록에서 해제 가능")).perform(click());onView(withText("게시 UI 여백 안내 · 출력에는 포함 안 됨")).perform(click())
             onView(withContentDescription("시트 완료")).perform(click());onView(withContentDescription("photo 레이어")).perform(swipeLeft());activity{assertEquals(.5f,it.project.layers.single().x,.001f);assertTrue(it.project.layers.single().locked)}
             onView(withContentDescription("배치")).perform(click());onView(withText("위치 잠금 · 레이어 목록에서 해제 가능")).perform(click());onView(withContentDescription("시트 완료")).perform(click())
-            onView(withContentDescription("플러스")).perform(click());onView(withText("하트 글리터")).perform(click());activity{assertEquals("하트 글리터",it.project.layers.single().accent)}
+            onView(withContentDescription("플러스")).perform(click());onView(withText("하트")).perform(click());activity{assertEquals("하트 글리터",it.project.layers.single().accent)}
             onView(withContentDescription("시트 완료")).perform(click());SystemClock.sleep(500);image(ins.uiAutomation.takeScreenshot(),"plus-arrange-ui")
         }
     }

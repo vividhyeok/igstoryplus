@@ -15,22 +15,25 @@ class StylePicker(private val activity:Activity,private val project:()->Project,
         val row=LinearLayout(activity);val images=linkedMapOf<String,ImageView>()
         val names=EditorCatalog.photos
         var refreshThumbnails:()->Unit={}
+        var selectionChanged:()->Unit={}
         var dialog:EditorDock?=null
         fun border(name:String)=GradientDrawable().apply{setColor(0xFF343438.toInt());cornerRadius=dp(10).toFloat();setStroke(dp(2),if(project().style.name==name)Color.WHITE else Color.TRANSPARENT)}
         names.forEach{name->
             val tile=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(4),dp(4),dp(4),dp(4));background=border(name)}
             val image=ImageView(activity).apply{scaleType=ImageView.ScaleType.CENTER_CROP;contentDescription="사진 스타일: $name"}
             images[name]=image;tile.addView(image,LinearLayout.LayoutParams(dp(82),dp(126)))
-            tile.addView(TextView(activity).apply{text=name;textSize=11f;setTextColor(Color.WHITE);gravity=Gravity.CENTER;minHeight=dp(32)})
-            image.setOnClickListener{checkpoint();project().style.name=name;names.forEachIndexed{i,n->row.getChildAt(i).background=border(n)};update();save()}
+            tile.addView(TextView(activity).apply{text=EditorCatalog.photoLabel(name);textSize=11f;setTextColor(Color.WHITE);gravity=Gravity.CENTER;minHeight=dp(32)})
+            image.setOnClickListener{checkpoint();project().style.name=name;if(name in listOf("Clean","Warm Film","Soft Fade","Mono","Cool Night"))project().style.amount=if(name=="Mono")1f else .65f;if(project().video)project().style.videoFilters=name!="Simple";if(name!="Simple" && project().style.amount==0f)project().style.amount=.6f;names.forEachIndexed{i,n->row.getChildAt(i).background=border(n)};selectionChanged();update();save()}
             row.addView(tile,LinearLayout.LayoutParams(-2,-2).apply{rightMargin=dp(6)})
         }
         box.addView(HorizontalScrollView(activity).apply{isHorizontalScrollBarEnabled=false;addView(row)})
-        val label=TextView(activity).apply{text="강도";setTextColor(Color.LTGRAY);minHeight=dp(32)};box.addView(label)
-        box.addView(SeekBar(activity).apply{contentDescription="사진 스타일 강도";max=100;progress=(project().style.amount*100).toInt();setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{
+        val label=TextView(activity).apply{text="강도 ${(project().style.amount*100).toInt()}%";setTextColor(Color.LTGRAY);minHeight=dp(32)};box.addView(label)
+        val strength=SeekBar(activity).apply{contentDescription="사진 스타일 강도";max=100;progress=(project().style.amount*100).toInt();setOnSeekBarChangeListener(object:SeekBar.OnSeekBarChangeListener{
             override fun onStartTrackingTouch(s:SeekBar){checkpoint()};override fun onStopTrackingTouch(s:SeekBar){save();refreshThumbnails()}
             override fun onProgressChanged(s:SeekBar,p:Int,user:Boolean){if(user){project().style.amount=p/100f;label.text="강도 $p%";update()}}
-        })},LinearLayout.LayoutParams(-1,dp(48)))
+        })}
+        box.addView(strength,LinearLayout.LayoutParams(-1,dp(48)))
+        selectionChanged={strength.progress=(project().style.amount*100).toInt();label.text="강도 ${strength.progress}%";refreshThumbnails()}
         box.addView(Switch(activity).apply{text="움직임";setTextColor(Color.WHITE);minHeight=dp(48);isChecked=project().style.motion;setOnCheckedChangeListener{_,enabled->checkpoint();project().style.motion=enabled;update();save();if(enabled)motion()}})
         val actions=LinearLayout(activity)
         fun action(text:String,run:()->Unit)=TextView(activity).apply{this.text=text;setTextColor(Color.WHITE);gravity=Gravity.CENTER;minHeight=dp(48);isFocusable=true;setOnClickListener{run()}}

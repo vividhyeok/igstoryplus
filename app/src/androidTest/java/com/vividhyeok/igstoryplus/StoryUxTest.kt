@@ -59,8 +59,9 @@ class StoryUxTest{
             onView(withContentDescription("텍스트")).perform(click())
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("오늘 😀 좋은 날"))
             activity{a->a.window.decorView.findViewWithTag<EditText>("canvas-text-input").setSelection(3,5)}
-            onView(withContentDescription("텍스트 이모지")).perform(click());SystemClock.sleep(400)
-            onView(withContentDescription("문자 이모지 😃")).perform(click())
+            activity{a->val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input");input.onCreateInputConnection(android.view.inputmethod.EditorInfo())!!.commitText("😃",1)}
+            onView(withContentDescription("텍스트 이모지")).check(androidx.test.espresso.assertion.ViewAssertions.doesNotExist())
+            onView(withContentDescription("텍스트 개인 이모지")).perform(click());SystemClock.sleep(300)
             activity{a->val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input");assertEquals("오늘 😃 좋은 날",input.text.toString());assertEquals(5,input.selectionStart);assertTrue(a.project.layers.isEmpty())}
             onView(withContentDescription("텍스트 배경")).perform(click())
             onView(withContentDescription("텍스트 스타일: 굵게")).perform(click())

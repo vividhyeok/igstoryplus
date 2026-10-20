@@ -37,6 +37,7 @@ object Artwork {
         val out = Bitmap.createBitmap(width, width*16/9, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(out); canvas.drawColor(Color.rgb(25,25,28))
         if (p.source.isBlank()) return out
+        if(p.video && !drawPhoto){bounds(RectF(0f,0f,1f,1f));return out}
         val raw = if (p.video) videoFrame(c, p.source) else decode(c, p.source,if(width>=1080)(2048*p.crop.zoom).toInt().coerceAtMost(4096) else 1536)
         val b = cropped(raw, p.crop)
         val small = Bitmap.createBitmap(54,96,Bitmap.Config.ARGB_8888)
@@ -44,7 +45,7 @@ object Artwork {
         val bgWidth=b.width*bgScale;val bgHeight=b.height*bgScale
         Canvas(small).drawBitmap(b,null,RectF((54-bgWidth)/2,(96-bgHeight)/2,(54+bgWidth)/2,(96+bgHeight)/2),Paint(Paint.FILTER_BITMAP_FLAG))
         val pix = IntArray(54*96); small.getPixels(pix,0,54,0,0,54,96)
-        val radius = (p.style.blur*8).toInt().coerceAtLeast(0)
+        val radius = if(p.video)0 else (p.style.blur*8).toInt().coerceAtLeast(0)
         if (radius > 0) {
             repeat(2) {
                 val tmp = pix.copyOf()
@@ -62,7 +63,7 @@ object Artwork {
         val paint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         val brightness=p.style.brightness
         paint.colorFilter=ColorMatrixColorFilter(ColorMatrix(floatArrayOf(brightness,0f,0f,0f,p.style.warmth*15, 0f,brightness,0f,0f,0f, 0f,0f,brightness,0f,-p.style.warmth*15, 0f,0f,0f,1f,0f)))
-        canvas.drawBitmap(small,null,Rect(0,0,out.width,out.height),paint)
+        if(!p.video)canvas.drawBitmap(small,null,Rect(0,0,out.width,out.height),paint)
         paint.colorFilter=null
         val s=min(out.width.toFloat()/b.width,out.height.toFloat()/b.height)
         val w=b.width*s; val h=b.height*s
@@ -83,26 +84,27 @@ object Artwork {
         else -> text(c,l)
     }
     fun typeface(l:Layer):Typeface = if(l.font.startsWith("system:"))Typeface.create(l.font.removePrefix("system:"),Typeface.NORMAL) else if(l.font.isNotBlank()) runCatching { Typeface.createFromFile(l.font) }.getOrDefault(Typeface.DEFAULT) else Typeface.create(when(l.type){"Whisper","Margin Note","네온"->"sans-serif-light";"Mono Stamp","타자기"->"monospace";"Editorial Serif"->"serif";"모던"->"sans-serif-condensed";"굵게"->"sans-serif-black";else->"sans-serif-medium"},if(l.type=="굵게")Typeface.BOLD_ITALIC else Typeface.NORMAL)
-    fun textSize(l:Layer)=(if(l.textLayoutVersion>0)88f else 58f)*when(l.type){"Film Caption"->.73f;"Mono Stamp"->.86f;"Editorial Serif"->1.18f;"Margin Note"->.82f;else->1f}
+    fun textSize(l:Layer)=(if(l.textLayoutVersion>0)88f else 58f)*TextGeometry.factor(l)*when(l.type){"Film Caption"->.73f;"Mono Stamp"->.86f;"Editorial Serif"->1.18f;"Margin Note"->.82f;else->1f}
     fun letterSpacing(l:Layer)=when(l.type){"Whisper"->.13f;"Mono Stamp"->.09f;"Film Caption"->.035f;"Editorial Serif"->.002f;else->.015f}
     fun textInk(l:Layer):Int=if(l.textBackground=="채움"){if(Color.red(l.color)*.2126+Color.green(l.color)*.7152+Color.blue(l.color)*.0722>150)Color.BLACK else Color.WHITE}else l.color
     fun textDecoration(canvas:Canvas,l:Layer,height:Int,layout:Layout?=null){
         val paint=Paint(Paint.ANTI_ALIAS_FLAG)
+        val f=TextGeometry.factor(l);val px=TextGeometry.horizontalPadding(l);val py=TextGeometry.verticalPadding(l);val radius=14*f
         if(l.textBackground!="기존"){
             if(l.textBackground=="없음" || layout==null)return
             paint.color=if(l.textBackground=="반투명")0xA6000000.toInt() else l.color
-            if(l.textBackground=="라인"){paint.style=Paint.Style.STROKE;paint.strokeWidth=3f}
+            if(l.textBackground=="라인"){paint.style=Paint.Style.STROKE;paint.strokeWidth=3f*f}
             val background=Path()
             var previous:RectF?=null;var previousLine=-2
             for(line in 0 until layout.lineCount){
                 if(layout.text.subSequence(layout.getLineStart(line),layout.getLineEnd(line)).isBlank())continue
                 if(layout.getLineRight(line)-layout.getLineLeft(line)<1f)continue
-                val rect=RectF(40+layout.getLineLeft(line)-16,32+layout.getLineTop(line)-3f,40+layout.getLineRight(line)+16,32+layout.getLineBottom(line)+3f)
-                val row=Path().apply{addRoundRect(rect,14f,14f,Path.Direction.CW)}
+                val rect=RectF(px+layout.getLineLeft(line)-16*f,py+layout.getLineTop(line)-3*f,px+layout.getLineRight(line)+16*f,py+layout.getLineBottom(line)+3*f)
+                val row=Path().apply{addRoundRect(rect,radius,radius,Path.Direction.CW)}
                 background.op(row,Path.Op.UNION)
                 previous?.takeIf{line==previousLine+1}?.let{above->
                     val left=maxOf(above.left,rect.left);val right=minOf(above.right,rect.right)
-                    if(right>left)background.op(Path().apply{addRect(left,above.bottom-14f,right,rect.top+14f,Path.Direction.CW)},Path.Op.UNION)
+                    if(right>left)background.op(Path().apply{addRect(left,above.bottom-radius,right,rect.top+radius,Path.Direction.CW)},Path.Op.UNION)
                 }
                 previous=rect;previousLine=line
             }
@@ -122,19 +124,20 @@ object Artwork {
             typeface=typeface(l)
             letterSpacing=letterSpacing(l)
             if(l.type=="Film Caption")setShadowLayer(4f,0f,2f,Color.BLACK)
-            if(l.type=="네온")setShadowLayer(18f,0f,0f,l.color)
+            if(l.type=="네온")setShadowLayer(18f*TextGeometry.factor(l),0f,0f,l.color)
         }
         val text=InlineEmoji.styled(c,l)
-        val layout=StaticLayout.Builder.obtain(text,0,text.length,p,880).setAlignment(when(l.align){0->Layout.Alignment.ALIGN_NORMAL;2->Layout.Alignment.ALIGN_OPPOSITE;else->Layout.Alignment.ALIGN_CENTER}).setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE).setIncludePad(true).build()
-        val b=Bitmap.createBitmap(960,layout.height+64,Bitmap.Config.ARGB_8888); val canvas=Canvas(b)
+        val px=TextGeometry.horizontalPadding(l);val py=TextGeometry.verticalPadding(l)
+        val layout=StaticLayout.Builder.obtain(text,0,text.length,p,960-px*2).setAlignment(when(l.align){0->Layout.Alignment.ALIGN_NORMAL;2->Layout.Alignment.ALIGN_OPPOSITE;else->Layout.Alignment.ALIGN_CENTER}).setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE).setIncludePad(true).setUseLineSpacingFromFallbacks(false).build()
+        val b=Bitmap.createBitmap(960,layout.height+py*2,Bitmap.Config.ARGB_8888); val canvas=Canvas(b)
         textDecoration(canvas,l,b.height,layout)
-        canvas.translate(40f,32f)
+        canvas.translate(px.toFloat(),py.toFloat())
         if(l.textLayoutVersion>0 && (l.type=="Offset Type" || l.type=="Echo Type")) p.setShadowLayer(if(l.type=="Echo Type")2f else .01f,2+l.emphasis*7,2+l.emphasis*5,Color.argb((l.emphasis*100).toInt(),Color.red(l.color),Color.green(l.color),Color.blue(l.color)))
         if(l.textLayoutVersion==0 && (l.type=="Offset Type" || l.type=="Echo Type")) {
             canvas.save(); canvas.translate(2+l.emphasis*7,2+l.emphasis*5); p.alpha=(l.emphasis*100).toInt(); layout.draw(canvas); canvas.restore(); p.alpha=255
         }
         if(l.type=="Whisper") p.alpha=220
-        if(l.type=="외곽선"){val ink=p.color;p.style=Paint.Style.STROKE;p.strokeWidth=7f;p.color=Color.BLACK;layout.draw(canvas);p.style=Paint.Style.FILL;p.color=ink}
+        if(l.type=="외곽선"){val ink=p.color;p.style=Paint.Style.STROKE;p.strokeWidth=7f*TextGeometry.factor(l);p.color=Color.BLACK;layout.draw(canvas);p.style=Paint.Style.FILL;p.color=ink}
         layout.draw(canvas); return if(l.textLayoutVersion>0)b else trimAlpha(b)
     }
     fun musicCard(c: Context, m: Music, l: Layer): Bitmap {

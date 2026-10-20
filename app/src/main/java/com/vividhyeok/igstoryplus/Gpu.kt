@@ -106,7 +106,12 @@ class GpuProgram {
                 float dose=uAmount*(.035+.08*(1.-lum)*(1.-lum));
                 col.rgb+=fine*dose+vec3(coarse,-coarse*.3,coarse*.6)*dose*.35;
             }
-            if(uStyle>8.5){vec2 offset=vec2(.006,.0018)*uAmount*(1.+.2*sin(phase));col.rgb=mix(col.rgb,readAt(uv-offset).rgb,.21*uAmount*(.3+.7*edge));}
+            if(uStyle>8.5&&uStyle<9.5){vec2 offset=vec2(.006,.0018)*uAmount*(1.+.2*sin(phase));col.rgb=mix(col.rgb,readAt(uv-offset).rgb,.21*uAmount*(.3+.7*edge));}
+            if(uStyle>9.5&&uStyle<10.5){vec3 clean=(col.rgb-.5)*1.09+.52;col.rgb=mix(col.rgb,clean,uAmount);}
+            if(uStyle>10.5&&uStyle<11.5){vec3 warm=pow(max(col.rgb,vec3(0.)),vec3(.94,1.01,1.10));warm=(warm-.5)*1.06+.51;col.rgb=mix(col.rgb,warm,uAmount);}
+            if(uStyle>11.5&&uStyle<12.5){vec3 fade=col.rgb*.84+vec3(.09,.075,.07);col.rgb=mix(col.rgb,fade,uAmount);}
+            if(uStyle>12.5&&uStyle<13.5){vec3 mono=vec3((lum-.5)*1.14+.5);col.rgb=mix(col.rgb,mono,uAmount);}
+            if(uStyle>13.5){vec3 cool=col.rgb*vec3(.94,1.01,1.09)+vec3(-.005,0.,.015);cool=(cool-.5)*1.05+.5;col.rgb=mix(col.rgb,cool,uAmount);}
             float background=1.;if(uCompose>.5){vec2 q=localPhoto(uv);if(q.x>=0.&&q.x<=1.&&q.y>=0.&&q.y<=1.)background=0.;}
             if(uFramePose>.5)background=0.;
             float target=(uReactionTarget>.5&&uReactionTarget<1.5)?background:1.;
@@ -128,21 +133,22 @@ class GpuProgram {
     }
     private val vertices=ByteBuffer.allocateDirect(32).order(ByteOrder.nativeOrder()).asFloatBuffer().apply { put(floatArrayOf(-1f,-1f,1f,-1f,-1f,1f,1f,1f)); position(0) }
     fun draw(texture: Int, s: Style, phase: Float, flip: Boolean, beat: Float=0f,photo:Int=0,pose:PhotoPose=PhotoPose(),photoWidth:Float=1f,photoHeight:Float=1f,framePose:Boolean=false) {
+        val applied=if(framePose && !s.videoFilters)s.copy(name="Simple",amount=0f,motion=false)else s
         GLES20.glUseProgram(program); GLES20.glActiveTexture(GLES20.GL_TEXTURE0); GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,texture)
         GLES20.glUniform1i(GLES20.glGetUniformLocation(program,"uTex"),0)
         GLES20.glActiveTexture(GLES20.GL_TEXTURE1);GLES20.glBindTexture(GLES20.GL_TEXTURE_2D,if(photo!=0)photo else texture)
         GLES20.glUniform1i(GLES20.glGetUniformLocation(program,"uPhoto"),1)
         GLES20.glUniform2f(GLES20.glGetUniformLocation(program,"uPhotoSize"),photoWidth,photoHeight)
         GLES20.glUniform2f(GLES20.glGetUniformLocation(program,"uPosition"),pose.x,if(flip)pose.y else 1-pose.y)
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(program,"uCenter"),s.centerX,if(flip)s.centerY else 1-s.centerY)
+        GLES20.glUniform2f(GLES20.glGetUniformLocation(program,"uCenter"),applied.centerX,if(flip)applied.centerY else 1-applied.centerY)
         fun uniform(n: String,v: Float)=GLES20.glUniform1f(GLES20.glGetUniformLocation(program,n),v)
-        uniform("uPhase",if(s.motion)phase*s.speed.roundToInt().coerceIn(1,3) else 0f); uniform("uMotion",if(s.motion)1f else 0f)
-        uniform("uReaction",when(s.reaction){"Ambient Breathing"->1f;"Album Aura"->2f;"Music Dot"->3f;else->0f})
-        uniform("uReactionTarget",when(s.reactionTarget){"배경만"->1f;"원본 화면 전체"->2f;else->0f})
-        GLES20.glUniform3f(GLES20.glGetUniformLocation(program,"uAura"),android.graphics.Color.red(s.auraColor)/255f,android.graphics.Color.green(s.auraColor)/255f,android.graphics.Color.blue(s.auraColor)/255f)
-        uniform("uAmount",s.amount); uniform("uScope",s.scope); uniform("uFlip",if(flip)1f else 0f); uniform("uGlow",s.beat*beat)
-        uniform("uFramePose",if(framePose)1f else 0f);uniform("uCompose",if(photo!=0)1f else 0f);uniform("uScale",pose.scale);uniform("uAngle",pose.rotation*PI.toFloat()/180*(if(flip)1 else -1));uniform("uRegion",when(s.region){"전체"->0f;"배경 중심"->2f;else->1f})
-        uniform("uStyle",EditorCatalog.photos.indexOf(s.name).toFloat())
+        uniform("uPhase",if(applied.motion)phase*applied.speed.roundToInt().coerceIn(1,3) else 0f); uniform("uMotion",if(applied.motion)1f else 0f)
+        uniform("uReaction",when(applied.reaction){"Ambient Breathing"->1f;"Album Aura"->2f;"Music Dot"->3f;else->0f})
+        uniform("uReactionTarget",when(applied.reactionTarget){"배경만"->1f;"원본 화면 전체"->2f;else->0f})
+        GLES20.glUniform3f(GLES20.glGetUniformLocation(program,"uAura"),android.graphics.Color.red(applied.auraColor)/255f,android.graphics.Color.green(applied.auraColor)/255f,android.graphics.Color.blue(applied.auraColor)/255f)
+        uniform("uAmount",applied.amount); uniform("uScope",applied.scope); uniform("uFlip",if(flip)1f else 0f); uniform("uGlow",applied.beat*beat)
+        uniform("uFramePose",if(framePose)1f else 0f);uniform("uCompose",if(photo!=0)1f else 0f);uniform("uScale",pose.scale);uniform("uAngle",pose.rotation*PI.toFloat()/180*(if(flip)1 else -1));uniform("uRegion",when(applied.region){"전체"->0f;"배경 중심"->2f;else->1f})
+        uniform("uStyle",EditorCatalog.photoCode(applied.name).toFloat())
         val a=GLES20.glGetAttribLocation(program,"aPos"); GLES20.glEnableVertexAttribArray(a); GLES20.glVertexAttribPointer(a,2,GLES20.GL_FLOAT,false,0,vertices)
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP,0,4); GLES20.glDisableVertexAttribArray(a)
     }
@@ -189,7 +195,7 @@ class LivePhoto(context: Context) : GLSurfaceView(context), GLSurfaceView.Render
 fun filteredBitmap(b: Bitmap, style: Style, foreground:Bitmap?=null,pose:PhotoPose=PhotoPose()): Bitmap {
     return filteredBitmaps(b,listOf(style),foreground,pose).single()
 }
-fun filteredBitmaps(b:Bitmap,styles:List<Style>,foreground:Bitmap?=null,pose:PhotoPose=PhotoPose(),beat:Float=0f,phase:Float=0f,ready:(Int,Bitmap)->Unit={_,_->}):List<Bitmap>{
+fun filteredBitmaps(b:Bitmap,styles:List<Style>,foreground:Bitmap?=null,pose:PhotoPose=PhotoPose(),beat:Float=0f,phase:Float=0f,video:Boolean=false,ready:(Int,Bitmap)->Unit={_,_->}):List<Bitmap>{
     val display=EGL14.eglGetDisplay(EGL14.EGL_DEFAULT_DISPLAY); val versions=IntArray(2); check(EGL14.eglInitialize(display,versions,0,versions,1))
     val configs=arrayOfNulls<android.opengl.EGLConfig>(1); val count=IntArray(1)
     EGL14.eglChooseConfig(display,intArrayOf(EGL14.EGL_RENDERABLE_TYPE,EGL14.EGL_OPENGL_ES2_BIT,EGL14.EGL_SURFACE_TYPE,EGL14.EGL_PBUFFER_BIT,EGL14.EGL_RED_SIZE,8,EGL14.EGL_GREEN_SIZE,8,EGL14.EGL_BLUE_SIZE,8,EGL14.EGL_ALPHA_SIZE,8,EGL14.EGL_NONE),0,configs,0,1,count,0)
@@ -201,7 +207,7 @@ fun filteredBitmaps(b:Bitmap,styles:List<Style>,foreground:Bitmap?=null,pose:Pho
         val program=GpuProgram()
         val results=styles.mapIndexed{index,style->
         check(!Thread.currentThread().isInterrupted)
-        program.draw(tex,style,phase,true,beat=beat,photo=photo,pose=pose,photoWidth=foreground?.let{it.width*scale/b.width}?:1f,photoHeight=foreground?.let{it.height*scale/b.height}?:1f)
+        program.draw(tex,style,phase,true,beat=beat,photo=photo,pose=pose,photoWidth=foreground?.let{it.width*scale/b.width}?:1f,photoHeight=foreground?.let{it.height*scale/b.height}?:1f,framePose=video)
         val buffer=ByteBuffer.allocateDirect(b.width*b.height*4); GLES20.glReadPixels(0,0,b.width,b.height,GLES20.GL_RGBA,GLES20.GL_UNSIGNED_BYTE,buffer)
         val raw=Bitmap.createBitmap(b.width,b.height,Bitmap.Config.ARGB_8888); buffer.rewind(); raw.copyPixelsFromBuffer(buffer)
         val out=Bitmap.createBitmap(raw,0,0,b.width,b.height,android.graphics.Matrix().apply{postScale(1f,-1f)},true)

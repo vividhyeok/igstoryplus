@@ -210,7 +210,7 @@ class MainActivity : AppCompatActivity() {
             "layer"->edit{project.layers.add(Layer(uri=uri.toString()));selected=project.layers.last().id}
             else->{
                 val mime=contentResolver.getType(uri)?:if(uri.toString().endsWith(".mp4"))"video/mp4" else "image/jpeg"
-                edit{project.source=uri.toString();project.video=mime.startsWith("video");project.crop=Crop();project.pose=PhotoPose();if(project.video){
+                edit{project.source=uri.toString();project.video=mime.startsWith("video");project.crop=Crop();project.pose=PhotoPose();if(project.video){project.style.videoFilters=false;project.style.name="Simple";project.style.motion=false;
                     val r=MediaMetadataRetriever();try{r.setDataSource(this,uri);project.sourceDurationMs=(r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()?:5000).coerceAtMost(60000)}finally{r.release()}
                 }}
             }
@@ -229,6 +229,7 @@ class MainActivity : AppCompatActivity() {
         else if(project.source!=requestedPhoto){requestedPhoto=project.source;live.expectPhoto();photoLoading.visibility=if(project.video)View.GONE else View.VISIBLE}
         live.style=project.style.copy();live.durationMs=project.durationMs()
         live.pose=project.pose.copy()
+        live.visibility=if(project.video)View.GONE else View.VISIBLE
         if(project.video && project.source.isNotBlank())runCatching{
             videoView.visibility=View.VISIBLE
             val player=editingPlayer?:ExoPlayer.Builder(this).build().also{editingPlayer=it;videoView.player=it;it.volume=0f;it.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE}
@@ -436,7 +437,7 @@ class MainActivity : AppCompatActivity() {
         chrome.play.visibility=View.GONE
         val l=pending?:existing?.copy(crop=existing.crop.copy(),inlineEmoji=existing.inlineEmoji.toMutableMap())?:run{val y=listOf(.5f,.32f,.68f).firstOrNull{candidate->project.layers.none{it.kind=="text" && abs(it.y-candidate)<.13f}}?:.5f;Layer(kind="text",text="",type="클래식",textBackground="없음",width=.8f,y=y)}
         // Legacy text keeps its original bitmap geometry until the user explicitly commits an edit.
-        l.textLayoutVersion=1
+        if(existing==null && pending==null)l.textLayoutVersion=2 else {TextGeometry.migrate(l);if(l.textBackground=="기존")l.textBackground=if(l.type in listOf("Soft Label","Mono Stamp"))"반투명" else "없음"}
         existing?.let{layerViews[it.id]?.visibility=View.INVISIBLE}
         textSession=CanvasTextEditor(this,canvasBox,l,{draft->store.saveTextEdit(existing?.id,draft)}){commit,draft->
             textSession=null
@@ -454,10 +455,10 @@ class MainActivity : AppCompatActivity() {
         textTools()
     }
     private fun textTools(){textSession?.let{StoryTextControls(this,chrome,it){pick("font-edit",arrayOf("font/*","application/octet-stream"))}.show()}}
-    private fun emojiLibrary(filter:String=if(prefs.getString("emojiFolder",null)==null)"기본 이모지" else "내 폴더"){
+    private fun emojiLibrary(filter:String="내 이모지"){
         val path=prefs.getString("emojiFolder",null)
         val box=column();var dialog:android.app.Dialog?=null;var all=emptyList<EmojiItem>();var category="전체"
-        val tabs=row();listOf("기본 이모지","내 폴더","최근 사용","즐겨찾기").forEach{tab->tabs.addView(button(tab){dialog?.dismiss();emojiLibrary(tab)}.apply{alpha=if(filter==tab)1f else .5f})};box.addView(scrollRow(tabs))
+        val tabs=row();listOf("내 이모지","내 폴더","최근 사용","즐겨찾기").forEach{tab->tabs.addView(button(tab){dialog?.dismiss();emojiLibrary(tab)}.apply{alpha=if(filter==tab)1f else .5f})};box.addView(scrollRow(tabs))
         val search=EditText(this).apply{hint="이모지 검색";contentDescription="이모지 검색";setSingleLine(true);setTextColor(Color.WHITE);setHintTextColor(Color.GRAY)};box.addView(search)
         val categories=row();box.addView(scrollRow(categories))
         val actions=row();actions.addView(button("새로고침"){dialog?.dismiss();emojiLibrary(filter)});actions.addView(button("폴더 변경"){dialog?.dismiss();folderPicker.launch(null)});box.addView(actions)
@@ -466,7 +467,7 @@ class MainActivity : AppCompatActivity() {
         fun populate(){
             val fav=prefs.getStringSet("favorites",emptySet())?:emptySet();val recent=prefs.getString("recent","")!!.split("|")
             val query=search.text.toString().trim()
-            val shown=all.filter{when(filter){"기본 이모지"->EmojiLibrary.bundled(it.uri);"내 폴더"->!EmojiLibrary.bundled(it.uri);"최근 사용"->it.uri in recent;else->it.uri in fav}}
+            val shown=all.filter{when(filter){"내 이모지"->true;"내 폴더"->!EmojiLibrary.bundled(it.uri);"최근 사용"->it.uri in recent;else->it.uri in fav}}
                 .filter{(category=="전체" || it.category==category) && (query.isBlank() || "${it.name} ${it.category} ${it.keywords}".contains(query,true))}
                 .sortedWith(compareByDescending<EmojiItem>{it.uri in fav}.thenBy{recent.indexOf(it.uri).let{i->if(i<0)999 else i}}.thenBy{it.name})
             loading.text=if(shown.isEmpty())if(filter=="내 폴더" && path==null)"폴더 변경을 눌러 내 PNG 폴더를 연결하세요" else "검색 결과가 없습니다 · 길게 눌러 즐겨찾기" else "${shown.size}개 · 길게 눌러 즐겨찾기"

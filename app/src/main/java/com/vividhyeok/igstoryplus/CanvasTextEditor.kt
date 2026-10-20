@@ -18,7 +18,7 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
         override fun onDraw(c: Canvas) {
             // Same 960px reference layout and decoration as Artwork.text().
             c.save();c.translate(-scrollX.toFloat(),-scrollY.toFloat());Artwork.textDecoration(c,draft,height,layout);c.restore()
-            if(draft.type=="외곽선"){val ink=paint.color;paint.style=Paint.Style.STROKE;paint.strokeWidth=7f;paint.color=Color.BLACK;super.onDraw(c);paint.style=Paint.Style.FILL;paint.color=ink}
+            if(draft.type=="외곽선"){val ink=paint.color;paint.style=Paint.Style.STROKE;paint.strokeWidth=7f*TextGeometry.factor(draft);paint.color=Color.BLACK;super.onDraw(c);paint.style=Paint.Style.FILL;paint.color=ink}
             super.onDraw(c)
         }
     }
@@ -32,7 +32,7 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
             setFallbackLineSpacing(false)
             inputType=android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             imeOptions=android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI or android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
-            setSingleLine(false); setSelectAllOnFocus(false); minWidth=0; minimumWidth=0
+            setSingleLine(false); setSelectAllOnFocus(false); minWidth=0; minimumWidth=0;minHeight=0;minimumHeight=0
             setText(InlineEmoji.styled(activity,draft)); setSelection(text?.length?:0)
             addTextChangedListener(object:TextWatcher {
                 override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int) {}
@@ -42,6 +42,7 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
         }
         canvas.addView(input,FrameLayout.LayoutParams(960,-2,Gravity.TOP or Gravity.START))
         canvas.addOnLayoutChangeListener(layoutListener)
+        input.addOnLayoutChangeListener(layoutListener)
         refresh(); input.requestFocus()
         input.post { showKeyboard() }
     }
@@ -49,6 +50,7 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
     fun refresh() {
         changed(draft)
         input.typeface=Artwork.typeface(draft)
+        val px=TextGeometry.horizontalPadding(draft);val py=TextGeometry.verticalPadding(draft);input.setPadding(px,py,px,py)
         input.setTextColor(if(draft.type=="Whisper") (draft.color and 0x00ffffff) or (220 shl 24) else Artwork.textInk(draft))
         input.letterSpacing=Artwork.letterSpacing(draft)
         input.setTextSize(TypedValue.COMPLEX_UNIT_PX,Artwork.textSize(draft))
@@ -58,7 +60,7 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
             if(draft.type=="Offset Type" || draft.type=="Echo Type")2+draft.emphasis*5 else 0f,
             Color.argb((draft.emphasis*100).toInt(),Color.red(draft.color),Color.green(draft.color),Color.blue(draft.color)))
         if(draft.type=="Film Caption")input.setShadowLayer(4f,0f,2f,Color.BLACK)
-        if(draft.type=="네온")input.setShadowLayer(18f,0f,0f,draft.color)
+        if(draft.type=="네온")input.setShadowLayer(18f*TextGeometry.factor(draft),0f,0f,draft.color)
         input.requestLayout();input.invalidate();input.post { position() }
     }
     private fun position() {
@@ -74,11 +76,11 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
     fun finish(commit:Boolean) {
         draft.text=input.text.toString()
         (activity.getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager).hideSoftInputFromWindow(input.windowToken,0)
-        canvas.removeOnLayoutChangeListener(layoutListener);canvas.removeView(input);auxiliary.forEach{(it.parent as? ViewGroup)?.removeView(it)}
+        canvas.removeOnLayoutChangeListener(layoutListener);input.removeOnLayoutChangeListener(layoutListener);canvas.removeView(input);auxiliary.forEach{(it.parent as? ViewGroup)?.removeView(it)}
         finished(commit,draft)
     }
     private val auxiliary=mutableListOf<View>()
-    fun insertCustomEmoji(uri:String){insertEmoji(InlineEmoji.token(draft,uri))}
+    fun insertCustomEmoji(uri:String){if(InlineEmoji.bitmap(activity,uri)==null){Toast.makeText(activity,"이모지 원본을 읽을 수 없습니다. 폴더를 다시 연결해 주세요.",Toast.LENGTH_SHORT).show();return};insertEmoji(InlineEmoji.token(draft,uri))}
     fun auxiliary(view:View){auxiliary.add(view)}
     fun insertEmoji(emoji:String){
         val text=input.text?:return;val start=input.selectionStart.coerceAtLeast(0);val end=input.selectionEnd.coerceAtLeast(start)

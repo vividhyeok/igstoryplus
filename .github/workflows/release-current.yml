@@ -10,6 +10,11 @@ on:
         description: 'Optional Actions run that must succeed before publishing'
         required: false
         type: string
+      draft:
+        description: 'Keep release as a draft for final APK and capture review'
+        required: false
+        default: false
+        type: boolean
 permissions:
   contents: write
   actions: read
@@ -74,10 +79,13 @@ jobs:
       - name: Publish release with disclosed validation scope
         env:
           GH_TOKEN: ${{ github.token }}
+          DRAFT_RELEASE: ${{ inputs.draft }}
         run: |
           set -euo pipefail
           test -z "$(git ls-remote --tags origin "refs/tags/v$VERSION_NAME")"
-          gh release create "v$VERSION_NAME" dist/* --target "$GITHUB_SHA" --title "igstoryplus v$VERSION_NAME" --notes-file docs/RELEASE_NOTES.md --latest
+          release_flags=(--latest)
+          if [[ "$DRAFT_RELEASE" == true ]]; then release_flags=(--draft); fi
+          gh release create "v$VERSION_NAME" dist/* --target "$GITHUB_SHA" --title "igstoryplus v$VERSION_NAME" --notes-file docs/RELEASE_NOTES.md "${release_flags[@]}"
       - name: Verify uploaded APK download
         env:
           GH_TOKEN: ${{ github.token }}

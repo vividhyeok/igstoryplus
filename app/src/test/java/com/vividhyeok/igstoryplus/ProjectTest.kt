@@ -5,6 +5,13 @@ import org.junit.Test
 import kotlin.math.*
 
 class ProjectTest {
+    @Test fun fontSizeAndWrapWidthAreIndependentAndLegacyMigrationKeepsSize(){
+        val l=Layer(kind="text",textLayoutVersion=1,width=.45f)
+        val old=Artwork.textSize(l)*l.width;TextGeometry.migrate(l);assertEquals(old,Artwork.textSize(l)*l.width,.001f)
+        val size=Artwork.textSize(l)*l.width;l.width=.85f;assertEquals(size,Artwork.textSize(l)*l.width,.001f)
+        l.textSizeScale*=.5f;assertEquals(size*.5f,Artwork.textSize(l)*l.width,.001f)
+        assertFalse(Style().videoFilters)
+    }
     @Test fun sourceVideoAudioCanDriveReactionsWithoutAddingAnotherSoundtrack(){
         val p=Project(source="story.mp4",video=true,sourceDurationMs=5000)
         assertEquals("story.mp4",Audio.reactionMusic(p)!!.uri);assertNull(p.music)

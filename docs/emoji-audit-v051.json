@@ -1,0 +1,408 @@
+[
+  {
+    "source": "XLAH.png",
+    "sourceSha256": "390801b30a36f3e2cb5c4e950344d235a608e96f708279884b6ee6b0f1f7f541",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "xlah",
+    "outputSha256": "7ae3ee4e8a569d494745f8588c86af03d2cd7f3ed8042143ea65f7180caba4a2"
+  },
+  {
+    "source": "교회.png",
+    "sourceSha256": "d0a0aaf454b722e2a455da487e1e8f24dffa1b527a7c7852638efd2a5b15f5a0",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "church",
+    "outputSha256": "3272541a46da82ac609921475c59344f803bfc5094f28fb5ffbcb128e622a152"
+  },
+  {
+    "source": "꽃.png",
+    "sourceSha256": "351ea653540dec26f8793e32fc2874cdfb20c3b707a672957281b4f55a81d1f4",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "flowers",
+    "outputSha256": "0347847c21e5446527c7569e98e7d22fbec1151b0745a36aadb3b83755c9e99a"
+  },
+  {
+    "source": "나무십자가.png",
+    "sourceSha256": "05c6edcc615bc4ce56e2662bbbc205c2b36c86502a9368e4434d2257d888dec7",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "wooden-cross",
+    "outputSha256": "eb9655b0c8882a8d3dbb3909e38d8cf8df86023ed71e2c5b6d417d43430ebf73"
+  },
+  {
+    "source": "내셔 남작.png",
+    "sourceSha256": "112fd23e1ea3cc9cd2a578b527852c053e0ab039e4904acf2711a3b2c9c80fc8",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "baron-nashor",
+    "outputSha256": "be8acf063d1f7a5c7022f1994a0a2cc035fd5bd21bf2ec2b30137a17ec7d77de"
+  },
+  {
+    "source": "넥서스.png",
+    "sourceSha256": "7142037683823d8654324d15f59bd335074c20f38e234232daf2e59dd0988af9",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "nexus",
+    "outputSha256": "40aaf3638c3c91255fe409011b57827c8e60f07d249bc7eec3ec5f14977f03f6"
+  },
+  {
+    "source": "독서.png",
+    "sourceSha256": "403ed6e0112954aeb83f133a1109e535de80873baf533803fa303c00137fbc73",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "reading",
+    "outputSha256": "777f8beda7d5ab36257a61f9561f448a7b26b07e87190dba07156ca69e8f32e7"
+  },
+  {
+    "source": "라멘.png",
+    "sourceSha256": "fa960608c3db65f69367a1ca3164e01392ac0f1210bd719388517c10e9765fba",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "ramen",
+    "outputSha256": "b254fa95c3dd2ff19bfd8c938bac32706337b97eaec78ce5e463a3316172e4d1"
+  },
+  {
+    "source": "레디언트 랭크.png",
+    "sourceSha256": "b36333cf306d62b571979a6fb32eb0d3453777379cc38d80b4f85b08b72976d4",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "radiant-rank",
+    "outputSha256": "dada0919e98c4f22dd0f35564befb806ea90a14b6c084aac95cede902d3ce206"
+  },
+  {
+    "source": "레이나 눈.png",
+    "sourceSha256": "45f4babfe20826b4421aee5e86a54256dadf9d467bb36ea3c93b5fe3e7fc7f13",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "reyna-eye",
+    "outputSha256": "e1fe5d7b21b6002c05a20c2578a862b7fd010dd080f545158acf5bf78d8c92d0"
+  },
+  {
+    "source": "레이즈 수류탄.png",
+    "sourceSha256": "ffda99a3affef97dcc71d2eeccd78b458393b9b40995414e2d3ba00e4d52b9d6",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "raze-grenade",
+    "outputSha256": "687743599eedb362bcf258c688820418ea9da35e47cebe18360d1d4d31d01267"
+  },
+  {
+    "source": "롤 우승컵.png",
+    "sourceSha256": "58a79fe7954ce15a749190e287b2e0f95eb8e177da8f777398500cf61dc58d75",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "lol-trophy",
+    "outputSha256": "3aa48cf21d1a218cac1455f4fe658c18b3e6eb843ade9fa4339a841518489f33"
+  },
+  {
+    "source": "미니언.png",
+    "sourceSha256": "9722705fd41ca198f5ceacf420d9325f6e29c9387b3bce400bbcc98b87f604af",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "minion",
+    "outputSha256": "ffc2c52e3462a1dd097d39574330b6227d62059a35fadc92cc448ba7371c5fc7"
+  },
+  {
+    "source": "발로란트.png",
+    "sourceSha256": "e98b0708b1d6978c0e188206d6702dac59895d20d60e142a01834e96de7a3410",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "valorant",
+    "outputSha256": "ece48313fb499881769179972276ab64109d688d9d8659964c06fc52d05bad4e"
+  },
+  {
+    "source": "성경책.png",
+    "sourceSha256": "a3821bc9ba438c31791e837ab949d4855eeaa42f60218e785bc3bf5de8f05e4e",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "bible",
+    "outputSha256": "5337f13fe85ab726a9fd3fe06e255ae05f26ca640ba26b3b757d9aba4531d039"
+  },
+  {
+    "source": "세이지 힐.png",
+    "sourceSha256": "b03d18ea86577d5daa8c8e518f452c41fb6d39a8bd897d350c6884b918aefe14",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "sage-heal",
+    "outputSha256": "c59b0aa8b7276e9452b2f3868d546106c18a798c431393b61dad2c24b291b6fe"
+  },
+  {
+    "source": "스파이크.png",
+    "sourceSha256": "173fc9d5fd0df221112b39383bf23d2faa2b4475a9403cfd601c2dcb88fe9f58",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "spike",
+    "outputSha256": "8f02a5d818f18547c769493899460038df9b60c691261c24a33e3a0faf95d000"
+  },
+  {
+    "source": "여행.png",
+    "sourceSha256": "a12a58a297bf204b515e856f5d4c92c6b829862eb02e0e8ace12473336f42bea",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "travel",
+    "outputSha256": "6670ad3aa9cded50dc3de8315031b39e6dd5576575a1c95b5135a9677ea06277"
+  },
+  {
+    "source": "예수님.png",
+    "sourceSha256": "2a95234ef7596ccbce5b9ca2947df4db649b90bdbd95591745640804b0a5896f",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "jesus",
+    "outputSha256": "203a6ce4dc4e1bdfe4f62d4122c306639cf6762af9c39be4f525b28b668be0f9"
+  },
+  {
+    "source": "오멘.png",
+    "sourceSha256": "ae199082bce6a9e64d2df4a6ac84f66d6d70372fff9d761c51efb9ebb585e285",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "omen",
+    "outputSha256": "7b3f581f529c55f1894e3b273f8d090081931a32ae4af5568b53ba8832e2954d"
+  },
+  {
+    "source": "와드.png",
+    "sourceSha256": "ec8a7f0e1cc68f1fe041947064f2c194bd30b2e96c7434e4c7702c4f31d33a04",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "ward",
+    "outputSha256": "6255366d4c487314b4bb135675ecef664046b61a4de35586a7d92f31f2430cc5"
+  },
+  {
+    "source": "제트 단검.png",
+    "sourceSha256": "e4ec611b6adb463d7545cd3f6239973274d50f164a3205d4bd886c529d5b03cf",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "jett-knives",
+    "outputSha256": "19479822ef94c2783d314644a688a3c1de8b074cafa67a73f8d7c0a525ed8396"
+  },
+  {
+    "source": "챌린저.png",
+    "sourceSha256": "2783f9d2482a4121158260f5ba18920c64ecbf4db83bea00e75fa002eccc5ad7",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "challenger",
+    "outputSha256": "1dc697a7b62970aa971cdfcd01d991dd0d3e3767ad7f62aa21ae7f78e21419f0"
+  },
+  {
+    "source": "커피.png",
+    "sourceSha256": "2852a2d8d9ddadd5e3a2be3836d6106cc74df4c05b2c4148ea7641fb6e94268d",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "coffee",
+    "outputSha256": "da597c605aef4438c672695281c4e35da1d058dc6e6b367054556a6073949555"
+  },
+  {
+    "source": "킬조이 포탑.png",
+    "sourceSha256": "ba25f0569974aa410b8e3d738fd70a677beef758e52ba6497fa89be7a908869b",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "killjoy-turret",
+    "outputSha256": "9f2f234419c71cffdf187772c842dd987f4ad8b9b9ea1f86158ade58a7878c9f"
+  },
+  {
+    "source": "탈의실.png",
+    "sourceSha256": "746c559f31d723d9e181514fb3d5d9a1df8e316ebc25d0303ea388564db8ae3a",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "fitting-room",
+    "outputSha256": "b10f5557c2e417a9370148ab427596e60a56383a82677bca9f3934c851635224"
+  },
+  {
+    "source": "포로.png",
+    "sourceSha256": "acafb288c8f3c8b2867558660dc927a8c9ad5a1367367e2c69527b2f30fc1f72",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "poro",
+    "outputSha256": "98248d82b7f2f7974f57a5ba1c404acb8cb4ca205456b3bef89e78fe0a90cd1b"
+  },
+  {
+    "source": "피닉스 화염.png",
+    "sourceSha256": "7399816b2214ce80f7d7558f292a84f0df9f12c9bf1d74d1a02fe3673328a5c5",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "phoenix-fire",
+    "outputSha256": "ec1c4a0d5f8714fa60d9d0db6f835f67b18e2192e42b888fb6f9acde2e0f8f33"
+  },
+  {
+    "source": "화염드래곤.png",
+    "sourceSha256": "9432edface08a44f69e25d2e5da2e9df033ff443c36b74dcff4666e6d99ed473",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "alpha": [
+      0,
+      255
+    ],
+    "id": "infernal-dragon",
+    "outputSha256": "4b55dd50750f1d622c713da879df01e54d8e95e93ec2d9c1050ad00547bdb23c"
+  }
+]

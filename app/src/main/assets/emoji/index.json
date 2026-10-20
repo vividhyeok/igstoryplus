@@ -68,5 +68,138 @@
     "category": "패션·빈티지",
     "keywords": "옷 피팅룸 쇼핑",
     "uri": "file:///android_asset/emoji/fitting-room.png"
+  },
+  {
+    "id": "xlah",
+    "name": "XLAH",
+    "category": "리그 오브 레전드",
+    "keywords": "XLAH",
+    "uri": "file:///android_asset/emoji/xlah.png"
+  },
+  {
+    "id": "baron-nashor",
+    "name": "내셔 남작",
+    "category": "리그 오브 레전드",
+    "keywords": "내셔 남작",
+    "uri": "file:///android_asset/emoji/baron-nashor.png"
+  },
+  {
+    "id": "nexus",
+    "name": "넥서스",
+    "category": "리그 오브 레전드",
+    "keywords": "넥서스",
+    "uri": "file:///android_asset/emoji/nexus.png"
+  },
+  {
+    "id": "radiant-rank",
+    "name": "레디언트 랭크",
+    "category": "발로란트",
+    "keywords": "레디언트 랭크",
+    "uri": "file:///android_asset/emoji/radiant-rank.png"
+  },
+  {
+    "id": "reyna-eye",
+    "name": "레이나 눈",
+    "category": "발로란트",
+    "keywords": "레이나 눈",
+    "uri": "file:///android_asset/emoji/reyna-eye.png"
+  },
+  {
+    "id": "raze-grenade",
+    "name": "레이즈 수류탄",
+    "category": "발로란트",
+    "keywords": "레이즈 수류탄",
+    "uri": "file:///android_asset/emoji/raze-grenade.png"
+  },
+  {
+    "id": "lol-trophy",
+    "name": "롤 우승컵",
+    "category": "리그 오브 레전드",
+    "keywords": "롤 우승컵",
+    "uri": "file:///android_asset/emoji/lol-trophy.png"
+  },
+  {
+    "id": "minion",
+    "name": "미니언",
+    "category": "리그 오브 레전드",
+    "keywords": "미니언",
+    "uri": "file:///android_asset/emoji/minion.png"
+  },
+  {
+    "id": "valorant",
+    "name": "발로란트",
+    "category": "발로란트",
+    "keywords": "발로란트",
+    "uri": "file:///android_asset/emoji/valorant.png"
+  },
+  {
+    "id": "sage-heal",
+    "name": "세이지 힐",
+    "category": "발로란트",
+    "keywords": "세이지 힐",
+    "uri": "file:///android_asset/emoji/sage-heal.png"
+  },
+  {
+    "id": "spike",
+    "name": "스파이크",
+    "category": "발로란트",
+    "keywords": "스파이크",
+    "uri": "file:///android_asset/emoji/spike.png"
+  },
+  {
+    "id": "omen",
+    "name": "오멘",
+    "category": "발로란트",
+    "keywords": "오멘",
+    "uri": "file:///android_asset/emoji/omen.png"
+  },
+  {
+    "id": "ward",
+    "name": "와드",
+    "category": "리그 오브 레전드",
+    "keywords": "와드",
+    "uri": "file:///android_asset/emoji/ward.png"
+  },
+  {
+    "id": "jett-knives",
+    "name": "제트 단검",
+    "category": "발로란트",
+    "keywords": "제트 단검",
+    "uri": "file:///android_asset/emoji/jett-knives.png"
+  },
+  {
+    "id": "challenger",
+    "name": "챌린저",
+    "category": "리그 오브 레전드",
+    "keywords": "챌린저",
+    "uri": "file:///android_asset/emoji/challenger.png"
+  },
+  {
+    "id": "killjoy-turret",
+    "name": "킬조이 포탑",
+    "category": "발로란트",
+    "keywords": "킬조이 포탑",
+    "uri": "file:///android_asset/emoji/killjoy-turret.png"
+  },
+  {
+    "id": "poro",
+    "name": "포로",
+    "category": "리그 오브 레전드",
+    "keywords": "포로",
+    "uri": "file:///android_asset/emoji/poro.png"
+  },
+  {
+    "id": "phoenix-fire",
+    "name": "피닉스 화염",
+    "category": "발로란트",
+    "keywords": "피닉스 화염",
+    "uri": "file:///android_asset/emoji/phoenix-fire.png"
+  },
+  {
+    "id": "infernal-dragon",
+    "name": "화염드래곤",
+    "category": "리그 오브 레전드",
+    "keywords": "화염드래곤",
+    "uri": "file:///android_asset/emoji/infernal-dragon.png"
   }
 ]
