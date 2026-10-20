@@ -7,7 +7,7 @@ import kotlin.math.*
 /** Attached only to PhotoEditor's source: children keep first refusal for every gesture. */
 class BackgroundGestures(private val view:View,private val project:()->Project,private val bounds:()->RectF,
                          private val begin:()->Unit,private val changed:()->Unit,private val end:()->Unit,
-                         private val tap:(Boolean)->Unit,private val doubleTap:()->Unit):View.OnTouchListener {
+                         private val tap:(Boolean)->Unit,private val doubleTap:()->Unit,private val enabled:()->Boolean={true}):View.OnTouchListener {
     private var active=false;private var moving=false;private var x=0f;private var y=0f;private var distance=0f;private var angle=0f
     private var downX=0f;private var downY=0f
     private val slop=ViewConfiguration.get(view.context).scaledTouchSlop
@@ -16,8 +16,8 @@ class BackgroundGestures(private val view:View,private val project:()->Project,p
     private var rawX=0f;private var rawY=0f;private var rawAngle=0f;private var originX=0f;private var originY=0f;private var axis=0
     private val detector=GestureDetector(view.context,object:GestureDetector.SimpleOnGestureListener(){
         override fun onDown(e:MotionEvent)=true
-        override fun onSingleTapConfirmed(e:MotionEvent):Boolean{if(!moving)tap(hit(e.x,e.y));return true}
-        override fun onDoubleTap(e:MotionEvent):Boolean{doubleTap();return true}
+        override fun onSingleTapConfirmed(e:MotionEvent):Boolean{if(enabled() && !moving)tap(hit(e.x,e.y));return true}
+        override fun onDoubleTap(e:MotionEvent):Boolean{if(enabled())doubleTap();return true}
     })
     private fun hit(px:Float,py:Float):Boolean{
         val pose=project().pose;val r=bounds();val a=-pose.rotation*PI/180
@@ -26,6 +26,7 @@ class BackgroundGestures(private val view:View,private val project:()->Project,p
         return abs(qx)<r.width()*view.width/2 && abs(qy)<r.height()*view.height/2
     }
     override fun onTouch(v:View,e:MotionEvent):Boolean{
+        if(!enabled()){active=false;moving=false;val cancel=MotionEvent.obtain(e);cancel.action=MotionEvent.ACTION_CANCEL;detector.onTouchEvent(cancel);cancel.recycle();return true}
         detector.onTouchEvent(e)
         val n=e.pointerCount
         val cx=if(n>1)(e.getX(0)+e.getX(1))/2 else e.x

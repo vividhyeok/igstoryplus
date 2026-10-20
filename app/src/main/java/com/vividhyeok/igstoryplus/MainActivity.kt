@@ -132,7 +132,7 @@ class MainActivity : AppCompatActivity() {
         editor.source.setImageBitmap(Bitmap.createBitmap(540,960,Bitmap.Config.ARGB_8888))
         editor.source.contentDescription="배경 사진"
         engine=PhotoEditor.Builder(this,editor).setPinchTextScalable(true).build()
-        editor.canTransformLayer={v->project.layers.firstOrNull{layerViews[it.id]===v}?.locked!=true}
+        editor.canTransformLayer={v->textSession==null && cropSession==null && !previewMode && project.layers.firstOrNull{layerViews[it.id]===v}?.locked!=true}
         editor.onLayerGesture={v,start->
             if(!rebuilding && textSession==null && cropSession==null){
                 if(start){stopPreview();gestureBefore=store.copy(project);dragging=true;selected=layerViews.entries.firstOrNull{it.value===v}?.key;contextTools()}
@@ -147,7 +147,7 @@ class MainActivity : AppCompatActivity() {
             {live.pose=project.pose.copy();if(project.video){handler.removeCallbacks(videoPoseRefresh);handler.postDelayed(videoPoseRefresh,80)};guides.followPoint(project.pose.x,project.pose.y,project.pose.rotation)},
             {guides.clear();gestureBefore?.let{history.push(it)};gestureBefore=null;persist()},
             {hit->if(previewMode)return@BackgroundGestures;selected=if(hit && selected!="background")"background" else null;engine.clearHelperBox();contextTools()},
-            {if(!previewMode)crop(null)}))
+            {if(!previewMode)crop(null)},{textSession==null && cropSession==null && !previewMode}))
         center.addOnLayoutChangeListener{_,_,_,_,_,_,_,_,_->
             val h=center.height;val w=min(center.width,(h*9f/16).toInt()); val ch=(w*16f/9).toInt()
             if(w>0 && (canvasBox.width!=w || canvasBox.height!=ch)){canvasBox.layoutParams=FrameLayout.LayoutParams(w,ch,Gravity.CENTER);canvasBox.post{relayoutLayers()}}
@@ -445,7 +445,7 @@ class MainActivity : AppCompatActivity() {
             store.clearTextEdit()
             chrome.play.visibility=View.VISIBLE
             if(commit && draft.text.isNotBlank())edit{if(existing!=null)project.layers[project.layers.indexOfFirst{it.id==existing.id}]=draft else project.layers.add(draft);selected=draft.id}
-            else restoreLayers()
+            else {if(existing!=null)selected=existing.id;restoreLayers()}
             normalTop();contextTools()
         }
         chrome.top.removeAllViews()
