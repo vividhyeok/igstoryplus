@@ -59,6 +59,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var guides: AlignmentGuides
     private var editingPlayer:ExoPlayer?=null
     private lateinit var videoView:PlayerView
+    private lateinit var videoPoster:ImageView
     private var playingSource=""
     private var latest: File?=null
     private var previewMode=false
@@ -123,6 +124,7 @@ class MainActivity : AppCompatActivity() {
         live=LivePhoto(this); canvasBox.addView(live,FrameLayout.LayoutParams(-1,-1))
         videoView=layoutInflater.inflate(R.layout.video_preview,canvasBox,false) as PlayerView
         videoView.visibility=View.GONE;canvasBox.addView(videoView,FrameLayout.LayoutParams(-1,-1))
+        videoPoster=ImageView(this).apply{scaleType=ImageView.ScaleType.FIT_XY;contentDescription="동영상 첫 화면";tag="video-poster";visibility=View.GONE};canvasBox.addView(videoPoster,FrameLayout.LayoutParams(-1,-1))
         editor=PhotoEditorView(this).apply{setBackgroundColor(Color.TRANSPARENT);clipChildren=true}
         canvasBox.addView(editor,FrameLayout.LayoutParams(-1,-1))
         guides=AlignmentGuides(this).apply{safeArea=prefs.getBoolean("safeArea",false)};canvasBox.addView(guides,FrameLayout.LayoutParams(-1,-1))
@@ -232,11 +234,11 @@ class MainActivity : AppCompatActivity() {
         live.visibility=if(project.video)View.GONE else View.VISIBLE
         if(project.video && project.source.isNotBlank())runCatching{
             videoView.visibility=View.VISIBLE
-            val player=editingPlayer?:ExoPlayer.Builder(this).build().also{editingPlayer=it;videoView.player=it;it.volume=0f;it.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE}
-            if(playingSource!=project.source){playingSource=project.source;player.setMediaItem(MediaItem.Builder().setUri(project.source).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(project.durationMs()).build()).build());player.prepare()}
+            val player=editingPlayer?:ExoPlayer.Builder(this).build().also{editingPlayer=it;videoView.player=it;it.volume=0f;it.repeatMode=androidx.media3.common.Player.REPEAT_MODE_ONE;it.addListener(object:androidx.media3.common.Player.Listener{override fun onRenderedFirstFrame(){videoPoster.visibility=View.GONE;photoLoading.visibility=View.GONE}})}
+            if(playingSource!=project.source){videoPoster.setImageDrawable(null);videoPoster.visibility=View.VISIBLE;photoLoading.visibility=View.VISIBLE;playingSource=project.source;player.setMediaItem(MediaItem.Builder().setUri(project.source).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setEndPositionMs(project.durationMs()).build()).build());player.prepare()}
             updateLiveStyle();if(clock.playing)player.play() else player.pause()
         }.onFailure{videoView.visibility=View.GONE;status.text="영상 미리보기를 열 수 없습니다"}
-        else{videoView.visibility=View.GONE;editingPlayer?.release();editingPlayer=null;playingSource=""}
+        else{videoView.visibility=View.GONE;videoPoster.visibility=View.GONE;editingPlayer?.release();editingPlayer=null;playingSource=""}
         status.text=if(project.source.isBlank())"사진을 선택해 시작" else "${project.style.name}  ·  ${if(project.animated())"${project.durationMs()/1000}초 MP4" else "정지 사진"}"
         val generation=++backgroundGeneration
         if(project.source.isNotBlank()){
@@ -245,10 +247,10 @@ class MainActivity : AppCompatActivity() {
             backgroundUpdate=Runnable{backgroundWorker.execute{
                 var bounds=foregroundBounds
                 if(generation==backgroundGeneration)runCatching{
-                    val base=Artwork.background(this,snapshot,540,drawPhoto=false){bounds=it}
+                    val base=Artwork.background(this,snapshot,if(snapshot.video)1080 else 540,drawPhoto=snapshot.video){bounds=it}
                     val photo=if(snapshot.video)null else Artwork.cropped(Artwork.decode(this,snapshot.source,1536),snapshot.crop)
                     base to photo
-                }.also{r->runOnUiThread{if(generation==backgroundGeneration)r.onSuccess{foregroundBounds=bounds;live.setPhoto(it.first,it.second)}.onFailure{photoLoading.visibility=View.GONE;status.text="원본 접근 불가 · 사진에서 다시 선택";toast("원본이 삭제되었거나 접근 권한이 없습니다")}}}
+                }.also{r->runOnUiThread{if(generation==backgroundGeneration)r.onSuccess{foregroundBounds=bounds;if(snapshot.video){videoPoster.setImageBitmap(it.first);photoLoading.visibility=View.GONE}else live.setPhoto(it.first,it.second)}.onFailure{photoLoading.visibility=View.GONE;status.text="원본 접근 불가 · 사진에서 다시 선택";toast("원본이 삭제되었거나 접근 권한이 없습니다")}}}
             }}
             handler.postDelayed(backgroundUpdate!!,80)
         }

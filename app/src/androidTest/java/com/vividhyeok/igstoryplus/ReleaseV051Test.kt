@@ -28,6 +28,12 @@ class ReleaseV051Test{
         val file=File(c.filesDir,"v051-ui-video.mp4");ins.context.assets.open("source-mix-5s.mp4").use{i->file.outputStream().use{i.copyTo(it)}}
         val uri=photo();Store(c).clearTextEdit();Store(c).save(Project(source=Uri.fromFile(file).toString(),video=true,sourceDurationMs=5000,layers=mutableListOf(Layer(uri=uri,width=.4f))))
         ActivityScenario.launch(MainActivity::class.java).use{
+            var visibleFrame=false
+            repeat(60){if(!visibleFrame){SystemClock.sleep(100);activity{a->
+                fun find(v:View):Bitmap?{if(v is ImageView && v.contentDescription=="동영상 첫 화면" && v.visibility==View.VISIBLE)return (v.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap;if(v is androidx.media3.ui.PlayerView){val p=a.window.decorView.findViewWithTag<ImageView>("video-poster");if(p?.visibility==View.VISIBLE)return (p.drawable as? android.graphics.drawable.BitmapDrawable)?.bitmap;return (v.videoSurfaceView as? TextureView)?.bitmap};if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null}
+                val bitmap=find(a.window.decorView);if(bitmap!=null){var colored=0;for(y in 0 until bitmap.height step 20)for(x in 0 until bitmap.width step 20){val color=bitmap.getPixel(x,y);if(Color.red(color)+Color.green(color)+Color.blue(color)>60)colored++};visibleFrame=colored>100}
+            }}}
+            assertTrue("Paused video must show a sharp source frame, not a blank or blurred background",visibleFrame)
             onView(withContentDescription("플러스")).perform(click());onView(withText("레이어 효과")).perform(click());onView(withText("하트")).perform(click())
             onView(withText("하트")).check(androidx.test.espresso.assertion.ViewAssertions.matches(isSelected()))
             onView(withContentDescription("효과 적용 레이어")).check{v,_->assertEquals(Color.WHITE,((v as Spinner).selectedView as TextView).currentTextColor)}

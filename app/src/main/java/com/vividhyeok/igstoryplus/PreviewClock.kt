@@ -71,7 +71,7 @@ class PreviewClock(private val context:Context,private val project:()->Project,
             Thread{val result=runCatching{if(Audio.hasAudio(context.applicationContext,snapshot.uri))Audio.features(context.applicationContext,snapshot,duration)else AudioFeatures.silent(duration)};handler.post{if(token==generation){result.onSuccess{features=it;beats=Audio.reaction(it,project().style.reaction);if(project().video)video()?.setVideoEffects(Exporter.baseEffects(context,project(),beats,preview=true))}.onFailure{beatKey="";android.widget.Toast.makeText(context,"음악 반응을 분석하지 못했습니다. 음악 파일을 다시 선택해 주세요.",android.widget.Toast.LENGTH_LONG).show()}}}}.start()
         }
     }
-    fun updateStyle(){val p=project();features?.let{beats=Audio.reaction(it,p.style.reaction)};photo.durationMs=p.durationMs();photo.style=p.style.copy();analyzeBeats();if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))
+    fun updateStyle(){val p=project();features?.let{beats=Audio.reaction(it,p.style.reaction)};photo.durationMs=p.durationMs();photo.style=p.style.copy();analyzeBeats();if(p.video)video()?.let{it.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true));if(!playing)it.seekTo(time)}
         p.layers.filter{it.kind=="music"}.forEach{l->(views()[l.id]?.findViewById<android.widget.ImageView>(ja.burhanrashid52.photoeditor.R.id.imgPhotoEditorImage)?.foreground as? MusicIndicatorDrawable)?.update(time.toFloat()/p.durationMs(),beatAt(beats,time*1000)*p.style.beat,p.style.reaction=="Music Dot" && p.style.beat>0,p.style.auraColor)}
     }
     fun setVolume(volume:Float){audio?.volume=volume.coerceIn(0f,1f)}
