@@ -15,7 +15,7 @@ import kotlin.math.*
 
 object Motion {
     fun phase(timeUs: Long, durationMs: Long) = (timeUs % (durationMs*1000)).toFloat()/(durationMs*1000)*2f*PI.toFloat()
-    fun scale(l: Layer, phase: Float) = if(l.motion && (l.kind!="text" || l.motionStyle=="숨쉬기")) 1f+.025f*l.motionAmount.coerceIn(0f,1f)*sin(phase) else 1f
+    fun scale(l: Layer, phase: Float,beat:Float=0f) = (if(l.motion && (l.kind!="text" || l.motionStyle=="숨쉬기")) 1f+.025f*l.motionAmount.coerceIn(0f,1f)*sin(phase) else 1f)*(1+if(l.beatMotion).035f*beat.coerceIn(0f,1f)else 0f)
     fun drift(l: Layer, phase: Float) = if(l.motion && (l.kind=="text" || l.motionStyle=="떠오르기")) .01f*l.motionAmount.coerceIn(0f,1f)*sin(phase) else 0f
 }
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
@@ -45,7 +45,7 @@ class GpuProgram {
         uniform sampler2D uTex; uniform sampler2D uPhoto;
         uniform float uCompose; uniform float uFramePose; uniform vec2 uPhotoSize; uniform vec2 uPosition; uniform float uScale; uniform float uAngle;
         uniform vec2 uCenter; uniform float uRegion;
-        uniform float uReaction; uniform vec3 uAura;
+        uniform float uReaction; uniform vec3 uAura;uniform float uReactionTarget;
         uniform float uPhase; uniform float uAmount; uniform float uMotion; uniform float uStyle; uniform float uFlip; uniform float uScope; uniform float uGlow;
         varying vec2 vTex;
         float hash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
@@ -109,7 +109,9 @@ class GpuProgram {
             if(uStyle>8.5){vec2 offset=vec2(.006,.0018)*uAmount*(1.+.2*sin(phase));col.rgb=mix(col.rgb,readAt(uv-offset).rgb,.21*uAmount*(.3+.7*edge));}
             float background=1.;if(uCompose>.5){vec2 q=localPhoto(uv);if(q.x>=0.&&q.x<=1.&&q.y>=0.&&q.y<=1.)background=0.;}
             if(uFramePose>.5)background=0.;
-            if(uReaction<.5)col.rgb+=uGlow*edge*.10*(vec3(1.)-col.rgb);
+            float target=(uReactionTarget>.5&&uReactionTarget<1.5)?background:1.;
+            if(uReactionTarget>1.5)background=1.;
+            if(uReaction<.5)col.rgb+=uGlow*edge*target*.10*(vec3(1.)-col.rgb);
             if(uReaction>.5&&uReaction<1.5)col.rgb+=uGlow*edge*background*.09*(vec3(1.)-col.rgb);
             if(uReaction>1.5&&uReaction<2.5)col.rgb=mix(col.rgb,uAura,uGlow*edge*background*.13);
             gl_FragColor=vec4(clamp(col.rgb,0.,1.),col.a);
@@ -136,6 +138,7 @@ class GpuProgram {
         fun uniform(n: String,v: Float)=GLES20.glUniform1f(GLES20.glGetUniformLocation(program,n),v)
         uniform("uPhase",if(s.motion)phase*s.speed.roundToInt().coerceIn(1,3) else 0f); uniform("uMotion",if(s.motion)1f else 0f)
         uniform("uReaction",when(s.reaction){"Ambient Breathing"->1f;"Album Aura"->2f;"Music Dot"->3f;else->0f})
+        uniform("uReactionTarget",when(s.reactionTarget){"배경만"->1f;"원본 화면 전체"->2f;else->0f})
         GLES20.glUniform3f(GLES20.glGetUniformLocation(program,"uAura"),android.graphics.Color.red(s.auraColor)/255f,android.graphics.Color.green(s.auraColor)/255f,android.graphics.Color.blue(s.auraColor)/255f)
         uniform("uAmount",s.amount); uniform("uScope",s.scope); uniform("uFlip",if(flip)1f else 0f); uniform("uGlow",s.beat*beat)
         uniform("uFramePose",if(framePose)1f else 0f);uniform("uCompose",if(photo!=0)1f else 0f);uniform("uScale",pose.scale);uniform("uAngle",pose.rotation*PI.toFloat()/180*(if(flip)1 else -1));uniform("uRegion",when(s.region){"전체"->0f;"배경 중심"->2f;else->1f})

@@ -92,11 +92,16 @@ object Artwork {
             if(l.textBackground=="없음" || layout==null)return
             paint.color=if(l.textBackground=="반투명")0xA6000000.toInt() else l.color
             if(l.textBackground=="라인"){paint.style=Paint.Style.STROKE;paint.strokeWidth=3f}
+            val background=Path()
             for(line in 0 until layout.lineCount){
+                if(layout.text.subSequence(layout.getLineStart(line),layout.getLineEnd(line)).isBlank())continue
                 if(layout.getLineRight(line)-layout.getLineLeft(line)<1f)continue
                 val rect=RectF(40+layout.getLineLeft(line)-16,32+layout.getLineTop(line)-3f,40+layout.getLineRight(line)+16,32+layout.getLineBottom(line)+3f)
-                canvas.drawRoundRect(rect,14f,14f,paint)
-            };return
+                val row=Path().apply{addRoundRect(rect,14f,14f,Path.Direction.CW)}
+                background.op(row,Path.Op.UNION)
+            }
+            // One contour: no doubled translucent seams or internal outline borders.
+            canvas.drawPath(background,paint);return
         }
         if(l.type=="Soft Label" || l.type=="Mono Stamp"){
             paint.color=if(l.type=="Mono Stamp")Color.argb(185,20,24,27) else Color.argb((l.emphasis*180).toInt(),20,20,25)

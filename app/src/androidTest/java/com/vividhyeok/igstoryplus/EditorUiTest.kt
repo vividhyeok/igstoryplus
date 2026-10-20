@@ -256,7 +256,7 @@ class EditorUiTest {
             onView(withText("미세 모션 OFF")).perform(click())
             liveActivity{assertTrue(it.project.layers.first{l->l.kind=="music"}.motion)}
             onView(withContentDescription("레이어 추가 작업")).perform(scrollTo(),click())
-            onView(withText("복제")).perform(click())
+            onView(withContentDescription("레이어 추가 작업")).perform(click());onView(withText("복제")).perform(click())
             liveActivity{assertEquals(2,it.project.layers.count{l->l.kind=="music"})}
             onView(withText("카드 숨김")).perform(scrollTo(),click())
             liveActivity{assertNotNull(it.project.music);assertTrue(it.project.layers.none{l->l.kind=="music"});it.project=Project();Store(context).save(it.project)}
@@ -373,8 +373,8 @@ class EditorUiTest {
             liveActivity{a->val e=editor(a.window.decorView)!!;val v=e.getChildAt(e.childCount-1);assertEquals(v.width/2f,v.pivotX,.01f);assertEquals(v.height/2f,v.pivotY,.01f)}
             // Explicit layer selection exposes the context toolbar even after history restoration.
             onView(withContentDescription("더보기")).perform(click());onView(withText("레이어 목록")).perform(scrollTo(),click());onView(withText("오늘도 차분하게")).perform(click())
-            onView(withText("복제")).perform(click());liveActivity{assertEquals(2,it.project.layers.size)}
-            onView(withText("삭제")).perform(scrollTo(),click());liveActivity{assertEquals(1,it.project.layers.size)}
+            onView(withContentDescription("레이어 추가 작업")).perform(click());onView(withText("복제")).perform(click());liveActivity{assertEquals(2,it.project.layers.size)}
+            onView(withContentDescription("레이어 추가 작업")).perform(click());onView(withText("삭제")).perform(scrollTo(),click());liveActivity{assertEquals(1,it.project.layers.size)}
             scenario.recreate();liveActivity{assertEquals("오늘도 차분하게",it.project.layers.single().text)}
             liveActivity{it.project=Project();Store(context).save(it.project)}
         }

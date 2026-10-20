@@ -54,6 +54,7 @@ internal class MultiTouchListener(
     private val viewState: PhotoEditorViewState
 
     override fun onTouch(view: View, event: MotionEvent): Boolean {
+        if(photoEditorView.canTransformLayer?.invoke(view)==false)return true
         val config=ViewConfiguration.get(view.context)
         when(event.actionMasked){
             MotionEvent.ACTION_DOWN->{tapDownX=event.rawX;tapDownY=event.rawY;tapCandidate=true}

@@ -34,7 +34,8 @@ class Exporter(private val context: Context) {
                 val base=if(p.video) null else Artwork.background(context,p,1080,drawPhoto=false)
                 val foreground=if(p.video)null else Artwork.cropped(Artwork.decode(context,p.source,4096),p.crop)
                 val layers=p.layers.map { it to Artwork.layer(context,it,p.music) }
-                val beats=if(p.style.beat>0 && p.music!=null) Audio.reaction(Audio.features(context,p.music!!,p.durationMs()),p.style.reaction) else floatArrayOf()
+                val reactionMusic=Audio.reactionMusic(p)
+                val beats=if(p.style.beat>0 && reactionMusic!=null && Audio.hasAudio(context,reactionMusic.uri)) Audio.reaction(Audio.features(context,reactionMusic,p.durationMs()),p.style.reaction) else floatArrayOf()
                 if(cancelled) return@Thread
                 if(!p.animated()) {
                     val b=filteredBitmap(base!!,p.style,foreground,p.pose); val canvas=Canvas(b)
@@ -69,7 +70,7 @@ class Exporter(private val context: Context) {
                                 override fun onCompleted(composition: Composition, exportResult: ExportResult) {
                                     if(source.scheme=="file" && !p.video)File(source.path!!).delete()
                                     if(cancelled){file.delete();return}
-                                    runCatching{inspect(file,p)}.also{r->complete(r.map{file})}; transformer=null
+                                    runCatching{inspect(file,p,p.music!=null || (p.video && p.sourceVolume>0 && Audio.hasAudio(context,p.source)))}.also{r->complete(r.map{file})}; transformer=null
                                 }
                                 override fun onError(composition: Composition, exportResult: ExportResult, exportException: ExportException) {
                                     if(source.scheme=="file" && !p.video)File(source.path!!).delete()
@@ -111,17 +112,24 @@ class Exporter(private val context: Context) {
             canvas.save(); canvas.translate(l.x*w,l.y*h); canvas.rotate(l.rotation); canvas.scale(s,s); canvas.drawBitmap(b,-b.width/2f,-b.height/2f,Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)); canvas.restore()
         }
         fun overlay(l: Layer,b: Bitmap,durationMs: Long,music:Music?=null,beats:FloatArray=floatArrayOf(),style:Style=Style()): BitmapOverlay = object:BitmapOverlay(){
+            private val accent=if(l.accent!="없음")StoryAccent(b)else null
+            private val animatedCard=l.kind=="music" && music!=null && (music.card=="Progress Line" || (style.reaction=="Music Dot" && style.beat>0))
+            private val frame=if(accent!=null || animatedCard)b.copy(Bitmap.Config.ARGB_8888,true)else null
+            private val frameCanvas=frame?.let{Canvas(it)}
             override fun getBitmap(presentationTimeUs: Long):Bitmap{
-                if(l.kind!="music" || music==null || (music.card!="Progress Line" && (style.reaction!="Music Dot" || style.beat<=0)))return b
-                return b.copy(Bitmap.Config.ARGB_8888,true).also{drawMusicIndicator(Canvas(it),it.width.toFloat(),it.height.toFloat(),music.card,(presentationTimeUs%(durationMs*1000)).toFloat()/(durationMs*1000),beatAt(beats,presentationTimeUs)*style.beat,style.reaction=="Music Dot" && style.beat>0,style.auraColor)}
+                if(frame==null)return b
+                frame.eraseColor(Color.TRANSPARENT);frameCanvas!!.drawBitmap(b,0f,0f,null)
+                if(animatedCard)drawMusicIndicator(frameCanvas,b.width.toFloat(),b.height.toFloat(),music!!.card,(presentationTimeUs%(durationMs*1000)).toFloat()/(durationMs*1000),beatAt(beats,presentationTimeUs)*style.beat,style.reaction=="Music Dot" && style.beat>0,style.auraColor)
+                accent?.draw(frameCanvas,l,presentationTimeUs,durationMs,beatAt(beats,presentationTimeUs)*style.beat)
+                return frame
             }
             override fun getOverlaySettings(presentationTimeUs: Long): OverlaySettings {
-                val phase=Motion.phase(presentationTimeUs,durationMs); val pulse=Motion.scale(l,phase)
+                val phase=Motion.phase(presentationTimeUs,durationMs); val pulse=Motion.scale(l,phase,beatAt(beats,presentationTimeUs)*style.beat)
                 val s=l.width*1080/b.width*l.scale*pulse
                 return StaticOverlaySettings.Builder().setBackgroundFrameAnchor((l.x*2-1).coerceIn(-1f,1f),((1-l.y-Motion.drift(l,phase))*2-1).coerceIn(-1f,1f)).setScale(s,s).setRotationDegrees(-l.rotation).build()
             }
         }
-        fun inspect(f: File,p: Project) {
+        fun inspect(f: File,p: Project,expectAudio:Boolean=p.music!=null) {
             check(f.length()>1000){"출력 파일이 비어 있습니다"}
             val r=MediaMetadataRetriever()
             try {
@@ -133,7 +141,7 @@ class Exporter(private val context: Context) {
                 check(width==1080 && height==1920) { "출력 해상도 오류: ${width}×${height} (rotation $rotation)" }
                 val ms=r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)!!.toLong()
                 check(abs(ms-p.durationMs())<350) { "출력 길이 오류: $ms" }
-                if(p.music!=null)check(r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO)=="yes"){"오디오 누락"}
+                if(expectAudio)check(r.extractMetadata(MediaMetadataRetriever.METADATA_KEY_HAS_AUDIO)=="yes"){"오디오 누락"}
             } finally { r.release() }
         }
     }

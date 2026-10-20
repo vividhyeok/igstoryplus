@@ -39,11 +39,12 @@ class PreviewClock(private val context:Context,private val project:()->Project,
         photo.showTime(time*1000,beatAt(beats,time*1000))
         val phase=Motion.phase(time*1000,p.durationMs())
         transformed=true
-        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=baseScale(l,v)*Motion.scale(l,phase);v.scaleY=v.scaleX;v.translationY=(l.y+Motion.drift(l,phase))*(v.parent as View).height-v.top-v.height/2f}}
+        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=baseScale(l,v)*Motion.scale(l,phase,beatAt(beats,time*1000)*p.style.beat);v.scaleY=v.scaleX;v.translationY=(l.y+Motion.drift(l,phase))*(v.parent as View).height-v.top-v.height/2f}}
         p.layers.filter{it.kind=="music"}.forEach{l->(views()[l.id]?.findViewById<android.widget.ImageView>(ja.burhanrashid52.photoeditor.R.id.imgPhotoEditorImage)?.foreground as? MusicIndicatorDrawable)?.update(time.toFloat()/p.durationMs(),beatAt(beats,time*1000)*p.style.beat,p.style.reaction=="Music Dot" && p.style.beat>0,p.style.auraColor)}
-        onPosition?.invoke(time)
+        updateAccents(p);onPosition?.invoke(time)
         handler.postDelayed(this,33)
     }}
+    private fun updateAccents(p:Project){p.layers.forEach{l->(views()[l.id]?.findViewById<android.widget.ImageView>(ja.burhanrashid52.photoeditor.R.id.imgPhotoEditorImage)?.foreground as? StoryAccentDrawable)?.update(time*1000,p.durationMs(),beatAt(beats,time*1000)*p.style.beat)}}
     fun toggle(){if(playing)pause() else start()}
     private fun start(){
         if(playing)return
@@ -51,7 +52,7 @@ class PreviewClock(private val context:Context,private val project:()->Project,
         val p=project();if(p.source.isBlank())return
         if(p.music?.let{!MusicRange.valid(it,p.durationMs())}==true)return
         photo.durationMs=p.durationMs()
-        if(p.music==null){beats=floatArrayOf();features=null;beatKey="";generation++}
+        if(Audio.reactionMusic(p)==null){beats=floatArrayOf();features=null;beatKey="";generation++}
         playing=true;state(true);stamp=SystemClock.elapsedRealtime()
         video()?.apply{volume=p.sourceVolume.coerceIn(0f,1f);play()}
         p.music?.let{m->runCatching{
@@ -60,14 +61,14 @@ class PreviewClock(private val context:Context,private val project:()->Project,
                 setMediaItem(MediaItem.Builder().setUri(m.uri).setClippingConfiguration(MediaItem.ClippingConfiguration.Builder().setStartPositionMs(m.startMs).setEndPositionMs(min(m.startMs+p.durationMs(),m.durationMs)).build()).build())
                 repeatMode=Player.REPEAT_MODE_ONE;prepare();seekTo(time%min(p.durationMs(),m.durationMs-m.startMs).coerceAtLeast(1));play()
             }
-            analyzeBeats()
         }}
+        analyzeBeats()
         handler.post(tick)
     }
     private fun analyzeBeats(){
-        val p=project();val m=p.music?:return;val key="${m.uri}:${m.startMs}:${p.durationMs()}:${m.loop}"
+        val p=project();val m=Audio.reactionMusic(p)?:return;val key="${m.uri}:${m.startMs}:${p.durationMs()}:${m.loop}:${p.reactionAudio}"
         if(p.style.beat>0 && key!=beatKey){beatKey=key;beats=floatArrayOf();features=null;val token=++generation;val snapshot=m.copy();val duration=p.durationMs()
-            Thread{val result=runCatching{Audio.features(context.applicationContext,snapshot,duration)};handler.post{if(token==generation){result.onSuccess{features=it;beats=Audio.reaction(it,project().style.reaction);if(project().video)video()?.setVideoEffects(Exporter.baseEffects(context,project(),beats,preview=true))}.onFailure{beatKey="";android.widget.Toast.makeText(context,"음악 반응을 분석하지 못했습니다. 음악 파일을 다시 선택해 주세요.",android.widget.Toast.LENGTH_LONG).show()}}}}.start()
+            Thread{val result=runCatching{if(Audio.hasAudio(context.applicationContext,snapshot.uri))Audio.features(context.applicationContext,snapshot,duration)else AudioFeatures.silent(duration)};handler.post{if(token==generation){result.onSuccess{features=it;beats=Audio.reaction(it,project().style.reaction);if(project().video)video()?.setVideoEffects(Exporter.baseEffects(context,project(),beats,preview=true))}.onFailure{beatKey="";android.widget.Toast.makeText(context,"음악 반응을 분석하지 못했습니다. 음악 파일을 다시 선택해 주세요.",android.widget.Toast.LENGTH_LONG).show()}}}}.start()
         }
     }
     fun updateStyle(){val p=project();features?.let{beats=Audio.reaction(it,p.style.reaction)};photo.durationMs=p.durationMs();photo.style=p.style.copy();analyzeBeats();if(p.video)video()?.setVideoEffects(Exporter.baseEffects(context,p,beats,preview=true))
@@ -79,9 +80,9 @@ class PreviewClock(private val context:Context,private val project:()->Project,
         val p=project();time=position.coerceIn(0,(p.durationMs()-1).coerceAtLeast(0));stamp=SystemClock.elapsedRealtime()
         video()?.seekTo(time);audio?.seekTo(time%min(p.durationMs(),p.music?.let{it.durationMs-it.startMs}?:p.durationMs()).coerceAtLeast(1))
         photo.showTime(time*1000,beatAt(beats,time*1000));val phase=Motion.phase(time*1000,p.durationMs());transformed=true
-        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=baseScale(l,v)*Motion.scale(l,phase);v.scaleY=v.scaleX;v.translationY=(l.y+Motion.drift(l,phase))*(v.parent as View).height-v.top-v.height/2f}}
+        p.layers.forEach{l->views()[l.id]?.let{v->v.scaleX=baseScale(l,v)*Motion.scale(l,phase,beatAt(beats,time*1000)*p.style.beat);v.scaleY=v.scaleX;v.translationY=(l.y+Motion.drift(l,phase))*(v.parent as View).height-v.top-v.height/2f}}
         p.layers.filter{it.kind=="music"}.forEach{l->(views()[l.id]?.findViewById<android.widget.ImageView>(ja.burhanrashid52.photoeditor.R.id.imgPhotoEditorImage)?.foreground as? MusicIndicatorDrawable)?.update(time.toFloat()/p.durationMs(),beatAt(beats,time*1000)*p.style.beat,p.style.reaction=="Music Dot" && p.style.beat>0,p.style.auraColor)}
-        onPosition?.invoke(time)
+        updateAccents(p);onPosition?.invoke(time)
     }
     fun pausePlayback(){pause()}
     fun play(){start()}

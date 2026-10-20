@@ -27,6 +27,10 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
+      - name: Lint and unit tests before publishing
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:lintDebug :app:testDebugUnitTest :photoeditor:testDebugUnitTest --console=plain
       - name: Build with persistent signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}

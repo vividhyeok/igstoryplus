@@ -20,17 +20,19 @@ object InlineEmoji {
     }
     fun styled(c:Context,layer:Layer):CharSequence=SpannableString(layer.text).also{apply(c,layer,it)}
     fun apply(c:Context,layer:Layer,text:Spannable){
-        text.getSpans(0,text.length,ImageGlyph::class.java).forEach{text.removeSpan(it)}
-        text.forEachIndexed{index,ch->layer.inlineEmoji[ch.toString()]?.let{uri->bitmap(c,uri)?.let{image->text.setSpan(ImageGlyph(image),index,index+1,Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)}}}
+        val existing=text.getSpans(0,text.length,ImageGlyph::class.java)
+        existing.forEach{span->val start=text.getSpanStart(span);if(start !in 0 until text.length || text.getSpanEnd(span)!=start+1 || layer.inlineEmoji[text[start].toString()]!=span.uri)text.removeSpan(span)}
+        text.forEachIndexed{index,ch->layer.inlineEmoji[ch.toString()]?.let{uri->if(text.getSpans(index,index+1,ImageGlyph::class.java).none{text.getSpanStart(it)==index})bitmap(c,uri)?.let{image->text.setSpan(ImageGlyph(image,uri),index,index+1,Spannable.SPAN_EXCLUSIVE_EXCLUSIVE)}}}
     }
-    class ImageGlyph(private val bitmap:Bitmap):ReplacementSpan(){
+    class ImageGlyph(private val bitmap:Bitmap,val uri:String):ReplacementSpan(){
         private val imagePaint=Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
         override fun getSize(paint:Paint,text:CharSequence,start:Int,end:Int,fm:Paint.FontMetricsInt?):Int {
             if(fm!=null)paint.getFontMetricsInt(fm)
-            return (paint.textSize*1.08f).toInt().coerceAtLeast(1)
+            return kotlin.math.ceil(paint.textSize).toInt().coerceAtLeast(1)
         }
         override fun draw(canvas:Canvas,text:CharSequence,start:Int,end:Int,x:Float,top:Int,y:Int,bottom:Int,paint:Paint){
-            val size=paint.textSize*1.08f;val fm=paint.fontMetrics;val cy=y+(fm.ascent+fm.descent)/2
+            if(paint.style==Paint.Style.STROKE)return
+            val fm=paint.fontMetrics;val size=minOf(paint.textSize,(fm.descent-fm.ascent).coerceAtLeast(1f));val cy=y+(fm.ascent+fm.descent)/2
             val scale=size/maxOf(bitmap.width,bitmap.height);val w=bitmap.width*scale;val h=bitmap.height*scale
             imagePaint.alpha=paint.alpha;canvas.drawBitmap(bitmap,null,RectF(x+(size-w)/2,cy-h/2,x+(size+w)/2,cy+h/2),imagePaint)
         }

@@ -11,7 +11,7 @@ data class Style(var name: String = "Simple", var amount: Float = .25f, var moti
                  var blur: Float = .55f, var brightness: Float = .75f, var warmth: Float = 0f,
                  var speed: Float = 1f, var scope: Float = .75f, var beat: Float = 0f,
                  var region:String="가장자리",var centerX:Float=.5f,var centerY:Float=.5f,
-                 var reaction:String="빛 반응",var auraColor:Int=0xFF98B8CF.toInt())
+                 var reaction:String="빛 반응",var auraColor:Int=0xFF98B8CF.toInt(),var reactionTarget:String="기존")
 
 data class PhotoPose(var x:Float=.5f,var y:Float=.5f,var scale:Float=1f,var rotation:Float=0f)
 data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String = "photo", var uri: String = "",
@@ -21,14 +21,15 @@ data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String
                  var rotation: Float = 0f, var width: Float = .45f, var motion: Boolean = false,
                  var crop: Crop = Crop(), var textLayoutVersion: Int = 0,
                  var photoStyle:Style?=null,var motionStyle:String="기본",var motionAmount:Float=.4f,
-                 var textBackground:String="기존",var inlineEmoji:MutableMap<String,String> = mutableMapOf())
+                 var textBackground:String="기존",var inlineEmoji:MutableMap<String,String> = mutableMapOf(),
+                 var accent:String="없음",var accentAmount:Float=.5f,var beatMotion:Boolean=false,var locked:Boolean=false)
 data class Music(var uri: String = "", var title: String = "", var artist: String = "", var album: String = "",
                  var art: String = "", var durationMs: Long = 0, var startMs: Long = 0, var card: String = "스토리", var volume: Float = 1f,
                  var loop:Boolean=false)
 data class Project(var source: String = "", var video: Boolean = false, var sourceDurationMs: Long = 0,
                    var duration: Int = 5, var crop: Crop = Crop(), var style: Style = Style(),
-                   var layers: MutableList<Layer> = mutableListOf(), var music: Music? = null,var pose:PhotoPose=PhotoPose(), var sourceVolume:Float=1f) {
-    fun animated() = video || music != null || style.motion || layers.any { it.motion }
+                   var layers: MutableList<Layer> = mutableListOf(), var music: Music? = null,var pose:PhotoPose=PhotoPose(), var sourceVolume:Float=1f,var reactionAudio:String="자동") {
+    fun animated() = video || music != null || style.motion || layers.any { it.motion || it.accent!="없음" }
     fun durationMs(): Long = if (video) sourceDurationMs.coerceIn(1, 60000) else duration.coerceIn(5, 15) * 1000L
 }
 

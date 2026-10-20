@@ -8,6 +8,7 @@ import android.view.View
 import kotlin.math.abs
 
 class AlignmentGuides(c:Context):View(c){
+    var safeArea=false
     private var vertical=false
     private var horizontal=false
     private var angle:Float?=null
@@ -16,6 +17,7 @@ class AlignmentGuides(c:Context):View(c){
     fun clear(){vertical=false;horizontal=false;angle=null;invalidate()}
     fun followPoint(x:Float,y:Float,rotation:Float=0f){vertical=abs(x-.5f)*width<10*resources.displayMetrics.density;horizontal=abs(y-.5f)*height<10*resources.displayMetrics.density;angle=rotation;invalidate()}
     override fun onDraw(c:Canvas){
+        if(safeArea){val p=Paint(Paint.ANTI_ALIAS_FLAG).apply{color=0x99FFFFFF.toInt();strokeWidth=resources.displayMetrics.density;style=Paint.Style.STROKE;pathEffect=android.graphics.DashPathEffect(floatArrayOf(8f,8f),0f)};c.drawRect(width*.06f,height*.14f,width*.94f,height*.80f,p)}
         if(vertical)c.drawLine(width/2f,0f,width/2f,height.toFloat(),paint);if(horizontal)c.drawLine(0f,height/2f,width.toFloat(),height/2f,paint)
         angle?.let{value->val p=Paint(Paint.ANTI_ALIAS_FLAG).apply{color=0xBB000000.toInt()};val d=resources.displayMetrics.density;val x=width/2f;val y=height*.13f;c.drawRoundRect(x-38*d,y-16*d,x+38*d,y+16*d,16*d,16*d,p);p.color=if(levelAngle(value)!=value || value%90f==0f)paint.color else Color.WHITE;p.textSize=13*d;p.textAlign=Paint.Align.CENTER;c.drawText(String.format(java.util.Locale.ROOT,"%.1f°",value),x,y+5*d,p)
             if(abs(value-kotlin.math.round(value/90)*90)<=4f){c.drawLine(x-48*d,height/2f,x+48*d,height/2f,paint)}

@@ -9,6 +9,12 @@ import java.security.MessageDigest
 import kotlin.math.*
 
 object Audio {
+    fun reactionMusic(p:Project):Music?=when(p.reactionAudio){
+        "원본 영상"->if(p.video)Music(uri=p.source,title="원본 영상 소리",durationMs=p.durationMs(),card="숨김")else null
+        "추가 음악"->p.music
+        else->p.music?:if(p.video)Music(uri=p.source,title="원본 영상 소리",durationMs=p.durationMs(),card="숨김")else null
+    }
+    fun hasAudio(c:Context,uri:String):Boolean{val e=MediaExtractor();return try{e.setDataSource(c,Uri.parse(uri),null);(0 until e.trackCount).any{e.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/")==true}}finally{e.release()}}
     @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
     fun volumeEffects(volume:Float):List<androidx.media3.common.audio.AudioProcessor> {
         if(volume==1f)return emptyList()

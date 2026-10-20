@@ -18,11 +18,11 @@ class StoryTextControls(private val activity:Activity,private val chrome:EditorC
     }
     fun show(){
         chrome.top.removeAllViews();chrome.bottom.removeAllViews();closeTray()
-        chrome.top.addView(item("×","텍스트 취소"){session.finish(false)},LinearLayout.LayoutParams(dp(48),-1))
-        chrome.top.addView(item("≡","텍스트 정렬"){layer.align=(layer.align+1)%3;session.refresh()},LinearLayout.LayoutParams(0,-1,1f))
-        chrome.top.addView(item("A▣","텍스트 배경"){val modes=listOf("없음","채움","반투명","라인");layer.textBackground=modes[(modes.indexOf(layer.textBackground)+1)%modes.size];session.refresh()},LinearLayout.LayoutParams(0,-1,1f))
-        chrome.top.addView(item("●","텍스트 색상"){palette()},LinearLayout.LayoutParams(0,-1,1f))
-        chrome.top.addView(item("⋯","텍스트 추가 설정"){advanced()},LinearLayout.LayoutParams(dp(48),-1))
+        chrome.top.addView(icon("닫기","텍스트 취소"){session.finish(false)},LinearLayout.LayoutParams(dp(48),-1))
+        chrome.top.addView(icon("정렬","텍스트 정렬"){layer.align=(layer.align+1)%3;session.refresh()},LinearLayout.LayoutParams(0,-1,1f))
+        chrome.top.addView(icon("텍스트 배경","텍스트 배경"){val modes=listOf("없음","채움","반투명","라인");layer.textBackground=modes[(modes.indexOf(layer.textBackground)+1)%modes.size];session.refresh()},LinearLayout.LayoutParams(0,-1,1f))
+        chrome.top.addView(icon("색상","텍스트 색상"){palette()},LinearLayout.LayoutParams(0,-1,1f))
+        chrome.top.addView(icon("더보기","텍스트 추가 설정"){advanced()},LinearLayout.LayoutParams(dp(48),-1))
         chrome.top.addView(item("완료","텍스트 완료"){session.finish(true)},LinearLayout.LayoutParams(dp(64),-1))
         chrome.bottom.addView(item("내 이모지","텍스트 개인 이모지"){customEmoji()}.apply{textSize=13f})
         chrome.bottom.addView(item("😀","텍스트 이모지"){emoji()})
@@ -42,6 +42,7 @@ class StoryTextControls(private val activity:Activity,private val chrome:EditorC
         session.auxiliary(size)
     }
     private fun closeTray(){panel="";chrome.tray.removeAllViews();chrome.tray.visibility=View.GONE}
+    private fun icon(name:String,description:String,action:()->Unit)=EditorIcons.button(activity,name,action).apply{contentDescription=description;isFocusable=false}
     private fun tray(name:String,body:View){
         if(panel==name){closeTray();session.keyboard(true);return}
         session.keyboard(false);panel=name;chrome.tray.removeAllViews();chrome.tray.visibility=View.VISIBLE;chrome.tray.addView(body)

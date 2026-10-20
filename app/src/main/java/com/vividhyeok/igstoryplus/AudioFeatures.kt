@@ -2,7 +2,14 @@ package com.vividhyeok.igstoryplus
 
 import kotlin.math.*
 
-data class AudioFeatures(val onsets:FloatArray,val energy:FloatArray,val low:FloatArray,val mid:FloatArray,val high:FloatArray,val flux:FloatArray,val fast:FloatArray,val slow:FloatArray)
+data class AudioFeatures(val onsets:FloatArray,val energy:FloatArray,val low:FloatArray,val mid:FloatArray,val high:FloatArray,val flux:FloatArray,val fast:FloatArray,val slow:FloatArray){
+    companion object{
+        fun silent(durationMs:Long):AudioFeatures{
+            fun empty()=FloatArray((durationMs/50+1).toInt())
+            return AudioFeatures(empty(),empty(),empty(),empty(),empty(),empty(),empty(),empty())
+        }
+    }
+}
 
 /** Mono PCM, 50ms windows, three IIR bands and twelve Goertzel spectral probes. No instrument labels. */
 internal class SignalAccumulator(private val size:Int){

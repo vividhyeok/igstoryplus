@@ -5,6 +5,20 @@ import org.junit.Test
 import kotlin.math.*
 
 class ProjectTest {
+    @Test fun sourceVideoAudioCanDriveReactionsWithoutAddingAnotherSoundtrack(){
+        val p=Project(source="story.mp4",video=true,sourceDurationMs=5000)
+        assertEquals("story.mp4",Audio.reactionMusic(p)!!.uri);assertNull(p.music)
+        p.music=Music(uri="song.mp3");assertEquals("song.mp3",Audio.reactionMusic(p)!!.uri)
+        p.reactionAudio="원본 영상";assertEquals("story.mp4",Audio.reactionMusic(p)!!.uri)
+        p.video=false;assertNull(Audio.reactionMusic(p))
+    }
+    @Test fun accentsAnimateAndBeatPulseStaysBounded(){
+        val l=Layer(kind="text",accent="하트 글리터",beatMotion=true)
+        assertTrue(Project(layers=mutableListOf(l)).animated())
+        assertEquals(1f,Motion.scale(l,0f,0f),0f);assertEquals(1.035f,Motion.scale(l,0f,10f),.0001f)
+        val gson=com.google.gson.Gson();val old=gson.fromJson("""{"kind":"text","text":"초안"}""",Layer::class.java)
+        assertEquals("없음",old.accent);assertFalse(old.locked);assertFalse(old.beatMotion)
+    }
     @Test fun inlineImageReferencesSurviveHistoryAndLegacyText(){
         val gson=com.google.gson.Gson();val old=gson.fromJson("""{"kind":"text","text":"기존"}""",Layer::class.java)
         assertTrue(old.inlineEmoji.isEmpty())

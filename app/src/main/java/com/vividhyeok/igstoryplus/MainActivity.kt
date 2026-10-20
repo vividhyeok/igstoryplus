@@ -125,13 +125,14 @@ class MainActivity : AppCompatActivity() {
         videoView.visibility=View.GONE;canvasBox.addView(videoView,FrameLayout.LayoutParams(-1,-1))
         editor=PhotoEditorView(this).apply{setBackgroundColor(Color.TRANSPARENT);clipChildren=true}
         canvasBox.addView(editor,FrameLayout.LayoutParams(-1,-1))
-        guides=AlignmentGuides(this);canvasBox.addView(guides,FrameLayout.LayoutParams(-1,-1))
+        guides=AlignmentGuides(this).apply{safeArea=prefs.getBoolean("safeArea",false)};canvasBox.addView(guides,FrameLayout.LayoutParams(-1,-1))
         photoLoading=ProgressBar(this).apply{contentDescription="사진 불러오는 중";visibility=View.GONE}
         canvasBox.addView(photoLoading,FrameLayout.LayoutParams(dp(32),dp(32),Gravity.CENTER))
         live.onPhotoReady={photoLoading.visibility=View.GONE}
         editor.source.setImageBitmap(Bitmap.createBitmap(540,960,Bitmap.Config.ARGB_8888))
         editor.source.contentDescription="배경 사진"
         engine=PhotoEditor.Builder(this,editor).setPinchTextScalable(true).build()
+        editor.canTransformLayer={v->project.layers.firstOrNull{layerViews[it.id]===v}?.locked!=true}
         editor.onLayerGesture={v,start->
             if(!rebuilding && textSession==null && cropSession==null){
                 if(start){stopPreview();gestureBefore=store.copy(project);dragging=true;selected=layerViews.entries.firstOrNull{it.value===v}?.key;contextTools()}
@@ -272,6 +273,7 @@ class MainActivity : AppCompatActivity() {
             v.contentDescription=if(l.kind=="text")"텍스트 레이어: ${l.text}" else "${l.kind} 레이어"
             v.isFocusable=true
             if(l.kind=="music")v.findViewById<ImageView>(ja.burhanrashid52.photoeditor.R.id.imgPhotoEditorImage)?.foreground=MusicIndicatorDrawable(project.music?.card?:"작은 카드",original.width,original.height).apply{update(0f,0f,project.style.reaction=="Music Dot" && project.style.beat>0,project.style.auraColor)}
+            else if(l.accent!="없음")v.findViewById<ImageView>(ja.burhanrashid52.photoeditor.R.id.imgPhotoEditorImage)?.foreground=StoryAccentDrawable(original,l).apply{update(0,project.durationMs(),0f)}
             v.post{
                 v.pivotX=v.width/2f;v.pivotY=v.height/2f;v.translationX=l.x*editor.width-v.left-v.width/2f;v.translationY=l.y*editor.height-v.top-v.height/2f
                 v.scaleX=l.scale;v.scaleY=l.scale;v.rotation=l.rotation
@@ -317,12 +319,13 @@ class MainActivity : AppCompatActivity() {
         if(l==null){
             contextBar.addView(toolButton("사진 추가"){if(project.source.isBlank())pick("base",arrayOf("image/*","video/*")) else photoMenu()})
             contextBar.addView(toolButton("스타일"){styles()})
+            contextBar.addView(toolButton("플러스"){enhancements()})
             contextBar.addView(toolButton("저장"){render(false)})
             contextBar.addView(button("스토리로 공유"){render(true)}.apply{contentDescription="인스타 스토리로 공유";textSize=13f;setTextColor(Color.BLACK);setPadding(dp(16),0,dp(16),0);background=rounded(Color.rgb(242,242,239),25f)},LinearLayout.LayoutParams(-2,dp(48)).apply{leftMargin=dp(8)})
             return
         }
         contextBar.addView(button("×"){selected=null;engine.clearHelperBox();contextTools()}.apply{contentDescription="선택 해제"})
-        if(l.kind=="photo"){contextBar.addView(button("수평"){edit{l.rotation=0f}});contextBar.addView(button("자르기"){crop(l)});contextBar.addView(button("교체"){pick("replace:${l.id}",arrayOf("image/*"))});contextBar.addView(button("스타일"){layerStyles(l)})}
+        if(l.kind=="photo"){contextBar.addView(button("수평"){edit{l.rotation=0f}});contextBar.addView(button("스타일"){layerStyles(l)})}
         if(l.kind=="text"){contextBar.addView(button("수정"){textEditor(l)})}
         if(l.kind=="png")contextBar.addView(button("크기·위치"){val box=column();slider(box,"크기",l.width){l.width=it.coerceIn(.02f,1f);restoreLayers()};slider(box,"가로 위치",l.x){l.x=it;restoreLayers()};slider(box,"세로 위치",l.y){l.y=it;restoreLayers()};sheet("스티커 조절",box)})
         if(l.kind=="music"){
@@ -333,12 +336,23 @@ class MainActivity : AppCompatActivity() {
             contextBar.addView(button("⋯"){layerExtra(l)}.apply{contentDescription="레이어 추가 작업"})
             return
         }
-        contextBar.addView(button("복제"){duplicate(l)})
-        contextBar.addView(button("삭제"){edit{project.layers.remove(l);selected=null}})
+        contextBar.addView(toolButton("플러스"){enhancements()})
+        contextBar.addView(toolButton("배치"){arrange(l)})
         contextBar.addView(button("⋯"){layerExtra(l)}.apply{contentDescription="레이어 추가 작업"})
     }
     private fun duplicate(l:Layer){edit{val copy=store.gson.fromJson(store.gson.toJson(l),Layer::class.java);copy.id=java.util.UUID.randomUUID().toString();copy.x=(copy.x+.03f).coerceAtMost(.95f);project.layers.add(copy);selected=copy.id}}
-    private fun layerExtra(l:Layer){choices("레이어",listOf("앞으로","뒤로","미세 모션 ${if(l.motion)"ON" else "OFF"}","복제","모션 종류·강도")){i->when(i){3->duplicate(l);4->layerMotion(l);else->edit{when(i){0->{project.layers.remove(l);project.layers.add(l)};1->{project.layers.remove(l);project.layers.add(0,l)};2->l.motion=!l.motion}}}}}
+    private fun enhancements(){syncTransforms();val l=project.layers.firstOrNull{it.id==selected};EnhancementPanel(this,project,l,clock,{history.push(project)},{restoreLayers()},{persist()}).show()}
+    private fun arrange(l:Layer){
+        syncTransforms();val body=column()
+        val positions=row();positions.addView(toolButton("가로 중앙"){edit{l.x=.5f}});positions.addView(toolButton("세로 중앙"){edit{l.y=.5f}});positions.addView(toolButton("수평"){edit{l.rotation=0f}});body.addView(positions)
+        body.addView(Switch(this).apply{text="위치 잠금 · 레이어 목록에서 해제 가능";setTextColor(Color.WHITE);minHeight=dp(48);isChecked=l.locked;setOnCheckedChangeListener{_,locked->history.push(project);l.locked=locked;persist()}})
+        body.addView(Switch(this).apply{text="게시 UI 여백 안내 · 출력에는 포함 안 됨";setTextColor(Color.WHITE);minHeight=dp(48);isChecked=guides.safeArea;setOnCheckedChangeListener{_,on->guides.safeArea=on;prefs.edit().putBoolean("safeArea",on).apply();guides.invalidate()}})
+        EditorDock(this,"배치",body,{persist()}).show()
+    }
+    private fun layerExtra(l:Layer){
+        val items=listOf("앞으로","뒤로","미세 모션 ${if(l.motion)"ON" else "OFF"}","복제","모션 종류·강도","삭제")+(if(l.kind=="photo")listOf("자르기","교체")else emptyList())
+        choices("레이어",items){i->when(i){3->duplicate(l);4->layerMotion(l);5->edit{project.layers.remove(l);selected=null};6->crop(l);7->pick("replace:${l.id}",arrayOf("image/*"));else->edit{when(i){0->{project.layers.remove(l);project.layers.add(l)};1->{project.layers.remove(l);project.layers.add(0,l)};2->l.motion=!l.motion}}}}
+    }
     private fun layerMotion(l:Layer){
         val box=column();listOf("기본","숨쉬기","떠오르기").forEach{mode->box.addView(button(mode){edit{l.motion=true;l.motionStyle=mode};clock.play()})}
         slider(box,"미세 모션 강도",l.motionAmount){l.motionAmount=it;l.motion=true}
@@ -428,7 +442,7 @@ class MainActivity : AppCompatActivity() {
             chrome.tray.removeAllViews();chrome.tray.visibility=View.GONE
             store.clearTextEdit()
             chrome.play.visibility=View.VISIBLE
-            if(commit && draft.text.isNotBlank())edit{if(existing!=null)project.layers[project.layers.indexOfFirst{it.id==existing.id}]=draft else project.layers.add(draft);selected=null}
+            if(commit && draft.text.isNotBlank())edit{if(existing!=null)project.layers[project.layers.indexOfFirst{it.id==existing.id}]=draft else project.layers.add(draft);selected=draft.id}
             else restoreLayers()
             normalTop();contextTools()
         }
@@ -487,7 +501,7 @@ class MainActivity : AppCompatActivity() {
         backgroundWorker.execute{val color=runCatching{Artwork.palette(applicationContext,art)}.getOrDefault(0xFF98B8CF.toInt());runOnUiThread{if(project.music?.uri==uri && project.music?.art==art){project.style.auraColor=color;updateLiveStyle();persist()}}}
     }
     private fun musicMenu(){
-        if(project.music==null)musicPanels.library() else musicPanels.clip()
+        if(project.music==null && project.video){choices("영상 소리와 음악",listOf("원본 영상 소리로 반응","새 음악 추가")){if(it==0){history.push(project);project.reactionAudio="원본 영상";if(project.style.beat==0f)project.style.beat=.55f;project.style.reactionTarget="원본 화면 전체";enhancements()}else musicPanels.library()}}else if(project.music==null)musicPanels.library() else musicPanels.clip()
     }
     private fun stopAudio(){stopPreview()}
     private fun presets(){
@@ -548,7 +562,7 @@ class MainActivity : AppCompatActivity() {
         if(project.source.isBlank())return
         if(project.music?.let{!MusicRange.valid(it,project.durationMs())}==true){toast("음악 구간을 조정하거나 짧은 음악 반복을 직접 켜 주세요");musicMenu();return}
         if(!previewMode){
-            syncTransforms();selected=null;engine.clearHelperBox();previewMode=true
+            chrome.dismissPanel?.invoke();guides.safeArea=false;guides.invalidate();syncTransforms();selected=null;engine.clearHelperBox();previewMode=true
             chrome.top.visibility=View.GONE;(contextBar.parent as View).visibility=View.GONE
             val controls=FrameLayout(this).apply{isClickable=true;contentDescription="스토리 미리보기"}
             controls.addView(button("편집"){leavePreview()}.apply{background=rounded(0xAA242428.toInt(),24f)},FrameLayout.LayoutParams(dp(64),dp(48),Gravity.TOP or Gravity.START).apply{leftMargin=dp(8);topMargin=dp(8)})
@@ -561,7 +575,7 @@ class MainActivity : AppCompatActivity() {
         }
         clock.toggle()
     }
-    private fun leavePreview(){clock.pausePlayback();clock.onPosition=null;previewControls?.let{chrome.stage.removeView(it)};previewControls=null;previewMode=false;editor.isEnabled=true;chrome.top.visibility=View.VISIBLE;(contextBar.parent as View).visibility=View.VISIBLE;stopPreview();normalTop();contextTools()}
+    private fun leavePreview(){guides.safeArea=prefs.getBoolean("safeArea",false);guides.invalidate();clock.pausePlayback();clock.onPosition=null;previewControls?.let{chrome.stage.removeView(it)};previewControls=null;previewMode=false;editor.isEnabled=true;chrome.top.visibility=View.VISIBLE;(contextBar.parent as View).visibility=View.VISIBLE;stopPreview();normalTop();contextTools()}
     private fun stopPreview(){if(::live.isInitialized)clock.stop()}
     override fun onPause(){super.onPause();syncTransforms();persist();stopAudio();live.onPause();editingPlayer?.pause()}
     override fun onResume(){super.onResume();if(::live.isInitialized)live.onResume()}
