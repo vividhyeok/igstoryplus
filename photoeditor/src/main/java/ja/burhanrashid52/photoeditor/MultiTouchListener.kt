@@ -111,6 +111,7 @@ internal class MultiTouchListener(
                 // completion so the editor is not created in the middle of a gesture.
                 val dx=event.rawX-lastTapX;val dy=event.rawY-lastTapY
                 if(tapCandidate && event.eventTime-event.downTime<=ViewConfiguration.getLongPressTimeout()){
+                    photoEditorView.onLayerTap?.invoke(view)
                     if(lastTapTime>0 && event.eventTime-lastTapTime<=ViewConfiguration.getDoubleTapTimeout() && dx*dx+dy*dy<=config.scaledDoubleTapSlop*config.scaledDoubleTapSlop){
                         lastTapTime=0
                         photoEditorView.onLayerDoubleTap?.invoke(view)
@@ -154,30 +155,45 @@ internal class MultiTouchListener(
     private inner class ScaleGestureListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         private var mPivotX = 0f
         private var mPivotY = 0f
-        private val mPrevSpanVector = Vector2D()
-
+        private var initialSpan=1f
+        private var initialAngle=0f
+        private var initialRotation=0f
+        private var initialScale=1f
+        private var rotationHeld=false
+        private var rotationAnchor=0f
+        private fun worldSpan(view:View,detector:ScaleGestureDetector):FloatArray{
+            val span=detector.getCurrentSpanVector();return floatArrayOf(span.x,span.y).also{view.matrix.mapVectors(it)}
+        }
         override fun onScaleBegin(view: View, detector: ScaleGestureDetector): Boolean {
-            mPivotX = detector.getFocusX()
-            mPivotY = detector.getFocusY()
-            mPrevSpanVector.set(detector.getCurrentSpanVector())
+            mPivotX=detector.getFocusX();mPivotY=detector.getFocusY()
+            val vector=worldSpan(view,detector)
+            initialSpan=kotlin.math.hypot(vector[0],vector[1]).coerceAtLeast(1f)
+            initialAngle=kotlin.math.atan2(vector[1],vector[0])*180f/kotlin.math.PI.toFloat()
+            initialRotation=view.rotation;initialScale=view.scaleX;rotationHeld=false
             return mIsPinchScalable
         }
-
         override fun onScale(view: View, detector: ScaleGestureDetector): Boolean {
-            val info = TransformInfo()
-            info.deltaScale = if (isScaleEnabled) detector.getScaleFactor() else 1.0f
-            info.deltaAngle = if (isRotateEnabled) Vector2D.getAngle(
-                mPrevSpanVector,
-                detector.getCurrentSpanVector()
-            ) else 0.0f
-            info.deltaX = if (isTranslateEnabled) detector.getFocusX() - mPivotX else 0.0f
-            info.deltaY = if (isTranslateEnabled) detector.getFocusY() - mPivotY else 0.0f
-            info.pivotX = mPivotX
-            info.pivotY = mPivotY
-            info.minimumScale = minimumScale
-            info.maximumScale = maximumScale
-            move(view, info)
-            return !mIsPinchScalable
+            // Local MotionEvent coordinates change as the layer rotates/scales. Recover
+            // the screen-space span and apply an absolute gesture target, avoiding drift.
+            val vector=worldSpan(view,detector)
+            val span=kotlin.math.hypot(vector[0],vector[1])
+            val angle=kotlin.math.atan2(vector[1],vector[0])*180f/kotlin.math.PI.toFloat()
+            val rawRotation=initialRotation+(angle-initialAngle+540)%360-180
+            val targetScale=(initialScale*span/initialSpan).coerceIn(minimumScale,maximumScale)
+            val info=TransformInfo()
+            info.deltaScale=if(isScaleEnabled)targetScale/view.scaleX else 1f
+            info.deltaAngle=0f
+            info.deltaX=if(isTranslateEnabled)detector.getFocusX()-mPivotX else 0f
+            info.deltaY=if(isTranslateEnabled)detector.getFocusY()-mPivotY else 0f
+            info.pivotX=mPivotX;info.pivotY=mPivotY;info.minimumScale=minimumScale;info.maximumScale=maximumScale
+            move(view,info)
+            if(isRotateEnabled){
+                val anchor=kotlin.math.round(rawRotation/90)*90
+                if(rotationHeld && kotlin.math.abs(rawRotation-rotationAnchor)>7f)rotationHeld=false
+                if(!rotationHeld && kotlin.math.abs(rawRotation-anchor)<=4f){rotationHeld=true;rotationAnchor=anchor;view.performHapticFeedback(android.view.HapticFeedbackConstants.CLOCK_TICK)}
+                view.rotation=if(rotationHeld)rotationAnchor else rawRotation
+            }
+            return false
         }
     }
 

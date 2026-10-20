@@ -82,11 +82,22 @@ object Artwork {
         "music" -> musicCard(c,music ?: Music(),l)
         else -> text(c,l)
     }
-    fun typeface(l:Layer):Typeface = if(l.font.startsWith("system:"))Typeface.create(l.font.removePrefix("system:"),Typeface.NORMAL) else if(l.font.isNotBlank()) runCatching { Typeface.createFromFile(l.font) }.getOrDefault(Typeface.DEFAULT) else Typeface.create(when(l.type){"Whisper","Margin Note"->"sans-serif-light";"Mono Stamp"->"monospace";"Editorial Serif"->"serif";else->"sans-serif-medium"},Typeface.NORMAL)
+    fun typeface(l:Layer):Typeface = if(l.font.startsWith("system:"))Typeface.create(l.font.removePrefix("system:"),Typeface.NORMAL) else if(l.font.isNotBlank()) runCatching { Typeface.createFromFile(l.font) }.getOrDefault(Typeface.DEFAULT) else Typeface.create(when(l.type){"Whisper","Margin Note","네온"->"sans-serif-light";"Mono Stamp","타자기"->"monospace";"Editorial Serif"->"serif";"모던"->"sans-serif-condensed";"굵게"->"sans-serif-black";else->"sans-serif-medium"},if(l.type=="굵게")Typeface.BOLD_ITALIC else Typeface.NORMAL)
     fun textSize(l:Layer)=(if(l.textLayoutVersion>0)88f else 58f)*when(l.type){"Film Caption"->.73f;"Mono Stamp"->.86f;"Editorial Serif"->1.18f;"Margin Note"->.82f;else->1f}
     fun letterSpacing(l:Layer)=when(l.type){"Whisper"->.13f;"Mono Stamp"->.09f;"Film Caption"->.035f;"Editorial Serif"->.002f;else->.015f}
-    fun textDecoration(canvas:Canvas,l:Layer,height:Int){
+    fun textInk(l:Layer):Int=if(l.textBackground=="채움"){if(Color.red(l.color)*.2126+Color.green(l.color)*.7152+Color.blue(l.color)*.0722>150)Color.BLACK else Color.WHITE}else l.color
+    fun textDecoration(canvas:Canvas,l:Layer,height:Int,layout:Layout?=null){
         val paint=Paint(Paint.ANTI_ALIAS_FLAG)
+        if(l.textBackground!="기존"){
+            if(l.textBackground=="없음" || layout==null)return
+            paint.color=if(l.textBackground=="반투명")0xA6000000.toInt() else l.color
+            if(l.textBackground=="라인"){paint.style=Paint.Style.STROKE;paint.strokeWidth=3f}
+            for(line in 0 until layout.lineCount){
+                if(layout.getLineRight(line)-layout.getLineLeft(line)<1f)continue
+                val rect=RectF(40+layout.getLineLeft(line)-16,32+layout.getLineTop(line)-3f,40+layout.getLineRight(line)+16,32+layout.getLineBottom(line)+3f)
+                canvas.drawRoundRect(rect,14f,14f,paint)
+            };return
+        }
         if(l.type=="Soft Label" || l.type=="Mono Stamp"){
             paint.color=if(l.type=="Mono Stamp")Color.argb(185,20,24,27) else Color.argb((l.emphasis*180).toInt(),20,20,25)
             canvas.drawRoundRect(12f,6f,948f,height-6f,if(l.type=="Mono Stamp")4f else 28f,if(l.type=="Mono Stamp")4f else 28f,paint)
@@ -96,23 +107,26 @@ object Artwork {
     }
     fun text(c: Context, l: Layer): Bitmap {
         val p=TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
-            color=l.color; textSize=textSize(l)
+            color=textInk(l); textSize=textSize(l)
             typeface=typeface(l)
             letterSpacing=letterSpacing(l)
             if(l.type=="Film Caption")setShadowLayer(4f,0f,2f,Color.BLACK)
+            if(l.type=="네온")setShadowLayer(18f,0f,0f,l.color)
         }
         val layout=StaticLayout.Builder.obtain(l.text,0,l.text.length,p,880).setAlignment(when(l.align){0->Layout.Alignment.ALIGN_NORMAL;2->Layout.Alignment.ALIGN_OPPOSITE;else->Layout.Alignment.ALIGN_CENTER}).setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE).setIncludePad(true).build()
         val b=Bitmap.createBitmap(960,layout.height+64,Bitmap.Config.ARGB_8888); val canvas=Canvas(b)
-        textDecoration(canvas,l,b.height)
+        textDecoration(canvas,l,b.height,layout)
         canvas.translate(40f,32f)
         if(l.textLayoutVersion>0 && (l.type=="Offset Type" || l.type=="Echo Type")) p.setShadowLayer(if(l.type=="Echo Type")2f else .01f,2+l.emphasis*7,2+l.emphasis*5,Color.argb((l.emphasis*100).toInt(),Color.red(l.color),Color.green(l.color),Color.blue(l.color)))
         if(l.textLayoutVersion==0 && (l.type=="Offset Type" || l.type=="Echo Type")) {
             canvas.save(); canvas.translate(2+l.emphasis*7,2+l.emphasis*5); p.alpha=(l.emphasis*100).toInt(); layout.draw(canvas); canvas.restore(); p.alpha=255
         }
         if(l.type=="Whisper") p.alpha=220
+        if(l.type=="외곽선"){val ink=p.color;p.style=Paint.Style.STROKE;p.strokeWidth=7f;p.color=Color.BLACK;layout.draw(canvas);p.style=Paint.Style.FILL;p.color=ink}
         layout.draw(canvas); return if(l.textLayoutVersion>0)b else trimAlpha(b)
     }
     fun musicCard(c: Context, m: Music, l: Layer): Bitmap {
+        if(m.card in listOf("스토리","커버","투명"))return storyMusicCard(c,m)
         if(m.card in listOf("Mini Credit","Cover Caption","Mono Tag","Progress Line"))return newMusicCard(c,m)
         val artOnly=m.card=="앨범 아트"; val textOnly=m.card=="텍스트";val full=m.card=="기본 카드";val compact=m.card=="작은 카드";val size=if(artOnly)420 else if(full)480 else if(compact)680 else 800
         val b=Bitmap.createBitmap(size,if(artOnly)420 else if(full)600 else if(compact)150 else 180,Bitmap.Config.ARGB_8888); val cv=Canvas(b)
@@ -131,6 +145,27 @@ object Artwork {
             cv.drawText(line(m.title),x,if(full)506f else if(compact)65f else 78f,paint); paint.textSize=if(compact)26f else 29f; paint.typeface=Typeface.DEFAULT; paint.color=Color.DKGRAY
             cv.drawText(line(m.artist),x,if(full)555f else if(compact)107f else 125f,paint)
         }; return b
+    }
+    private fun storyMusicCard(c:Context,m:Music):Bitmap{
+        val cover=m.card=="커버";val transparent=m.card=="투명";val width=if(cover)480 else 640;val height=if(cover)558 else 180
+        val b=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888);val canvas=Canvas(b);val paint=TextPaint(Paint.ANTI_ALIAS_FLAG)
+        if(!transparent){paint.color=Color.WHITE;canvas.drawRoundRect(0f,0f,width.toFloat(),height.toFloat(),18f,18f,paint)}
+        if(!transparent){
+            val target=if(cover)RectF(16f,16f,464f,464f) else RectF(22f,22f,158f,158f)
+            canvas.save();canvas.clipPath(Path().apply{addRoundRect(target,10f,10f,Path.Direction.CW)})
+            val art=runCatching{decode(c,m.art,512)}.getOrNull()
+            if(art!=null){val side=min(art.width,art.height);canvas.drawBitmap(art,Rect((art.width-side)/2,(art.height-side)/2,(art.width+side)/2,(art.height+side)/2),target,Paint(Paint.FILTER_BITMAP_FLAG))}
+            else {paint.color=0xFFDDDDE3.toInt();canvas.drawRect(target,paint);EditorIcons.drawable("음악",0xFF73737C.toInt()).apply{setBounds((target.left+target.width()*.28f).toInt(),(target.top+target.height()*.28f).toInt(),(target.right-target.width()*.28f).toInt(),(target.bottom-target.height()*.28f).toInt());draw(canvas)}}
+            canvas.restore()
+        }
+        val x=if(cover)24f else if(transparent)26f else 184f
+        paint.color=if(transparent)Color.WHITE else Color.BLACK;paint.typeface=Typeface.create("sans-serif",Typeface.BOLD);paint.textSize=if(cover)30f else 38f
+        if(transparent)paint.setShadowLayer(3f,0f,1f,Color.BLACK)
+        fun line(value:String)=android.text.TextUtils.ellipsize(value.replace('\n',' '),paint,width-x-24,android.text.TextUtils.TruncateAt.END).toString()
+        canvas.drawText(line(m.title),x,if(cover)505f else 79f,paint)
+        paint.typeface=Typeface.create("sans-serif",Typeface.NORMAL);paint.textSize=if(cover)25f else 30f;paint.color=if(transparent)0xEEFFFFFF.toInt() else 0xFF55555D.toInt()
+        canvas.drawText(line(m.artist),x,if(cover)540f else 124f,paint)
+        return b
     }
     fun palette(c:Context,uri:String):Int{
         if(uri.isBlank())return 0xFF98B8CF.toInt()

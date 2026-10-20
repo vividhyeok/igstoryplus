@@ -20,9 +20,10 @@ data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String
                  var x: Float = .5f, var y: Float = .5f, var scale: Float = 1f,
                  var rotation: Float = 0f, var width: Float = .45f, var motion: Boolean = false,
                  var crop: Crop = Crop(), var textLayoutVersion: Int = 0,
-                 var photoStyle:Style?=null,var motionStyle:String="기본",var motionAmount:Float=.4f)
+                 var photoStyle:Style?=null,var motionStyle:String="기본",var motionAmount:Float=.4f,
+                 var textBackground:String="기존")
 data class Music(var uri: String = "", var title: String = "", var artist: String = "", var album: String = "",
-                 var art: String = "", var durationMs: Long = 0, var startMs: Long = 0, var card: String = "작은 카드", var volume: Float = 1f,
+                 var art: String = "", var durationMs: Long = 0, var startMs: Long = 0, var card: String = "스토리", var volume: Float = 1f,
                  var loop:Boolean=false)
 data class Project(var source: String = "", var video: Boolean = false, var sourceDurationMs: Long = 0,
                    var duration: Int = 5, var crop: Crop = Crop(), var style: Style = Style(),

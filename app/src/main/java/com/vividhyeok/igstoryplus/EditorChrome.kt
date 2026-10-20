@@ -11,6 +11,8 @@ class EditorChrome(context: Context) : LinearLayout(context) {
     val top = LinearLayout(context)
     val stage = FrameLayout(context)
     val bottom = LinearLayout(context)
+    val tray = LinearLayout(context).apply{orientation=VERTICAL;visibility=GONE}
+    var dismissPanel:(()->Unit)?=null
     val play = EditorIcons.button(context,"미리보기 재생"){}
     private fun dp(n: Int) = (n * resources.displayMetrics.density).toInt()
     init {
@@ -19,6 +21,7 @@ class EditorChrome(context: Context) : LinearLayout(context) {
         top.gravity = Gravity.CENTER_VERTICAL
         addView(top, LayoutParams(-1,dp(52)))
         addView(stage, LayoutParams(-1,0,1f))
+        addView(tray, LayoutParams(-1,-2))
         val scroll = HorizontalScrollView(context).apply {
             isHorizontalScrollBarEnabled = false
             isFillViewport = true

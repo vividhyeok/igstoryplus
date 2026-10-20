@@ -14,7 +14,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
                   private val checkpoint:()->Unit,private val changed:()->Unit,private val save:()->Unit,
                   private val import:(String)->Unit,private val select:(Music)->Unit,private val remove:()->Unit){
     private val library=MusicLibrary(activity)
-    private var clipDialog:Dialog?=null
+    private var clipDialog:EditorDock?=null
     private fun dp(n:Int)=(activity.resources.displayMetrics.density*n).toInt()
     private fun column()=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL;setPadding(dp(8),dp(4),dp(8),dp(8))}
     private fun label(s:String,size:Float=14f)=TextView(activity).apply{text=s;textSize=size;setTextColor(Color.WHITE);gravity=Gravity.CENTER_VERTICAL;minHeight=dp(32)}
@@ -95,8 +95,8 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
         val extra=LinearLayout(activity)
         extra.addView(button("곡 교체"){library()},LinearLayout.LayoutParams(0,dp(48),1f))
         extra.addView(button("볼륨"){volume()},LinearLayout.LayoutParams(0,dp(48),1f));body.addView(extra)
-        var dialog:Dialog?=null
-        dialog=sheet("음악 구간",body,{clock.pausePlayback();save();changed()},.78f,{val valid=MusicRange.valid(m,p.durationMs());if(!valid)Toast.makeText(activity,"길이를 줄이거나 반복을 켜야 음악 구간을 완료할 수 있습니다.",Toast.LENGTH_LONG).show();valid})
+        var dialog:EditorDock?=null
+        dialog=EditorDock(activity,"음악 구간",body,{clock.pausePlayback();save();changed()},{val valid=MusicRange.valid(m,p.durationMs());if(!valid)Toast.makeText(activity,"길이를 줄이거나 반복을 켜야 음악 구간을 완료할 수 있습니다.",Toast.LENGTH_LONG).show();valid}).also{it.show()}
         clipDialog=dialog
         clock.onPosition={position->if(dialog.isShowing)waveform.playheadMs=position}
         play.contentDescription="선택 구간 재생"
@@ -118,7 +118,7 @@ class MusicPanels(private val activity:Activity,private val project:()->Project,
             row.addView(tile)
         }
         body.addView(HorizontalScrollView(activity).apply{isHorizontalScrollBarEnabled=false;addView(row)})
-        sheet("음악 카드",body)
+        EditorDock(activity,"음악 카드",body).show()
     }
     private fun metadata(){
         val m=project().music?:return;val body=column()

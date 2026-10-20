@@ -40,9 +40,9 @@ object EditorIcons {
         "볼륨" to "M3,9 L7,9 L12,4 L12,20 L7,15 L3,15 Z M16,8 Q21,12 16,16 M19,4 Q27,12 19,20"
     )
     fun drawable(name:String,color:Int=Color.WHITE):Drawable = object:Drawable(){
-        val path=PathParser.createPathFromPathData(paths[name]?:paths["더보기"]!!)!!
+        val path=PathParser.createPathFromPathData(paths[if(name=="스티커")"내 이모지" else name]?:paths["더보기"]!!)!!
         val paint=Paint(Paint.ANTI_ALIAS_FLAG).apply{this.color=color;style=Paint.Style.STROKE;strokeWidth=1.8f;strokeCap=Paint.Cap.ROUND;strokeJoin=Paint.Join.ROUND}
-        override fun draw(c:Canvas){c.save();c.translate(bounds.left.toFloat(),bounds.top.toFloat());c.scale(bounds.width()/24f,bounds.height()/24f);c.drawPath(path,paint);c.restore()}
+        override fun draw(c:Canvas){val side=kotlin.math.min(bounds.width(),bounds.height()).toFloat();c.save();c.translate(bounds.left+(bounds.width()-side)/2,bounds.top+(bounds.height()-side)/2);c.scale(side/24f,side/24f);c.drawPath(path,paint);c.restore()}
         override fun setAlpha(alpha:Int){paint.alpha=alpha}
         override fun setColorFilter(filter:ColorFilter?){paint.colorFilter=filter}
         @Deprecated("Deprecated in Java") override fun getOpacity()=PixelFormat.TRANSLUCENT

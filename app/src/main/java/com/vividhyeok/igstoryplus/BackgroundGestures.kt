@@ -11,6 +11,9 @@ class BackgroundGestures(private val view:View,private val project:()->Project,p
     private var active=false;private var moving=false;private var x=0f;private var y=0f;private var distance=0f;private var angle=0f
     private var downX=0f;private var downY=0f
     private val slop=ViewConfiguration.get(view.context).scaledTouchSlop
+    private val density=view.resources.displayMetrics.density
+    private val mx=AlignmentMagnet(9*density,16*density);private val my=AlignmentMagnet(9*density,16*density);private val mr=AlignmentMagnet(4f,7f)
+    private var rawX=0f;private var rawY=0f;private var rawAngle=0f;private var originX=0f;private var originY=0f;private var axis=0
     private val detector=GestureDetector(view.context,object:GestureDetector.SimpleOnGestureListener(){
         override fun onDown(e:MotionEvent)=true
         override fun onSingleTapConfirmed(e:MotionEvent):Boolean{if(!moving)tap(hit(e.x,e.y));return true}
@@ -30,17 +33,23 @@ class BackgroundGestures(private val view:View,private val project:()->Project,p
         val d=if(n>1)hypot(e.getX(1)-e.getX(0),e.getY(1)-e.getY(0)) else 0f
         val a=if(n>1)atan2(e.getY(1)-e.getY(0),e.getX(1)-e.getX(0))*180f/PI.toFloat() else 0f
         when(e.actionMasked){
-            MotionEvent.ACTION_DOWN->{active=project().source.isNotBlank() && hit(cx,cy);moving=false;downX=cx;downY=cy;x=cx;y=cy}
-            MotionEvent.ACTION_POINTER_DOWN->{x=cx;y=cy;distance=d;angle=a}
+            MotionEvent.ACTION_DOWN->{active=project().source.isNotBlank() && hit(cx,cy);moving=false;downX=cx;downY=cy;x=cx;y=cy;val p=project().pose;rawX=p.x*view.width;rawY=p.y*view.height;originX=rawX;originY=rawY;rawAngle=p.rotation;axis=0;mx.reset();my.reset();mr.reset()}
+            MotionEvent.ACTION_POINTER_DOWN->{x=cx;y=cy;distance=d;angle=a;axis=3}
             MotionEvent.ACTION_MOVE->if(active){
                 if(!moving && (hypot(cx-downX,cy-downY)>slop || n>1)){moving=true;begin();v.parent.requestDisallowInterceptTouchEvent(true)}
-                if(moving){val pose=project().pose;pose.x=(pose.x+(cx-x)/v.width).coerceIn(0f,1f);pose.y=(pose.y+(cy-y)/v.height).coerceIn(0f,1f)
-                    if(n>1 && distance>0){pose.scale=(pose.scale*d/distance).coerceIn(.25f,6f);val delta=(a-angle+540)%360-180;pose.rotation=(pose.rotation+delta)%360}
+                if(moving){val pose=project().pose;rawX=(rawX+cx-x).coerceIn(0f,v.width.toFloat());rawY=(rawY+cy-y).coerceIn(0f,v.height.toFloat())
+                    if(axis==0){val dx=abs(cx-downX);val dy=abs(cy-downY);axis=if(dx>dy*2.5f)1 else if(dy>dx*2.5f)2 else 3}
+                    if(axis==1 && abs(rawY-originY)>24*density)axis=3
+                    if(axis==2 && abs(rawX-originX)>24*density)axis=3
+                    val was=mx.held||my.held||mr.held
+                    pose.x=mx.value(if(axis==2)originX else rawX,v.width/2f)/v.width;pose.y=my.value(if(axis==1)originY else rawY,v.height/2f)/v.height
+                    if(n>1 && distance>0){pose.scale=(pose.scale*d/distance).coerceIn(.25f,6f);val delta=(a-angle+540)%360-180;rawAngle+=delta;pose.rotation=mr.value(rawAngle,(rawAngle/90).roundToInt()*90f)}
+                    if(!was && (mx.held||my.held||mr.held))v.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
                     changed()
                 };x=cx;y=cy;distance=d;angle=a
             }
             MotionEvent.ACTION_POINTER_UP->{val remaining=if(e.actionIndex==0)1 else 0;x=e.getX(remaining);y=e.getY(remaining);distance=0f}
-            MotionEvent.ACTION_UP,MotionEvent.ACTION_CANCEL->{if(moving){val p=project().pose;if(abs(p.x-.5f)<.015f)p.x=.5f;if(abs(p.y-.5f)<.015f)p.y=.5f;if(abs(p.rotation%90)<3)p.rotation=(p.rotation/90).roundToInt()*90f;changed();end()};active=false;v.parent.requestDisallowInterceptTouchEvent(false)}
+            MotionEvent.ACTION_UP,MotionEvent.ACTION_CANCEL->{if(moving){project().pose.rotation=levelAngle(project().pose.rotation);changed();end()};active=false;v.parent.requestDisallowInterceptTouchEvent(false)}
         }
         return true
     }

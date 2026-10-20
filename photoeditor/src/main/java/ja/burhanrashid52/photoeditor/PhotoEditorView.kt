@@ -30,6 +30,7 @@ class PhotoEditorView @JvmOverloads constructor(
     var onLayerGesture: ((android.view.View, Boolean) -> Unit)? = null
     var onLayerTransform: ((android.view.View) -> Unit)? = null
     var onLayerDoubleTap: ((android.view.View) -> Unit)? = null
+    var onLayerTap: ((android.view.View) -> Unit)? = null
     private var expandedTarget:android.view.View?=null
 
     /** Give tiny layers a 48dp hit target, without stealing an actual hit on a higher layer.

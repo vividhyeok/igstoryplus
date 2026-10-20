@@ -129,7 +129,7 @@ class EditorUiTest {
             var ready=false
             for(attempt in 0 until 100){liveActivity{a->fun find(v:View):LivePhoto?{if(v is LivePhoto)return v;if(v is ViewGroup)for(i in 0 until v.childCount)find(v.getChildAt(i))?.let{return it};return null};ready=find(a.window.decorView)?.frameReady==true};if(ready)break;SystemClock.sleep(100)}
             assertTrue("Bundled library capture needs the actual source photo",ready)
-            onView(withContentDescription("내 이모지")).perform(click());SystemClock.sleep(400);screenshot("ux-bundled-emoji")
+            onView(withContentDescription("스티커")).perform(click());SystemClock.sleep(400);screenshot("ux-bundled-emoji")
             onView(withContentDescription("이모지 검색")).perform(replaceText("커피"),closeSoftKeyboard())
             onView(withContentDescription("커피")).perform(click())
             liveActivity{assertTrue(EmojiLibrary.bundled(it.project.layers.single().uri))}
@@ -150,7 +150,7 @@ class EditorUiTest {
         context.contentResolver.openOutputStream(doc)!!.use{b.compress(Bitmap.CompressFormat.PNG,100,it)}
         context.getSharedPreferences("settings",0).edit().putString("emojiFolder",tree.toString()).apply();Store(context).save(Project(source=fixtureStory()))
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
-            onView(withContentDescription("내 이모지")).perform(click());SystemClock.sleep(400);screenshot("ux-png-library")
+            onView(withContentDescription("스티커")).perform(click());SystemClock.sleep(400);screenshot("ux-png-library")
             onView(withContentDescription("test-only.png")).perform(click());liveActivity{assertEquals("png",it.project.layers.single().kind);assertEquals(.089f,it.project.layers.single().width)}
             onView(withContentDescription("png 레이어")).perform(swipeUp())
             scenario.recreate();liveActivity{assertEquals("png",it.project.layers.single().kind);assertTrue(it.project.layers.single().y<.5f);it.project=Project();Store(context).save(it.project)}
@@ -296,13 +296,12 @@ class EditorUiTest {
                 assertEquals("한글 조합\n두 번째 줄",Store(context).textEdit()!!.layer.text)
             }
             onView(withContentDescription("캔버스 텍스트 입력")).perform(closeSoftKeyboard())
-            onView(withText("스타일")).perform(click())
             screenshot("editor-text-styles")
-            onView(withContentDescription("Whisper")).perform(scrollTo(),click())
+            onView(withContentDescription("텍스트 스타일: Whisper")).perform(scrollTo(),click())
             liveActivity{a->assertEquals("Whisper",Store(context).textEdit()!!.layer.type);assertEquals(.13f,a.window.decorView.findViewWithTag<EditText>("canvas-text-input").letterSpacing,.001f)}
             scenario.recreate()
             onView(withContentDescription("캔버스 텍스트 입력")).check(androidx.test.espresso.assertion.ViewAssertions.matches(withText("한글 조합\n두 번째 줄")))
-            onView(withText("취소")).perform(click())
+            onView(withContentDescription("텍스트 취소")).perform(click())
             liveActivity{assertEquals("이전 문구",it.project.layers.single().text);assertNull(Store(context).textEdit())}
               awaitCanvasAfterIme(scenario)
             val textPoint=point("텍스트 레이어: 이전 문구")
@@ -311,13 +310,13 @@ class EditorUiTest {
             for(attempt in 0 until 40){liveActivity{reopened=it.window.decorView.findViewWithTag<EditText>("canvas-text-input")!=null};if(reopened)break;SystemClock.sleep(50)}
             assertTrue("Two actual taps must reopen text",reopened)
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("수정 취소"))
-            onView(withText("취소")).perform(click())
+            onView(withContentDescription("텍스트 취소")).perform(click())
             liveActivity{assertEquals("이전 문구",it.project.layers.single().text)}
               awaitCanvasAfterIme(scenario)
             onView(withText("수정")).perform(click())
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("최종 문구"),closeSoftKeyboard())
             SystemClock.sleep(300) // Wait for the real IME surface to leave before tapping the moved toolbar.
-            onView(withText("정렬")).perform(click())
+            onView(withContentDescription("텍스트 정렬")).perform(click())
             onView(withText("완료")).perform(click())
             liveActivity{assertEquals("최종 문구",it.project.layers.single().text);assertEquals(1,it.project.layers.single().textLayoutVersion)}
             onView(withContentDescription("실행 취소")).perform(click())
