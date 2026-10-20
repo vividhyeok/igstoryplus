@@ -1,0 +1,74 @@
+name: Publish current signed APK
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (known validation results are disclosed in release notes)'
+        required: true
+        type: string
+permissions:
+  contents: write
+concurrency:
+  group: publish-current-apk
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      VERSION_NAME: ${{ inputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build with persistent signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -euo pipefail
+          [[ "$VERSION_NAME" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          test -n "$KEYSTORE_BASE64"
+          test -n "$KEYSTORE_PASSWORD"
+          export KEYSTORE_PATH="$RUNNER_TEMP/igstoryplus-release.jks"
+          printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$KEYSTORE_PATH"
+          export VERSION_CODE=$(( $(date +%s) / 60 ))
+          chmod +x gradlew
+          ./gradlew :app:assembleRelease --console=plain
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/igstoryplus-v${VERSION_NAME}-universal.apk"
+      - name: Verify package and signing certificate
+        run: |
+          set -euo pipefail
+          TOOLS="$ANDROID_HOME/build-tools/35.0.0"
+          "$TOOLS/apksigner" verify --verbose --print-certs dist/*universal.apk | tee dist/signature.txt
+          "$TOOLS/aapt" dump badging dist/*universal.apk | tee dist/package.txt
+          grep -q "package: name='com.vividhyeok.igstoryplus'" dist/package.txt
+          grep -q "versionName='$VERSION_NAME'" dist/package.txt
+          grep -q '2fcc3941f7e2bddd5ebf7f7345b90c826fc5790ccf971dd5ada5a064b1064e7e' dist/signature.txt
+          printf 'Source commit: %s\nBuild run: %s/%s/actions/runs/%s\n' "$GITHUB_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > dist/build-info.txt
+          (cd dist && sha256sum *.apk > SHA256SUMS)
+      - name: Publish release with known test limitation
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test -z "$(git ls-remote --tags origin "refs/tags/v$VERSION_NAME")"
+          gh release create "v$VERSION_NAME" dist/* --target "$GITHUB_SHA" --title "igstoryplus v$VERSION_NAME" --notes-file docs/RELEASE_NOTES.md --latest
+      - name: Verify uploaded APK download
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "v$VERSION_NAME" --pattern '*universal.apk' --dir "$RUNNER_TEMP/release-download"
+          cmp dist/*universal.apk "$RUNNER_TEMP"/release-download/*universal.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: published-apk-${{ github.sha }}
+          path: dist/

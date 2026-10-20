@@ -78,7 +78,7 @@ jobs:
             VERSION_NAME="0.4.0-dev.${GITHUB_RUN_NUMBER}+${GITHUB_SHA:0:7}"
           fi
           echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
-          VERSION_CODE=$((10000 + GITHUB_RUN_NUMBER)) VERSION_NAME="$VERSION_NAME" ./gradlew :app:assembleRelease --console=plain
+          VERSION_CODE=$(( $(date +%s) / 60 )) VERSION_NAME="$VERSION_NAME" ./gradlew :app:assembleRelease --console=plain
           mkdir -p dist
           cp app/build/outputs/apk/release/app-release.apk "dist/igstoryplus-v${VERSION_NAME}-universal.apk"
           cp validation/ffprobe-report.json dist/validation-report.json
