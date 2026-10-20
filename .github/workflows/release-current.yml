@@ -6,8 +6,13 @@ on:
         description: 'Release version (known validation results are disclosed in release notes)'
         required: true
         type: string
+      verification_run:
+        description: 'Optional Actions run that must succeed before publishing'
+        required: false
+        type: string
 permissions:
   contents: write
+  actions: read
 concurrency:
   group: publish-current-apk
   cancel-in-progress: false
@@ -58,7 +63,15 @@ jobs:
           grep -q '2fcc3941f7e2bddd5ebf7f7345b90c826fc5790ccf971dd5ada5a064b1064e7e' dist/signature.txt
           printf 'Source commit: %s\nBuild run: %s/%s/actions/runs/%s\n' "$GITHUB_SHA" "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" > dist/build-info.txt
           (cd dist && sha256sum *.apk > SHA256SUMS)
-      - name: Publish release with known test limitation
+      - name: Require requested verification before publishing
+        if: inputs.verification_run != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERIFICATION_RUN: ${{ inputs.verification_run }}
+        run: |
+          [[ "$VERIFICATION_RUN" =~ ^[0-9]+$ ]]
+          gh run watch "$VERIFICATION_RUN" --exit-status --interval 15
+      - name: Publish release with disclosed validation scope
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
