@@ -24,6 +24,7 @@ class StoryTextControls(private val activity:Activity,private val chrome:EditorC
         chrome.top.addView(item("●","텍스트 색상"){palette()},LinearLayout.LayoutParams(0,-1,1f))
         chrome.top.addView(item("⋯","텍스트 추가 설정"){advanced()},LinearLayout.LayoutParams(dp(48),-1))
         chrome.top.addView(item("완료","텍스트 완료"){session.finish(true)},LinearLayout.LayoutParams(dp(64),-1))
+        chrome.bottom.addView(item("내 이모지","텍스트 개인 이모지"){customEmoji()}.apply{textSize=13f})
         chrome.bottom.addView(item("😀","텍스트 이모지"){emoji()})
         val chips=mutableListOf<TextView>()
         EditorCatalog.text.forEach{name->
@@ -61,6 +62,20 @@ class StoryTextControls(private val activity:Activity,private val chrome:EditorC
         }.apply{textSize=27f},LinearLayout.LayoutParams(dp(48),dp(46)))};strip.addView(column)}
         body.addView(HorizontalScrollView(activity).apply{isHorizontalScrollBarEnabled=false;addView(strip)})
         tray("이모지",body)
+    }
+    private fun customEmoji(){
+        val body=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL;setBackgroundColor(0xFF202024.toInt())}
+        val header=row();header.addView(item("⌨","키보드로 돌아가기"){closeTray();session.keyboard(true)})
+        header.addView(TextView(activity).apply{text="내 이모지 · 문장 안에 삽입";setTextColor(Color.LTGRAY);textSize=12f});body.addView(header)
+        val strip=row();body.addView(HorizontalScrollView(activity).apply{isHorizontalScrollBarEnabled=false;addView(strip)})
+        fun populate(items:List<EmojiItem>){
+            strip.removeAllViews();items.chunked(2).forEach{pair->val column=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL}
+                pair.forEach{emoji->column.addView(ImageView(activity).apply{contentDescription="문장 이모지: ${emoji.name}";setPadding(dp(7),dp(5),dp(7),dp(5));scaleType=ImageView.ScaleType.FIT_CENTER;setImageBitmap(InlineEmoji.bitmap(activity,emoji.uri));isFocusable=false;setOnClickListener{session.insertCustomEmoji(emoji.uri)}},LinearLayout.LayoutParams(dp(58),dp(52)))};strip.addView(column)
+            }
+        }
+        val defaults=EmojiLibrary.defaults(activity);populate(defaults);tray("개인 이모지",body)
+        val path=activity.getSharedPreferences("settings",0).getString("emojiFolder",null)
+        if(path!=null)Thread{val user=runCatching{EmojiFolder.scan(activity.applicationContext,android.net.Uri.parse(path)).map{EmojiLibrary.item(it)}}.getOrDefault(emptyList());activity.runOnUiThread{if(panel=="개인 이모지" && body.isAttachedToWindow)populate(defaults+user)}}.start()
     }
     private fun advanced(){
         val body=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL}

@@ -419,7 +419,7 @@ class MainActivity : AppCompatActivity() {
         if(project.source.isBlank()){pick("base",arrayOf("image/*","video/*"));return}
         chrome.dismissPanel?.invoke();stopPreview();syncTransforms();engine.clearHelperBox()
         chrome.play.visibility=View.GONE
-        val l=pending?:existing?.copy(crop=existing.crop.copy())?:run{val y=listOf(.5f,.32f,.68f).firstOrNull{candidate->project.layers.none{it.kind=="text" && abs(it.y-candidate)<.13f}}?:.5f;Layer(kind="text",text="",type="클래식",textBackground="없음",width=.8f,y=y)}
+        val l=pending?:existing?.copy(crop=existing.crop.copy(),inlineEmoji=existing.inlineEmoji.toMutableMap())?:run{val y=listOf(.5f,.32f,.68f).firstOrNull{candidate->project.layers.none{it.kind=="text" && abs(it.y-candidate)<.13f}}?:.5f;Layer(kind="text",text="",type="클래식",textBackground="없음",width=.8f,y=y)}
         // Legacy text keeps its original bitmap geometry until the user explicitly commits an edit.
         l.textLayoutVersion=1
         existing?.let{layerViews[it.id]?.visibility=View.INVISIBLE}

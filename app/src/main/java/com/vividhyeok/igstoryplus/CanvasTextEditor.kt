@@ -33,11 +33,11 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
             inputType=android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE or android.text.InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
             imeOptions=android.view.inputmethod.EditorInfo.IME_FLAG_NO_EXTRACT_UI or android.view.inputmethod.EditorInfo.IME_FLAG_NO_PERSONALIZED_LEARNING
             setSingleLine(false); setSelectAllOnFocus(false); minWidth=0; minimumWidth=0
-            setText(draft.text); setSelection(text?.length?:0)
+            setText(InlineEmoji.styled(activity,draft)); setSelection(text?.length?:0)
             addTextChangedListener(object:TextWatcher {
                 override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int) {}
                 override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int) { draft.text=s.toString();changed(draft);post { position() } }
-                override fun afterTextChanged(s:Editable?) {}
+                override fun afterTextChanged(s:Editable?) {if(s!=null)InlineEmoji.apply(activity,draft,s)}
             })
         }
         canvas.addView(input,FrameLayout.LayoutParams(960,-2,Gravity.TOP or Gravity.START))
@@ -78,6 +78,7 @@ class CanvasTextEditor(private val activity: Activity, private val canvas: Frame
         finished(commit,draft)
     }
     private val auxiliary=mutableListOf<View>()
+    fun insertCustomEmoji(uri:String){insertEmoji(InlineEmoji.token(draft,uri))}
     fun auxiliary(view:View){auxiliary.add(view)}
     fun insertEmoji(emoji:String){
         val text=input.text?:return;val start=input.selectionStart.coerceAtLeast(0);val end=input.selectionEnd.coerceAtLeast(start)

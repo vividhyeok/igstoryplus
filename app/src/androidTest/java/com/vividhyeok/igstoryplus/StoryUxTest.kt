@@ -25,6 +25,34 @@ class StoryUxTest{
     private fun source():String{val file=File(c.filesDir,"story-real-photo.jpg");instrumentation.context.assets.open("scenes/nature.jpg").use{i->file.outputStream().use{i.copyTo(it)}};return Uri.fromFile(file).toString()}
     private fun capture(name:String){SystemClock.sleep(250);val file=File(c.getExternalFilesDir(null),"validation/$name.png").apply{parentFile!!.mkdirs()};instrumentation.uiAutomation.takeScreenshot().let{image->file.outputStream().use{image.compress(Bitmap.CompressFormat.PNG,100,it)}}}
     private fun assertUncovered(){activity{a->val ui=chrome(a);fun editor(v:View):ja.burhanrashid52.photoeditor.PhotoEditorView?{if(v is ja.burhanrashid52.photoeditor.PhotoEditorView)return v;if(v is ViewGroup)for(i in 0 until v.childCount)editor(v.getChildAt(i))?.let{return it};return null};val rect=Rect();editor(ui)!!.getGlobalVisibleRect(rect);val tray=Rect();ui.tray.getGlobalVisibleRect(tray);assertTrue("Controls must live below the complete story, not cover it",rect.bottom<=tray.top);assertTrue(rect.height()>180)}}
+    @Test fun customJesusAndChurchAreEditableInlineAndSurviveRestoreAndExport(){
+        Store(c).clearTextEdit();Store(c).save(Project(source=source()))
+        var stored:Layer?=null
+        ActivityScenario.launch(MainActivity::class.java).use{scenario->
+            onView(withContentDescription("텍스트")).perform(click())
+            onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("예수님과 함께\n오늘도 교회에 갑니다"))
+            activity{it.window.decorView.findViewWithTag<EditText>("canvas-text-input").setSelection(7)}
+            onView(withContentDescription("텍스트 개인 이모지")).perform(click());SystemClock.sleep(300)
+            onView(withContentDescription("문장 이모지: 예수님")).perform(click())
+            activity{a->val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input");assertEquals(8,input.selectionStart);assertEquals(1,input.text.getSpans(0,input.length(),InlineEmoji.ImageGlyph::class.java).size);input.setSelection(input.length()-4)}
+            onView(withContentDescription("문장 이모지: 교회")).perform(click())
+            activity{a->val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input");assertEquals(2,input.text.getSpans(0,input.length(),InlineEmoji.ImageGlyph::class.java).size);input.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN,KeyEvent.KEYCODE_DEL));input.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP,KeyEvent.KEYCODE_DEL));assertEquals(1,input.text.getSpans(0,input.length(),InlineEmoji.ImageGlyph::class.java).size)}
+            onView(withContentDescription("문장 이모지: 교회")).perform(click())
+            assertUncovered();SystemClock.sleep(500);capture("custom-inline-jesus-church")
+            scenario.recreate()
+            activity{a->val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input");assertEquals(2,input.text.getSpans(0,input.length(),InlineEmoji.ImageGlyph::class.java).size);assertTrue(input.layout.lineCount>=2)}
+            onView(withContentDescription("텍스트 완료")).perform(click())
+            activity{a->stored=Store(c).copy(a.project).layers.single();assertEquals("text",stored!!.kind);assertEquals(2,stored!!.inlineEmoji.size)}
+        }
+        val layer=stored!!;val image=Artwork.text(c,layer);var colorPixels=0
+        for(y in 0 until image.height)for(x in 0 until image.width){val pixel=image.getPixel(x,y);if(Color.alpha(pixel)>100 && maxOf(Color.red(pixel),Color.green(pixel),Color.blue(pixel))-minOf(Color.red(pixel),Color.green(pixel),Color.blue(pixel))>50)colorPixels++}
+        assertTrue("Custom artwork must render in exported text, not private-character tofu",colorPixels>100)
+        File(c.getExternalFilesDir(null),"validation/custom-inline-text-output.png").outputStream().use{image.compress(Bitmap.CompressFormat.PNG,100,it)}
+        val latch=java.util.concurrent.CountDownLatch(1);var result:Result<File>?=null
+        instrumentation.runOnMainSync{Exporter(c).export(Project(source=source(),layers=mutableListOf(layer)),{}){result=it;latch.countDown()}}
+        assertTrue("Still export timeout",latch.await(30,java.util.concurrent.TimeUnit.SECONDS));val exported=result!!.getOrThrow();assertTrue(exported.length()>10000)
+        exported.copyTo(File(c.getExternalFilesDir(null),"validation/custom-inline-story.jpg"),overwrite=true)
+    }
     @Test fun unicodeEmojiCursorBackgroundAndSingleTapReedit(){
         Store(c).clearTextEdit();Store(c).save(Project(source=source()))
         ActivityScenario.launch(MainActivity::class.java).use{scenario->

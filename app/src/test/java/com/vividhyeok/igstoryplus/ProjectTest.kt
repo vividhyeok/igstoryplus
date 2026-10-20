@@ -5,6 +5,13 @@ import org.junit.Test
 import kotlin.math.*
 
 class ProjectTest {
+    @Test fun inlineImageReferencesSurviveHistoryAndLegacyText(){
+        val gson=com.google.gson.Gson();val old=gson.fromJson("""{"kind":"text","text":"기존"}""",Layer::class.java)
+        assertTrue(old.inlineEmoji.isEmpty())
+        val p=Project(layers=mutableListOf(Layer(kind="text",text="함께 \uE000 예배",inlineEmoji=mutableMapOf("\uE000" to "file:///android_asset/emoji/church.png"))))
+        val history=History();history.push(p);p.layers.single().text="삭제";p.layers.single().inlineEmoji.clear()
+        val restored=history.undo(p)!!.layers.single();assertEquals("함께 \uE000 예배",restored.text);assertEquals("file:///android_asset/emoji/church.png",restored.inlineEmoji["\uE000"])
+    }
     @Test fun beatInterpolationAndLegacySourceAudio(){
         assertEquals(.75f,beatAt(floatArrayOf(1f,.5f),25000),.0001f)
         assertEquals(0f,beatAt(floatArrayOf(1f),-1),0f)

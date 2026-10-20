@@ -21,7 +21,7 @@ data class Layer(var id: String = UUID.randomUUID().toString(), var kind: String
                  var rotation: Float = 0f, var width: Float = .45f, var motion: Boolean = false,
                  var crop: Crop = Crop(), var textLayoutVersion: Int = 0,
                  var photoStyle:Style?=null,var motionStyle:String="기본",var motionAmount:Float=.4f,
-                 var textBackground:String="기존")
+                 var textBackground:String="기존",var inlineEmoji:MutableMap<String,String> = mutableMapOf())
 data class Music(var uri: String = "", var title: String = "", var artist: String = "", var album: String = "",
                  var art: String = "", var durationMs: Long = 0, var startMs: Long = 0, var card: String = "스토리", var volume: Float = 1f,
                  var loop:Boolean=false)

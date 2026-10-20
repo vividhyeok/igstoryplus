@@ -113,7 +113,8 @@ object Artwork {
             if(l.type=="Film Caption")setShadowLayer(4f,0f,2f,Color.BLACK)
             if(l.type=="네온")setShadowLayer(18f,0f,0f,l.color)
         }
-        val layout=StaticLayout.Builder.obtain(l.text,0,l.text.length,p,880).setAlignment(when(l.align){0->Layout.Alignment.ALIGN_NORMAL;2->Layout.Alignment.ALIGN_OPPOSITE;else->Layout.Alignment.ALIGN_CENTER}).setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE).setIncludePad(true).build()
+        val text=InlineEmoji.styled(c,l)
+        val layout=StaticLayout.Builder.obtain(text,0,text.length,p,880).setAlignment(when(l.align){0->Layout.Alignment.ALIGN_NORMAL;2->Layout.Alignment.ALIGN_OPPOSITE;else->Layout.Alignment.ALIGN_CENTER}).setBreakStrategy(android.graphics.text.LineBreaker.BREAK_STRATEGY_SIMPLE).setIncludePad(true).build()
         val b=Bitmap.createBitmap(960,layout.height+64,Bitmap.Config.ARGB_8888); val canvas=Canvas(b)
         textDecoration(canvas,l,b.height,layout)
         canvas.translate(40f,32f)
