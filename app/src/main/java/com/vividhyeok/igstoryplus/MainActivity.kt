@@ -162,7 +162,8 @@ class MainActivity : AppCompatActivity() {
             override fun onChildViewAdded(parent:View?,child:View?){
                 if(child is TextView && child.contentDescription!="인스타 스토리로 공유"){
                     val name=child.text.toString();val icon=when(name){"⋯"->"더보기";"×"->"선택 해제";"음악 구간"->"음악 구간";else->name}
-                    if(name in listOf("⋯","×","사진 추가","스타일","저장","자르기","교체","수정","글꼴","색상","정렬","복제","삭제","음악 구간","카드","볼륨")){
+                    if(name in listOf("⋯","×","사진 추가","스타일","저장","자르기","교체","수정","글꼴","색상","정렬","복제","삭제","음악 구간","카드","볼륨","수평","플러스","배치")){
+                        if(name=="×")child.text="선택 해제" else if(name=="⋯")child.text="더보기"
                         child.textSize=10f;child.minWidth=dp(52);child.setPadding(dp(6),dp(3),dp(6),dp(3));child.setCompoundDrawables(null,EditorIcons.drawable(icon).apply{setBounds(0,0,dp(23),dp(23))},null,null);child.compoundDrawablePadding=dp(2)
                     }
                 }
