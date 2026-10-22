@@ -33,6 +33,7 @@ class StoryUxTest{
             onView(withContentDescription("캔버스 텍스트 입력")).perform(replaceText("예수님과 함께\n오늘도 교회에 갑니다"))
             activity{it.window.decorView.findViewWithTag<EditText>("canvas-text-input").setSelection(7)}
             onView(withContentDescription("텍스트 개인 이모지")).perform(click());SystemClock.sleep(300)
+            onView(withText("교회·신앙")).perform(click())
             onView(withContentDescription("문장 이모지: 예수님")).perform(click())
             activity{a->val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input");assertEquals(8,input.selectionStart);assertEquals(1,input.text.getSpans(0,input.length(),InlineEmoji.ImageGlyph::class.java).size);input.setSelection(input.length()-4)}
             onView(withContentDescription("문장 이모지: 교회")).perform(click())
