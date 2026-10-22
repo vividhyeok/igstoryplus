@@ -39,7 +39,12 @@ class ReleaseV052Test {
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             var selected:EmojiItem?=null
             scenario.onActivity{a->EmojiPickerDialog(a,{selected=it},{}).show()}
-            onView(withContentDescription("이모지 검색")).perform(replaceText("녹차"),closeSoftKeyboard())
+            onView(withContentDescription("이모지 검색")).perform(click(),replaceText("녹차"))
+            onView(withContentDescription("차 한 잔 즐겨찾기 추가")).check(matches(isDisplayed()))
+            onView(withText("폴더 변경")).check(matches(isDisplayed()))
+            android.os.SystemClock.sleep(700)
+            capture("search-keyboard")
+            onView(withContentDescription("이모지 검색")).perform(closeSoftKeyboard())
             onView(withContentDescription("차 한 잔 즐겨찾기 추가")).perform(click())
             onView(withContentDescription("이모지 검색 지우기")).perform(click())
             onView(withText("즐겨찾기")).perform(click()).check(matches(isSelected()))

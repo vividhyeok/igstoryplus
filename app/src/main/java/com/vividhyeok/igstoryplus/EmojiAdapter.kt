@@ -13,7 +13,7 @@ class EmojiAdapter(private val files:List<EmojiItem>,private val favorites:Set<S
     override fun onCreateViewHolder(parent:ViewGroup,viewType:Int):Holder {
         val c=parent.context;val density=c.resources.displayMetrics.density
         fun dp(n:Int)=(n*density).toInt()
-        val box=LinearLayout(c).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(3),dp(3),dp(3),dp(3));layoutParams=RecyclerView.LayoutParams(-1,dp(144));isFocusable=true;background=GradientDrawable().apply{setColor(0xFF27272D.toInt());cornerRadius=dp(12).toFloat()}}
+        val box=LinearLayout(c).apply{orientation=LinearLayout.VERTICAL;gravity=Gravity.CENTER;setPadding(dp(3),dp(3),dp(3),dp(3));layoutParams=RecyclerView.LayoutParams(-1,dp(144)).apply{setMargins(dp(2),dp(2),dp(2),dp(2))};isFocusable=true;background=GradientDrawable().apply{setColor(0xFF27272D.toInt());cornerRadius=dp(12).toFloat()}}
         val image=ImageView(c).apply{scaleType=ImageView.ScaleType.FIT_CENTER;importantForAccessibility=android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO};box.addView(image,LinearLayout.LayoutParams(-1,dp(64)))
         val title=TextView(c).apply{setTextColor(Color.WHITE);textSize=12f;gravity=Gravity.CENTER;maxLines=1;ellipsize=android.text.TextUtils.TruncateAt.END};box.addView(title,LinearLayout.LayoutParams(-1,dp(24)))
         val star=TextView(c).apply{textSize=20f;gravity=Gravity.CENTER;isFocusable=true;minWidth=dp(48);minHeight=dp(48)};box.addView(star,LinearLayout.LayoutParams(-1,dp(48)))

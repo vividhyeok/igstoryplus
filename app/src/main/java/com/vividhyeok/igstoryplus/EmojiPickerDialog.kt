@@ -10,6 +10,8 @@ import android.view.WindowManager
 import android.widget.*
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 
 /** Fixed controls and an independently scrolling grid, including while searching with the IME. */
 class EmojiPickerDialog(c:Context,private val choose:(EmojiItem)->Unit,private val connect:()->Unit):Dialog(c){
@@ -36,7 +38,7 @@ class EmojiPickerDialog(c:Context,private val choose:(EmojiItem)->Unit,private v
     }
     init{
         val heading=LinearLayout(c).apply{gravity=Gravity.CENTER_VERTICAL}
-        heading.addView(TextView(c).apply{text="내 취향 스티커";setTextColor(Color.WHITE);textSize=18f},LinearLayout.LayoutParams(0,dp(48),1f))
+        heading.addView(TextView(c).apply{text="내 취향 스티커";setTextColor(Color.WHITE);textSize=18f;gravity=Gravity.CENTER_VERTICAL},LinearLayout.LayoutParams(0,dp(48),1f))
         heading.addView(control("닫기"){dismiss()});box.addView(heading)
         box.addView(strip(tabs))
         val searchRow=LinearLayout(c);searchRow.addView(search,LinearLayout.LayoutParams(0,dp(48),1f));searchRow.addView(control("지우기"){search.text.clear()}.apply{contentDescription="이모지 검색 지우기"});box.addView(searchRow)
@@ -44,7 +46,12 @@ class EmojiPickerDialog(c:Context,private val choose:(EmojiItem)->Unit,private v
         box.addView(grid,LinearLayout.LayoutParams(-1,0,1f))
         val actions=LinearLayout(c);actions.addView(control("새로고침"){load()});actions.addView(control("폴더 변경"){dismiss();connect()});box.addView(actions)
         setContentView(box)
-        window?.apply{setBackgroundDrawableResource(android.R.color.transparent);setGravity(Gravity.BOTTOM);setDimAmount(.25f);setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)}
+        window?.apply{setBackgroundDrawableResource(android.R.color.transparent);setGravity(Gravity.BOTTOM);setDimAmount(.25f);setSoftInputMode((if(android.os.Build.VERSION.SDK_INT>=30)WindowManager.LayoutParams.SOFT_INPUT_ADJUST_NOTHING else WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE) or WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)}
+        ViewCompat.setOnApplyWindowInsetsListener(box){_,insets->
+            val ime=if(android.os.Build.VERSION.SDK_INT>=30)insets.getInsets(WindowInsetsCompat.Type.ime()).bottom else 0
+            val bars=insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom
+            box.setPadding(dp(12),dp(8),dp(12),dp(12)+maxOf(ime,bars));insets
+        }
         search.addTextChangedListener(object:android.text.TextWatcher{
             override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){}
             override fun afterTextChanged(s:android.text.Editable?){populate()}
