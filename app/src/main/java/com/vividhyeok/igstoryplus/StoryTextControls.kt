@@ -56,11 +56,32 @@ class StoryTextControls(private val activity:Activity,private val chrome:EditorC
         header.addView(TextView(activity).apply{text="내 이모지 · 문장 안에 삽입";setTextColor(Color.LTGRAY);textSize=12f});body.addView(header)
         val grid=androidx.recyclerview.widget.RecyclerView(activity).apply{contentDescription="내 이모지 목록";layoutManager=androidx.recyclerview.widget.GridLayoutManager(activity,2,androidx.recyclerview.widget.RecyclerView.HORIZONTAL,false);isNestedScrollingEnabled=false}
         body.addView(grid,LinearLayout.LayoutParams(-1,dp(152)))
-        fun populate(items:List<EmojiItem>){grid.adapter=InlineEmojiAdapter(items){session.insertCustomEmoji(it.uri)}}
-        val defaults=EmojiLibrary.defaults(activity);populate(defaults);tray("개인 이모지",body)
-        val path=activity.getSharedPreferences("settings",0).getString("emojiFolder",null)
-        if(path!=null)Thread{val user=runCatching{EmojiFolder.scan(activity.applicationContext,android.net.Uri.parse(path)).map{EmojiLibrary.item(it)}}.getOrDefault(emptyList());activity.runOnUiThread{if(panel=="개인 이모지" && body.isAttachedToWindow)populate(defaults+user)}}.start()
+        val preferences=activity.getSharedPreferences("settings",0)
+        var all=EmojiLibrary.defaults(activity)
+        var category="전체"
+        val categories=row()
+        body.addView(HorizontalScrollView(activity).apply{isHorizontalScrollBarEnabled=false;addView(categories)},1)
+        fun populate(){
+            categories.removeAllViews()
+            (listOf("전체","최근 사용","즐겨찾기")+all.map{it.category}.distinct()).forEach{value->
+                categories.addView(item(value){category=value;populate()}.apply{isSelected=category==value;setTextColor(if(isSelected)0xFFD4FF83.toInt() else Color.LTGRAY);textSize=13f})
+            }
+            val recent=preferences.getString("recent","").orEmpty().split("|")
+            val favorites=preferences.getStringSet("favorites",emptySet())?:emptySet()
+            val tab=if(category in listOf("최근 사용","즐겨찾기"))category else "내 이모지"
+            val shown=EmojiLibrary.select(all,tab,if(tab=="내 이모지")category else "전체",favorites=favorites,recent=recent)
+            grid.adapter=InlineEmojiAdapter(shown){item->
+                session.insertCustomEmoji(item.uri)
+                val latest=preferences.getString("recent","").orEmpty().split("|")
+                preferences.edit().putString("recent",(listOf(item.uri)+latest.filter{it.isNotBlank() && it!=item.uri}).take(30).joinToString("|")).apply()
+            }
+            header.getChildAt(1).let{(it as TextView).text=if(shown.isEmpty())"아직 없어요 · 전체에서 골라보세요" else "${shown.size}개 · 문장 안에 삽입"}
+        }
+        populate();tray("개인 이모지",body)
+        val path=preferences.getString("emojiFolder",null)
+        if(path!=null)Thread{val user=runCatching{EmojiFolder.scan(activity.applicationContext,android.net.Uri.parse(path)).map{EmojiLibrary.item(it)}}.getOrDefault(emptyList());activity.runOnUiThread{if(panel=="개인 이모지" && body.isAttachedToWindow){all=all+user;populate()}}}.start()
     }
+
     private fun advanced(){
         val body=LinearLayout(activity).apply{orientation=LinearLayout.VERTICAL}
         val fonts=row();listOf("기본" to "","세리프" to "system:serif","모노" to "system:monospace").forEach{(label,font)->fonts.addView(item(label){layer.font=font;session.refresh()})};fonts.addView(item("개인 폰트"){importFont()});body.addView(fonts)

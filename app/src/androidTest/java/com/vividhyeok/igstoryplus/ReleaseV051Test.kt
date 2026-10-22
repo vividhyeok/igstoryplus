@@ -65,17 +65,17 @@ class ReleaseV051Test{
         }
     }
     @Test fun all29CustomEmojiRenderAndOnlyCustomEmojiEntryRemains(){
-        val items=EmojiLibrary.defaults(c);assertEquals(29,items.size);assertEquals(29,items.map{it.uri}.distinct().size)
+        val items=EmojiLibrary.defaults(c);assertEquals(33,items.size);assertEquals(33,items.map{it.uri}.distinct().size)
         val l=Layer(kind="text",type="클래식",textLayoutVersion=2,textBackground="채움",width=.8f,textSizeScale=.6f)
         items.forEach{val b=Artwork.decode(c,it.uri);assertEquals(512,b.width);assertTrue(b.hasAlpha());l.text+=InlineEmoji.token(l,it.uri)+" "}
-        val sp=InlineEmoji.styled(c,l) as Spanned;assertEquals(29,sp.getSpans(0,sp.length,InlineEmoji.ImageGlyph::class.java).size)
+        val sp=InlineEmoji.styled(c,l) as Spanned;assertEquals(33,sp.getSpans(0,sp.length,InlineEmoji.ImageGlyph::class.java).size)
         val copy=Store(c).gson.fromJson(Store(c).gson.toJson(l),Layer::class.java);assertEquals(l.inlineEmoji,copy.inlineEmoji);save(Artwork.text(c,copy),"all29-inline")
         Store(c).clearTextEdit();Store(c).save(Project(source=photo()))
         ActivityScenario.launch(MainActivity::class.java).use{
             onView(withContentDescription("텍스트")).perform(click());onView(withContentDescription("텍스트 이모지")).check(androidx.test.espresso.assertion.ViewAssertions.doesNotExist())
             onView(withContentDescription("텍스트 개인 이모지")).perform(click())
-            onView(withContentDescription("내 이모지 목록")).check{v,_->(v as androidx.recyclerview.widget.RecyclerView).scrollToPosition(28)};SystemClock.sleep(300)
-            onView(withContentDescription("문장 이모지: ${items.last().name}")).perform(click());activity{a->val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input");assertEquals(1,input.text.getSpans(0,input.length(),InlineEmoji.ImageGlyph::class.java).size)}
+            onView(withContentDescription("내 이모지 목록")).check{v,_->(v as androidx.recyclerview.widget.RecyclerView).scrollToPosition(items.size-1)};SystemClock.sleep(300)
+            onView(withContentDescription("문장 이모지: ${EmojiLibrary.select(items).last().name}")).perform(click());activity{a->val input=a.window.decorView.findViewWithTag<EditText>("canvas-text-input");assertEquals(1,input.text.getSpans(0,input.length(),InlineEmoji.ImageGlyph::class.java).size)}
             save(ins.uiAutomation.takeScreenshot(),"custom-picker")
             onView(withContentDescription("텍스트 완료")).perform(click())
         }

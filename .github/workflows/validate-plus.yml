@@ -42,6 +42,7 @@ jobs:
           name: story-plus-verification
           path: |
             validation/v051*
+            validation/v052*
             validation/plus*
             validation/custom-inline*
             validation/story-*

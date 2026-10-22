@@ -122,7 +122,7 @@ class EditorUiTest {
     }
     @Test fun bundledEmojiWorkWithoutFolderGrantAndRestore(){
         Store(context).clearTextEdit();context.getSharedPreferences("settings",0).edit().remove("emojiFolder").commit()
-        val items=EmojiLibrary.defaults(context);assertEquals(29,items.size);assertEquals(29,items.map{it.uri}.distinct().size)
+        val items=EmojiLibrary.defaults(context);assertEquals(33,items.size);assertEquals(33,items.map{it.uri}.distinct().size)
         items.forEach{val bitmap=Artwork.decode(context,it.uri);assertEquals(512,bitmap.width);assertEquals(512,bitmap.height);assertEquals(0,Color.alpha(bitmap.getPixel(0,0)))}
         Store(context).save(Project(source=fixtureStory()))
         ActivityScenario.launch(MainActivity::class.java).use{scenario->

@@ -201,5 +201,33 @@
     "category": "리그 오브 레전드",
     "keywords": "화염드래곤",
     "uri": "file:///android_asset/emoji/infernal-dragon.png"
+  },
+  {
+    "id": "tea-time",
+    "name": "차 한 잔",
+    "category": "음식·카페",
+    "keywords": "차 티 녹차 말차 찻잔 tea matcha 휴식 티타임",
+    "uri": "file:///android_asset/emoji/tea-time.png"
+  },
+  {
+    "id": "open-book",
+    "name": "펼친 책",
+    "category": "독서",
+    "keywords": "독서 책 북마크 읽기 서점 book reading 취미",
+    "uri": "file:///android_asset/emoji/open-book.png"
+  },
+  {
+    "id": "coding-laptop",
+    "name": "코딩 노트북",
+    "category": "개발·작업",
+    "keywords": "개발 코딩 프로그래밍 노트북 작업 공부 coding developer laptop",
+    "uri": "file:///android_asset/emoji/coding-laptop.png"
+  },
+  {
+    "id": "headphones",
+    "name": "헤드폰",
+    "category": "일상·취미",
+    "keywords": "음악 헤드폰 플레이리스트 감상 취미 music headphones",
+    "uri": "file:///android_asset/emoji/headphones.png"
   }
 ]

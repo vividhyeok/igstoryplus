@@ -457,35 +457,8 @@ class MainActivity : AppCompatActivity() {
         textTools()
     }
     private fun textTools(){textSession?.let{StoryTextControls(this,chrome,it){pick("font-edit",arrayOf("font/*","application/octet-stream"))}.show()}}
-    private fun emojiLibrary(filter:String="내 이모지"){
-        val path=prefs.getString("emojiFolder",null)
-        val box=column();var dialog:android.app.Dialog?=null;var all=emptyList<EmojiItem>();var category="전체"
-        val tabs=row();listOf("내 이모지","내 폴더","최근 사용","즐겨찾기").forEach{tab->tabs.addView(button(tab){dialog?.dismiss();emojiLibrary(tab)}.apply{alpha=if(filter==tab)1f else .5f})};box.addView(scrollRow(tabs))
-        val search=EditText(this).apply{hint="이모지 검색";contentDescription="이모지 검색";setSingleLine(true);setTextColor(Color.WHITE);setHintTextColor(Color.GRAY)};box.addView(search)
-        val categories=row();box.addView(scrollRow(categories))
-        val actions=row();actions.addView(button("새로고침"){dialog?.dismiss();emojiLibrary(filter)});actions.addView(button("폴더 변경"){dialog?.dismiss();folderPicker.launch(null)});box.addView(actions)
-        val grid=androidx.recyclerview.widget.RecyclerView(this).apply{layoutManager=androidx.recyclerview.widget.GridLayoutManager(this@MainActivity,4)};box.addView(grid,LinearLayout.LayoutParams(-1,dp(260)))
-        val loading=text("이모지 불러오는 중…");box.addView(loading)
-        fun populate(){
-            val fav=prefs.getStringSet("favorites",emptySet())?:emptySet();val recent=prefs.getString("recent","")!!.split("|")
-            val query=search.text.toString().trim()
-            val shown=all.filter{when(filter){"내 이모지"->true;"내 폴더"->!EmojiLibrary.bundled(it.uri);"최근 사용"->it.uri in recent;else->it.uri in fav}}
-                .filter{(category=="전체" || it.category==category) && (query.isBlank() || "${it.name} ${it.category} ${it.keywords}".contains(query,true))}
-                .sortedWith(compareByDescending<EmojiItem>{it.uri in fav}.thenBy{recent.indexOf(it.uri).let{i->if(i<0)999 else i}}.thenBy{it.name})
-            loading.text=if(shown.isEmpty())if(filter=="내 폴더" && path==null)"폴더 변경을 눌러 내 PNG 폴더를 연결하세요" else "검색 결과가 없습니다 · 길게 눌러 즐겨찾기" else "${shown.size}개 · 길게 눌러 즐겨찾기"
-            grid.adapter=EmojiAdapter(shown,fav,{f->dialog?.dismiss();safe{edit{project.layers.add(Layer(kind="png",uri=f.uri,width=if(EmojiLibrary.bundled(f.uri)).11f else .089f));selected=project.layers.last().id};prefs.edit().putString("recent",(listOf(f.uri)+recent.filter{it!=f.uri}).take(30).joinToString("|")).apply()}},
-                {f->val favorites=(prefs.getStringSet("favorites",emptySet())?:emptySet()).toMutableSet();if(!favorites.add(f.uri))favorites.remove(f.uri);prefs.edit().putStringSet("favorites",favorites).apply();populate()})
-        }
-        search.addTextChangedListener(object:android.text.TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun afterTextChanged(s:android.text.Editable?){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){populate()}})
-        dialog=sheet("이모지",box)
-        Thread{
-            val builtin=EmojiLibrary.defaults(applicationContext)
-            val user=if(path==null)Result.success(emptyList()) else runCatching{EmojiFolder.scan(this,Uri.parse(path)).map{EmojiLibrary.item(it)}}
-            runOnUiThread{if(dialog?.isShowing==true){all=builtin+user.getOrDefault(emptyList());
-                (listOf("전체")+all.map{it.category}.distinct()).forEach{value->categories.addView(button(value){category=value;populate()})}
-                populate();if(user.isFailure && filter=="내 폴더")loading.text="폴더 권한이 만료되었습니다. 폴더 변경으로 다시 연결하세요."
-            }}
-        }.start()
+    private fun emojiLibrary(){
+        EmojiPickerDialog(this,{f->safe{edit{project.layers.add(Layer(kind="png",uri=f.uri,width=if(EmojiLibrary.bundled(f.uri)).11f else .089f));selected=project.layers.last().id}}},{folderPicker.launch(null)}).show()
     }
     private fun ensureMusicLayer(){
         val music=project.music?:return

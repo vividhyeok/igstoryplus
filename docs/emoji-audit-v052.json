@@ -1,0 +1,54 @@
+[
+  {
+    "id": "tea-time",
+    "source": "exec-f0d5ec13-6593-4fe5-9e91-02371eb53729.png",
+    "sourceSha256": "ee7cc0f039bf14daf017cef2416d6daaa5e4848c958be1a6b1c4b61e551bc4b7",
+    "outputSha256": "e5f85cbb78af32ff30b2c5a853c10ab991cbefd4face1126387abdb3d7066c24",
+    "outputBytes": 179943,
+    "size": [
+      512,
+      512
+    ],
+    "generation": "Built-in image_gen; transparent background; 3D clay daily-life emoji",
+    "promptSubject": "차 한 잔"
+  },
+  {
+    "id": "open-book",
+    "source": "exec-9a2f7ddb-c44d-44b6-9af7-48d1493f88c1.png",
+    "sourceSha256": "2ef4d51829c581936c975720e1119614b454a9f5869f8076c83d34991ac6e007",
+    "outputSha256": "3b5101cf17c7e19c18666140bc61c2d221e50b2224cfc3b71c6cc50b110bf21c",
+    "outputBytes": 151470,
+    "size": [
+      512,
+      512
+    ],
+    "generation": "Built-in image_gen; transparent background; 3D clay daily-life emoji",
+    "promptSubject": "펼친 책"
+  },
+  {
+    "id": "coding-laptop",
+    "source": "exec-5491ae4d-5887-4a3f-9b4a-82cbcc8fd984.png",
+    "sourceSha256": "799df8fd9f9b0cb927b149e92aa9fb4cebedf28a01b3f53d49d0b7e87ba8a36c",
+    "outputSha256": "552c87632c5678f86439258780c36464befc6ead4ad4b7f25b88837924728edd",
+    "outputBytes": 164468,
+    "size": [
+      512,
+      512
+    ],
+    "generation": "Built-in image_gen; transparent background; 3D clay daily-life emoji",
+    "promptSubject": "코딩 노트북"
+  },
+  {
+    "id": "headphones",
+    "source": "exec-40728349-a71f-4573-a2f1-feffc5b9f7da.png",
+    "sourceSha256": "a198e667ed6afeab1ea548d052463a1037782a70b8fc0c985ad8197a5f8938da",
+    "outputSha256": "2b1ba2ea16fcee8b915966b59adfd92ce00249d712344ecd437bda1bf3f81523",
+    "outputBytes": 170775,
+    "size": [
+      512,
+      512
+    ],
+    "generation": "Built-in image_gen; transparent background; 3D clay daily-life emoji",
+    "promptSubject": "헤드폰"
+  }
+]
