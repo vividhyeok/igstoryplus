@@ -131,7 +131,7 @@ class EditorUiTest {
             assertTrue("Bundled library capture needs the actual source photo",ready)
             onView(withContentDescription("스티커")).perform(click());SystemClock.sleep(400);screenshot("ux-bundled-emoji")
             onView(withContentDescription("이모지 검색")).perform(replaceText("커피"),closeSoftKeyboard())
-            onView(withContentDescription("커피")).perform(click())
+            onView(withContentDescription("스티커 추가: 커피")).perform(click())
             liveActivity{assertTrue(EmojiLibrary.bundled(it.project.layers.single().uri))}
             onView(withContentDescription("png 레이어")).perform(swipeUp());scenario.recreate()
             liveActivity{assertTrue(it.project.layers.single().y<.5f);assertNotNull(Artwork.layer(context,it.project.layers.single(),null))}
@@ -151,7 +151,7 @@ class EditorUiTest {
         context.getSharedPreferences("settings",0).edit().putString("emojiFolder",tree.toString()).apply();Store(context).save(Project(source=fixtureStory()))
         ActivityScenario.launch(MainActivity::class.java).use{scenario->
             onView(withContentDescription("스티커")).perform(click());SystemClock.sleep(400);screenshot("ux-png-library")
-            onView(withContentDescription("test-only.png")).perform(click());liveActivity{assertEquals("png",it.project.layers.single().kind);assertEquals(.089f,it.project.layers.single().width)}
+            onView(withText("내 폴더")).perform(click());onView(withContentDescription("스티커 추가: test-only.png")).perform(click());liveActivity{assertEquals("png",it.project.layers.single().kind);assertEquals(.089f,it.project.layers.single().width)}
             onView(withContentDescription("png 레이어")).perform(swipeUp())
             scenario.recreate();liveActivity{assertEquals("png",it.project.layers.single().kind);assertTrue(it.project.layers.single().y<.5f);it.project=Project();Store(context).save(it.project)}
         }
